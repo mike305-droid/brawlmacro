@@ -6,7 +6,7 @@ CoordMode("Mouse", "Screen")
 ; ===== CONFIGURACION =====
 configPath := A_ScriptDir "\brawlmacro_config.ini"
 global eggsBackupPath := A_ScriptDir "\brawlmacro_eggs.txt"
-global VERSION_ACTUAL := "26.6.8"
+global VERSION_ACTUAL := "26.6.9"
 
 ; ===== TEMAS =====
 temas := [
@@ -5641,7 +5641,21 @@ DescargarYActualizar(verRemota, lblEstado, btnAct) {
 
         try FileDelete(rutaTemp)
 
-        FileAppend(whr.ResponseText, rutaTemp, "UTF-8")
+        ; Escribir los BYTES crudos del response, no el texto decodificado.
+        ; Si usáramos whr.ResponseText con encoding "UTF-8", AHK duplicaba el BOM
+        ; (porque ResponseText ya devuelve U+FEFF al inicio, y "UTF-8" añade otro)
+        ; → el archivo guardado empezaba con EF BB BF EF BB BF → AHK error en línea 1.
+        try {
+            stream := ComObject("ADODB.Stream")
+            stream.Type := 1  ; adTypeBinary
+            stream.Open()
+            stream.Write(whr.ResponseBody)
+            stream.SaveToFile(rutaTemp, 2)  ; adSaveCreateOverWrite
+            stream.Close()
+        } catch Error as eStream {
+            ; Fallback por si ADODB.Stream falla: usar UTF-8-RAW para no duplicar el BOM
+            FileAppend(whr.ResponseText, rutaTemp, "UTF-8-RAW")
+        }
 
         if (!FileExist(rutaTemp)) {
             lblEstado.Value := "Error: no se pudo escribir el archivo temporal."
