@@ -6,7 +6,7 @@ CoordMode("Mouse", "Screen")
 ; ===== CONFIGURACION =====
 configPath := A_ScriptDir "\brawlmacro_config.ini"
 global eggsBackupPath := A_ScriptDir "\brawlmacro_eggs.txt"
-global VERSION_ACTUAL := "26.6.9"
+global VERSION_ACTUAL := "26.7.0"
 
 ; ===== TEMAS =====
 temas := [
@@ -202,8 +202,8 @@ global barraExtraBrillo := 0      ; pulso/shimmer aditivo
 global statsGuiActive := "", statsBarsData := [], statsBarsSubclassCbs := []
 
 ; ===== ACTUALIZADOR =====
-global GITHUB_VERSION_URL := "https://raw.githubusercontent.com/johantakuma2009-bit/brawlmacro/main/parches.txt"
-global GITHUB_SCRIPT_URL  := "https://raw.githubusercontent.com/johantakuma2009-bit/brawlmacro/main/brawlmacrotct.ahk"
+global GITHUB_VERSION_URL := "https://raw.githubusercontent.com/mike305-droid/brawlmacro/main/parches.txt"
+global GITHUB_SCRIPT_URL  := "https://raw.githubusercontent.com/mike305-droid/brawlmacro/main/brawlmacrotct.ahk"
 global updateGui := "", updateGuiVisible := false
 
 ; ===== GUARDAR STATS =====
@@ -5520,9 +5520,9 @@ AbrirVentanaActualizacion(*) {
 
     ; ── Link al repo de GitHub (para instalación directa por amigos) ──
     linkY := btnY + 38 + 12
-    lblRepo := updateGui.Add("Text", "x16 y" linkY " w" (W - 32) " h16 Center Background" colorFondoPrincipal " c" colorTextoPrincipal, Chr(0x1F517) "  Repo: github.com/johantakuma2009-bit/brawlmacro")
+    lblRepo := updateGui.Add("Text", "x16 y" linkY " w" (W - 32) " h16 Center Background" colorFondoPrincipal " c" colorTextoPrincipal, Chr(0x1F517) "  Repo: github.com/mike305-droid/brawlmacro")
     lblRepo.SetFont("s9 Underline", "Segoe UI")
-    lblRepo.OnEvent("Click", (*) => Run("https://github.com/johantakuma2009-bit/brawlmacro"))
+    lblRepo.OnEvent("Click", (*) => Run("https://github.com/mike305-droid/brawlmacro"))
 
     H := linkY + 16 + 14
     updateGui.Show("w" W " h" H " Center")
