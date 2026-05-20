@@ -141,6 +141,15 @@ global logosPulsoDir := 1, logosPulsoT := 0.0
 global hoverBreathT := 0.0, hoverBreathDir := 1, hoverBreathBase := ""
 global hoverBotones := Map()  ; hwnd -> {btn, baseFn}
 
+; ===== CONFIG DE PARTÍCULAS (panel de decoración) =====
+; Porcentajes (0-200) sobre los valores base. Se cargan desde INI más abajo.
+global particulasActivas    := true
+global particulasCantidad   := 100   ; 0-200, escala el conteo base (32 main / 40 hist)
+global particulasVelocidad  := 100   ; 0-200, escala vx/vy
+global particulasTamano     := 100   ; 50-200, escala el radio
+global particulasOpacidad   := 100   ; 25-200, escala el alpha (clamp a 255)
+global partGui := "", partGuiVisible := false
+
 ; ===== LOGO GIRATORIO (GDI+) =====
 global gdipToken := 0, gdipInited := false
 global logoFontFamily := 0, logoStringFormat := 0
@@ -171,6 +180,8 @@ global confetiGui := "", confetiParticles := [], confetiActivo := false, confeti
 global logros := []
 global logrosGui := "", logrosGuiVisible := false, btnLogros := ""
 global scrollTrack := "", scrollThumb := ""
+global ultimoThumbY := -1, ultimoThumbH := -1
+global ultimoAfkMove := A_TickCount  ; watchdog: timestamp del último MouseMove del AFK
 global toastGui := "", toastX := 0, toastStartY := 0, toastTargetY := 0, toastStep := 0, toastDuracion := 3000
 global logoGlitchActivo := false, logoGlitchHasta := 0, logoGlitchOffX := 0, logoGlitchOffY := 0
 global milestonesList := [50, 100, 250, 500, 1000], milestonesVistos := []
@@ -314,6 +325,7 @@ MostrarEstadisticas(*) {
 
     sg.Show("w" W " h254 Center")
     RedondearVentana(sg.Hwnd, 14)
+    RegistrarAutoCierre(sg, CerrarStatsGui)
 }
 
 CerrarStatsGui(*) {
@@ -925,29 +937,73 @@ global particulasInited := false
 global overlayPartMain := "", overlayPartHist := ""
 
 InicializarParticulas(arr, w, h, n := 35) {
+    global particulasCantidad, particulasVelocidad, particulasTamano, particulasOpacidad
     while (arr.Length > 0)
         arr.Pop()
-    loop n {
+    ; Aplicar multiplicadores de cantidad sobre el baseN
+    realN := Max(0, Round(n * particulasCantidad / 100))
+    factorVel := particulasVelocidad / 100
+    factorTam := particulasTamano / 100
+    factorAlpha := particulasOpacidad / 100
+    loop realN {
         arr.Push({
             x:     Random(0.0, w * 1.0),
             y:     Random(0.0, h * 1.0),
-            vx:    Random(-100, 100) / 500.0,
-            vy:    Random(-100, 100) / 650.0,
-            r:     Random(20, 45) / 10.0,           ; antes 15-32, ahora 20-45 → más grandes
-            alpha: Random(45, 110)                  ; antes 18-55, ahora 45-110 → mucho más visibles
+            vx:    (Random(-100, 100) / 500.0) * factorVel,
+            vy:    (Random(-100, 100) / 650.0) * factorVel,
+            r:     (Random(20, 45) / 10.0) * factorTam,
+            alpha: Min(255, Round(Random(45, 110) * factorAlpha))
         })
+    }
+}
+
+; Aplica la config actual: re-inicializa los arrays con los nuevos multiplicadores
+; y muestra/oculta los overlays según el toggle de activadas.
+AplicarConfigParticulas() {
+    global particulasMain, particulasHist, miGui, historialGui, historialVisible
+    global overlayPartMain, overlayPartHist, particulasActivas
+    static BAR_H := 25
+
+    if (IsObject(miGui) && IsObject(overlayPartMain)) {
+        miGui.GetPos(,, &mw, &mh)
+        InicializarParticulas(particulasMain, mw, mh - BAR_H, 32)
+        if (particulasActivas) {
+            try overlayPartMain.Show("NoActivate")
+        } else {
+            try overlayPartMain.Hide()
+        }
+    }
+    if (IsObject(historialGui) && IsObject(overlayPartHist)) {
+        historialGui.GetPos(,, &hw, &hh)
+        InicializarParticulas(particulasHist, hw, hh - BAR_H, 40)
+        if (particulasActivas && historialVisible) {
+            try overlayPartHist.Show("NoActivate")
+        } else {
+            try overlayPartHist.Hide()
+        }
     }
 }
 
 ActualizarParticulas() {
     global particulasMain, particulasHist, miGui, historialGui, historialVisible, particulasInited
-    global temaEnTransicion
-    if (!particulasInited || temaEnTransicion)
+    global overlayPartMain, overlayPartHist
+    global temaEnTransicion, particulasActivas
+    if (!particulasInited || temaEnTransicion || !particulasActivas)
         return
 
-    ; Pintar partículas directamente sobre miGui (con WS_CLIPCHILDREN sólo se ven en los huecos)
-    if (IsObject(miGui)) {
-        miGui.GetPos(,, &mw, &mh)
+    static BAR_H := 25  ; alto de la barra de título excluida del overlay
+    ; Sincronizar overlay con la ventana padre (sigue el drag) y repintar.
+    ; Saltar actualización si el padre está minimizado — GetPos devolvería coords
+    ; basura del estado minimizado y las partículas se apiñarían ahí.
+    ; Todo dentro de try/catch porque durante minimize/restore Windows puede dejar
+    ; las ventanas en estados transitorios donde GetPos/Move tiran excepciones.
+    try if (IsObject(miGui) && IsObject(overlayPartMain) && !DllCall("IsIconic", "Ptr", miGui.Hwnd, "Int")) {
+        miGui.GetPos(&mx, &my, &mw, &mh)
+        overlayPartMain.GetPos(&ox, &oy, &ow, &oh)
+        targetY := my + BAR_H
+        targetH := mh - BAR_H
+        if (mx != ox || targetY != oy || mw != ow || targetH != oh)
+            overlayPartMain.Move(mx, targetY, mw, targetH)
         for p in particulasMain {
             p.x += p.vx
             p.y += p.vy
@@ -956,15 +1012,20 @@ ActualizarParticulas() {
             else if (p.x > mw + 8)
                 p.x := -8
             if (p.y < -8)
-                p.y := mh + 8
-            else if (p.y > mh + 8)
+                p.y := targetH + 8
+            else if (p.y > targetH + 8)
                 p.y := -8
         }
-        ; RDW_INVALIDATE | RDW_ERASE | RDW_NOCHILDREN → invalida solo el padre, no parpadean hijos
-        DllCall("RedrawWindow", "Ptr", miGui.Hwnd, "Ptr", 0, "Ptr", 0, "UInt", 0x45)
+        PintarOverlayParticulas(overlayPartMain.Hwnd, mw, targetH, particulasMain)
     }
-    if (IsObject(historialGui) && historialVisible) {
-        historialGui.GetPos(,, &hw, &hh)
+    try if (IsObject(historialGui) && IsObject(overlayPartHist) && historialVisible
+        && !DllCall("IsIconic", "Ptr", historialGui.Hwnd, "Int")) {
+        historialGui.GetPos(&hx, &hy, &hw, &hh)
+        overlayPartHist.GetPos(&ox, &oy, &ow, &oh)
+        targetY := hy + BAR_H
+        targetH := hh - BAR_H
+        if (hx != ox || targetY != oy || hw != ow || targetH != oh)
+            overlayPartHist.Move(hx, targetY, hw, targetH)
         for p in particulasHist {
             p.x += p.vx
             p.y += p.vy
@@ -973,105 +1034,182 @@ ActualizarParticulas() {
             else if (p.x > hw + 8)
                 p.x := -8
             if (p.y < -8)
-                p.y := hh + 8
-            else if (p.y > hh + 8)
+                p.y := targetH + 8
+            else if (p.y > targetH + 8)
                 p.y := -8
         }
-        DllCall("RedrawWindow", "Ptr", historialGui.Hwnd, "Ptr", 0, "Ptr", 0, "UInt", 0x45)
+        ; Excluir el rect del scrollbar custom (x=243 w=17, y=35 h=110 en historialGui →
+        ; en coords del overlay: y = 35 - BAR_H = 10). Así las partículas no pintan sobre el thumb.
+        PintarOverlayParticulas(overlayPartHist.Hwnd, hw, targetH, particulasHist,
+            { x: 243, y: 35 - BAR_H, w: 17, h: 110 })
     }
 }
 
-PintarFondoParticulas(hdc, w, h, particulas) {
-    global colorFondoPrincipal, colorLogoMacro, temaPremiumActivo, rgbBarraHue
+; ===== WATCHDOG AFK =====
+; Si el macro está activo pero el AFK (MouseMove ±1px) no se ha disparado en > 3 min,
+; algo se atascó (diálogo de error, deadlock, fuga, lo que sea). Re-lanzamos el script
+; para que la AFK vuelva a funcionar antes de que Windows considere el PC inactivo.
+WatchdogAFK() {
+    global activo, ultimoAfkMove, configPath
+    if (!activo)
+        return
+    elapsed := A_TickCount - ultimoAfkMove
+    if (elapsed > 90000) {  ; 90 s sin AFK = algo se atascó
+        try {
+            IniWrite(FormatTime(, "yyyy-MM-dd HH:mm:ss"), configPath, "Watchdog", "UltimoReinicio")
+            IniWrite(elapsed, configPath, "Watchdog", "MsSinAFK")
+            IniWrite(1,       configPath, "Watchdog", "AutoStart")
+        }
+        Reload()
+    }
+}
 
-    memDC  := DllCall("CreateCompatibleDC",     "Ptr", hdc, "Ptr")
-    hbm    := DllCall("CreateCompatibleBitmap", "Ptr", hdc, "Int", w, "Int", h, "Ptr")
-    oldBmp := DllCall("SelectObject",           "Ptr", memDC, "Ptr", hbm, "Ptr")
 
-    ; Fondo del color del tema actual (para que con WS_CLIPCHILDREN se vea bien)
-    brushBg := DllCall("CreateSolidBrush", "UInt", HexToBGR(colorFondoPrincipal), "Ptr")
-    rc := Buffer(16, 0)
-    NumPut("Int", 0, rc, 0)
-    NumPut("Int", 0, rc, 4)
-    NumPut("Int", w, rc, 8)
-    NumPut("Int", h, rc, 12)
-    DllCall("FillRect", "Ptr", memDC, "Ptr", rc, "Ptr", brushBg)
-    DllCall("DeleteObject", "Ptr", brushBg)
+; Pinta partículas con alpha por píxel (PARGB) sobre la overlay layered y las muestra
+; vía UpdateLayeredWindow. Así cada partícula se mezcla contra los píxeles reales que
+; hay detrás (sin halo y respetando el fondo), no contra una color-key negra.
+PintarOverlayParticulas(overlayHwnd, w, h, particulas, excludeRect := "") {
+    global colorLogoMacro, colorFondoPrincipal, temaPremiumActivo, rgbBarraHue
+
+    if (w <= 0 || h <= 0)
+        return
+
+    ; Bitmap GDI+ con formato PARGB (premultiplicado, lo que UpdateLayeredWindow espera)
+    static PixelFormat32bppPARGB := 0xE200B
+    bmp := 0
+    if (DllCall("gdiplus\GdipCreateBitmapFromScan0",
+        "Int", w, "Int", h, "Int", 0,
+        "Int", PixelFormat32bppPARGB,
+        "Ptr", 0, "Ptr*", &bmp) != 0)
+        return
 
     g := 0
-    DllCall("gdiplus\GdipCreateFromHDC", "Ptr", memDC, "Ptr*", &g)
-    if (g) {
-        DllCall("gdiplus\GdipSetSmoothingMode", "Ptr", g, "Int", 4)
+    if (DllCall("gdiplus\GdipGetImageGraphicsContext", "Ptr", bmp, "Ptr*", &g) != 0 || !g) {
+        DllCall("gdiplus\GdipDisposeImage", "Ptr", bmp)
+        return
+    }
 
-        tint := colorLogoMacro
-        rC := Integer("0x" SubStr(tint, 1, 2))
-        gC := Integer("0x" SubStr(tint, 3, 2))
-        bC := Integer("0x" SubStr(tint, 5, 2))
+    DllCall("gdiplus\GdipSetSmoothingMode", "Ptr", g, "Int", 4)            ; AA on
+    DllCall("gdiplus\GdipGraphicsClear",    "Ptr", g, "UInt", 0x00000000)   ; transparente total
 
-        for i, p in particulas {
-            if (temaPremiumActivo) {
-                ; Cada partícula su propio color del arcoíris (offset por índice + tiempo)
-                huePart := Mod(rgbBarraHue * 3 + i * 25, 360)
-                cHex := HSVaHex(huePart, 1.0, 1.0)
-                rPi := Integer("0x" SubStr(cHex, 1, 2))
-                gPi := Integer("0x" SubStr(cHex, 3, 2))
-                bPi := Integer("0x" SubStr(cHex, 5, 2))
-                alphaP := Min(255, p.alpha + 50)
-                argb := (alphaP << 24) | (rPi << 16) | (gPi << 8) | bPi
-            } else {
-                argb := (p.alpha << 24) | (rC << 16) | (gC << 8) | bC
-            }
-            brush := 0
-            DllCall("gdiplus\GdipCreateSolidFill", "UInt", argb, "Ptr*", &brush)
-            DllCall("gdiplus\GdipFillEllipse",     "Ptr", g, "Ptr", brush,
-                    "Float", p.x - p.r, "Float", p.y - p.r,
-                    "Float", p.r * 2, "Float", p.r * 2)
-            DllCall("gdiplus\GdipDeleteBrush", "Ptr", brush)
+    ; Excluir del clip una zona (p. ej. la del scrollbar) para que las partículas no pinten ahí
+    if (IsObject(excludeRect)) {
+        DllCall("gdiplus\GdipSetClipRectI", "Ptr", g,
+            "Int", excludeRect.x, "Int", excludeRect.y,
+            "Int", excludeRect.w, "Int", excludeRect.h,
+            "Int", 4)   ; CombineModeExclude
+    }
+
+    tint := colorLogoMacro
+    rC := Integer("0x" SubStr(tint, 1, 2))
+    gC := Integer("0x" SubStr(tint, 3, 2))
+    bC := Integer("0x" SubStr(tint, 5, 2))
+
+    ; Si el tema es CLARO (fondo con luminancia alta), aclarar el tinte mezclando con blanco.
+    ; Si no, sobre fondo claro se ven puntos oscuros sucios. Sobre tema oscuro no se toca.
+    rF := Integer("0x" SubStr(colorFondoPrincipal, 1, 2))
+    gF := Integer("0x" SubStr(colorFondoPrincipal, 3, 2))
+    bF := Integer("0x" SubStr(colorFondoPrincipal, 5, 2))
+    if ((rF * 299 + gF * 587 + bF * 114) / 1000 > 180) {  ; luminancia > 180/255 ≈ claro
+        rC := (rC + 255) // 2
+        gC := (gC + 255) // 2
+        bC := (bC + 255) // 2
+    }
+
+    for i, p in particulas {
+        if (temaPremiumActivo) {
+            huePart := Mod(rgbBarraHue * 3 + i * 25, 360)
+            cHex := HSVaHex(huePart, 1.0, 1.0)
+            rPi := Integer("0x" SubStr(cHex, 1, 2))
+            gPi := Integer("0x" SubStr(cHex, 3, 2))
+            bPi := Integer("0x" SubStr(cHex, 5, 2))
+            alphaP := Min(255, p.alpha + 50)
+            argb := (alphaP << 24) | (rPi << 16) | (gPi << 8) | bPi
+        } else {
+            argb := (p.alpha << 24) | (rC << 16) | (gC << 8) | bC
         }
-        DllCall("gdiplus\GdipDeleteGraphics", "Ptr", g)
+        brush := 0
+        DllCall("gdiplus\GdipCreateSolidFill", "UInt", argb, "Ptr*", &brush)
+        DllCall("gdiplus\GdipFillEllipse",     "Ptr", g, "Ptr", brush,
+                "Float", p.x - p.r, "Float", p.y - p.r,
+                "Float", p.r * 2, "Float", p.r * 2)
+        DllCall("gdiplus\GdipDeleteBrush", "Ptr", brush)
     }
 
-    DllCall("BitBlt", "Ptr", hdc, "Int", 0, "Int", 0, "Int", w, "Int", h, "Ptr", memDC, "Int", 0, "Int", 0, "UInt", 0x00CC0020)
-    DllCall("SelectObject", "Ptr", memDC, "Ptr", oldBmp)
+    DllCall("gdiplus\GdipDeleteGraphics", "Ptr", g)
+
+    ; HBITMAP premultiplicado a partir del Bitmap PARGB
+    hbm := 0
+    DllCall("gdiplus\GdipCreateHBITMAPFromBitmap", "Ptr", bmp, "Ptr*", &hbm, "UInt", 0)
+    DllCall("gdiplus\GdipDisposeImage", "Ptr", bmp)
+    if (!hbm)
+        return
+
+    hdcScreen := DllCall("GetDC", "Ptr", 0, "Ptr")
+    hdcMem    := DllCall("CreateCompatibleDC", "Ptr", hdcScreen, "Ptr")
+    oldBmp    := DllCall("SelectObject", "Ptr", hdcMem, "Ptr", hbm, "Ptr")
+
+    sizeWin := Buffer(8, 0)
+    NumPut("Int", w, sizeWin, 0)
+    NumPut("Int", h, sizeWin, 4)
+    ptSrc := Buffer(8, 0)
+    NumPut("Int", 0, ptSrc, 0)
+    NumPut("Int", 0, ptSrc, 4)
+    blend := Buffer(4, 0)
+    NumPut("UChar", 0,   blend, 0)   ; BlendOp = AC_SRC_OVER
+    NumPut("UChar", 0,   blend, 1)   ; BlendFlags
+    NumPut("UChar", 255, blend, 2)   ; SourceConstantAlpha (255 = usar alpha por píxel)
+    NumPut("UChar", 1,   blend, 3)   ; AlphaFormat = AC_SRC_ALPHA
+
+    DllCall("UpdateLayeredWindow",
+        "Ptr",  overlayHwnd,
+        "Ptr",  hdcScreen,
+        "Ptr",  0,          ; pptDst NULL → no mover
+        "Ptr",  sizeWin,
+        "Ptr",  hdcMem,
+        "Ptr",  ptSrc,
+        "UInt", 0,          ; crKey (no se usa)
+        "Ptr",  blend,
+        "UInt", 2,          ; ULW_ALPHA
+        "Int")
+
+    DllCall("SelectObject", "Ptr", hdcMem, "Ptr", oldBmp)
+    DllCall("DeleteDC",     "Ptr", hdcMem)
+    DllCall("ReleaseDC",    "Ptr", 0, "Ptr", hdcScreen)
     DllCall("DeleteObject", "Ptr", hbm)
-    DllCall("DeleteDC",     "Ptr", memDC)
-}
-
-ParticulasSubclassProc(hWnd, uMsg, wParam, lParam, idSubclass, refData) {
-    static WM_ERASEBKGND := 0x0014
-    if (uMsg = WM_ERASEBKGND) {
-        global particulasMain, particulasHist, temaEnTransicion
-        if (temaEnTransicion)
-            return DllCall("Comctl32.dll\DefSubclassProc", "Ptr", hWnd, "UInt", uMsg, "Ptr", wParam, "Ptr", lParam, "Ptr")
-        rc := Buffer(16, 0)
-        DllCall("GetClientRect", "Ptr", hWnd, "Ptr", rc)
-        w := NumGet(rc, 8, "Int")
-        h := NumGet(rc, 12, "Int")
-        arr := (idSubclass = 21) ? particulasMain : particulasHist
-        PintarFondoParticulas(wParam, w, h, arr)
-        return 1
-    }
-    return DllCall("Comctl32.dll\DefSubclassProc", "Ptr", hWnd, "UInt", uMsg, "Ptr", wParam, "Ptr", lParam, "Ptr")
 }
 
 InstalarSubclassParticulas() {
-    global miGui, historialGui, miGuiPartCb, histGuiPartCb
-    global particulasMain, particulasHist, particulasInited
+    global miGui, historialGui
+    global overlayPartMain, overlayPartHist
+    global particulasMain, particulasHist, particulasInited, historialVisible
 
-    if (IsObject(miGui) && !miGuiPartCb) {
-        ; WS_CLIPCHILDREN ON → partículas solo en los huecos (no parpadea texto)
+    ; Las partículas se renderizan en ventanas overlay layered + click-through encima
+    ; del padre. Así aparecen sobre TODOS los controles (incluido el hitbox de los textos)
+    ; sin sufrir el clipping de WS_CLIPCHILDREN.
+
+    static BAR_H := 25  ; alto de la barra de título — se excluye del overlay
+    if (IsObject(miGui) && !IsObject(overlayPartMain)) {
+        ; WS_CLIPCHILDREN en el padre → evita flicker en los hijos cuando el padre se invalida
         try WinSetStyle("+0x02000000", "ahk_id " miGui.Hwnd)
-        miGuiPartCb := CallbackCreate(ParticulasSubclassProc, "F", 6)
-        DllCall("Comctl32.dll\SetWindowSubclass", "Ptr", miGui.Hwnd, "Ptr", miGuiPartCb, "Ptr", 21, "Ptr", 0)
-        miGui.GetPos(,, &mw, &mh)
-        InicializarParticulas(particulasMain, mw, mh, 40)   ; antes 18 → 40
+        miGui.GetPos(&mx, &my, &mw, &mh)
+        ; +AlwaysOnTop es OBLIGATORIO porque miGui es topmost — sin esto, la overlay queda
+        ; en la capa normal y el padre topmost la oculta entera (las partículas no se ven).
+        ; Sin WinSetTransColor: la transparencia se gestiona con UpdateLayeredWindow (alpha por píxel)
+        ; → sin halo en los bordes ni mezcla contra fondo negro.
+        overlayPartMain := Gui("+AlwaysOnTop -Caption +ToolWindow +E0x80020")  ; WS_EX_LAYERED | WS_EX_TRANSPARENT
+        overlayPartMain.Opt("+Owner" miGui.Hwnd)
+        overlayPartMain.Show("x" mx " y" (my + BAR_H) " w" mw " h" (mh - BAR_H) " NoActivate")
+        InicializarParticulas(particulasMain, mw, mh - BAR_H, 32)
     }
-    if (IsObject(historialGui) && !histGuiPartCb) {
+    if (IsObject(historialGui) && !IsObject(overlayPartHist)) {
         try WinSetStyle("+0x02000000", "ahk_id " historialGui.Hwnd)
-        histGuiPartCb := CallbackCreate(ParticulasSubclassProc, "F", 6)
-        DllCall("Comctl32.dll\SetWindowSubclass", "Ptr", historialGui.Hwnd, "Ptr", histGuiPartCb, "Ptr", 22, "Ptr", 0)
-        historialGui.GetPos(,, &hw, &hh)
-        InicializarParticulas(particulasHist, hw, hh, 50)   ; antes 14 → 50 (historial tiene más controles tapando)
+        historialGui.GetPos(&hx, &hy, &hw, &hh)
+        overlayPartHist := Gui("+AlwaysOnTop -Caption +ToolWindow +E0x80020")
+        overlayPartHist.Opt("+Owner" historialGui.Hwnd)
+        if (historialVisible)
+            overlayPartHist.Show("x" hx " y" (hy + BAR_H) " w" hw " h" (hh - BAR_H) " NoActivate")
+        InicializarParticulas(particulasHist, hw, hh - BAR_H, 40)
     }
     particulasInited := true
 }
@@ -1391,12 +1529,15 @@ barraHistorial.SetFont("s11 c" colorTextoBarra " Bold", "Segoe UI")
 ; (si arrastra antes, el drag modal de Windows bloquea el segundo handler)
 barraHistorial.OnEvent("Click", (*) => (ClickBarraHistorialNika(), ArrastrarHistorial()))
 
-historialBox := historialGui.Add("Custom", "ClassRICHEDIT50W x10 y35 w250 h110 +0x4 +0x10 +0x40 +0x800 +0x200000 vHistorial")
+; Sin WS_VSCROLL (0x200000): el RichEdit no dibuja scrollbar nativa nunca,
+; ni al hacer wheel, ni al re-pintar, ni al reflowar el texto. El scroll por
+; mensajes (EM_SETSCROLLPOS) y la rueda siguen funcionando igual.
+historialBox := historialGui.Add("Custom", "ClassRICHEDIT50W x10 y35 w250 h110 +0x4 +0x10 +0x40 +0x800 vHistorial")
 historialBox.Opt("+ReadOnly -TabStop")
 SendMessage(0x00CF, 0, 0, historialBox)
 SendMessage(0x0443, 0, HexToBGR(colorFondoHistorial), , "ahk_id " historialBox.Hwnd)
 
-; ── Scrollbar custom encima del nativo blanco ──
+; ── Scrollbar custom encima del RichEdit (sin WS_VSCROLL no hay nativa que tape) ──
 ; Track de fondo + thumb que se mueve. Los colores siguen al tema.
 scrollTrack := historialGui.Add("Text", "x243 y35 w17 h110 +0x201 Background" colorBotonNormal, "")
 scrollThumb := historialGui.Add("Text", "x244 y35 w15 h26 +0x201 Background" colorBotonHover, "")
@@ -1439,6 +1580,9 @@ btnWebhook.OnEvent("Click", AbrirPanelWebhook)
 btnLogros := historialGui.Add("Text", "x114 y327 w22 h20 +0x201 Background" colorBotonNormal " c" colorBtnTexto, Chr(0x1F3C5))
 btnLogros.SetFont("s9 c" colorBtnTexto, "Segoe UI Emoji")
 btnLogros.OnEvent("Click", AbrirPanelLogros)
+btnPart := historialGui.Add("Text", "x88 y327 w22 h20 +0x201 Background" colorBotonNormal " c" colorBtnTexto, Chr(0x2728))
+btnPart.SetFont("s9 c" colorBtnTexto, "Segoe UI Emoji")
+btnPart.OnEvent("Click", AbrirPanelParticulas)
 ; Acentos hover para botones del historial (viven en historialGui)
 hoverAccentHist      := historialGui.Add("Text", "x-20 y-20 w5 h0  Background" colorBarra, "")
 hoverAccentBotHist   := historialGui.Add("Text", "x-20 y-20 w0 h4  Background" colorBarra, "")
@@ -1457,6 +1601,13 @@ if (_savedHistX != "" && _savedHistY != "")
 historialVisible := Integer(IniRead(configPath, "UI", "HistorialVisible", "1")) = 1
 if (!historialVisible)
     historialGui.Hide()
+
+; Cargar config de partículas
+particulasActivas   := Integer(IniRead(configPath, "Particulas", "Activas",    "1")) = 1
+particulasCantidad  := Integer(IniRead(configPath, "Particulas", "Cantidad",   "100"))
+particulasVelocidad := Integer(IniRead(configPath, "Particulas", "Velocidad",  "100"))
+particulasTamano    := Integer(IniRead(configPath, "Particulas", "Tamano",     "100"))
+particulasOpacidad  := Integer(IniRead(configPath, "Particulas", "Opacidad",   "100"))
 
 barra := miGui.Add("Text", "x0 y0 w400 h25 Background" colorBarra " Center", "AFK MACRO")
 barra.SetFont("s13 c" colorTextoBarra " Bold", "Segoe UI Semibold")
@@ -1522,6 +1673,7 @@ RegistrarHover(btnRGBBtn,    () => (rgbBotones ? colorRGBActual : colorBotonNorm
 RegistrarHover(btnStatsBtn,  () => (rgbBotones ? colorRGBActual : colorBotonNormal))
 RegistrarHover(btnWebhook,   () => (rgbBotones ? colorRGBActual : colorBotonNormal))
 RegistrarHover(btnLogros,    () => (rgbBotones ? colorRGBActual : colorBotonNormal))
+RegistrarHover(btnPart,      () => (rgbBotones ? colorRGBActual : colorBotonNormal))
 
 timerLabel := miGui.Add("Text", "x220 y130 w140 h25 Center Background" colorFondoPrincipal " c" colorTextoPrincipal, Chr(0x23F0) " 00:00")
 timerLabel.SetFont("s13 c" colorTextoPrincipal " Bold", "Segoe UI Semibold")
@@ -1546,8 +1698,16 @@ EstablecerTrayIcon("888888")
 SetTimer(ActualizarTrayIcon, 1000)
 SetTimer(VerificarLogros, 5000)
 SetTimer(ActualizarScrollbar, 150)
+SetTimer(WatchdogAFK, 30000)     ; cada 30 s; si activo && > 90 s sin AFK → Reload()
+
+; Si la instancia anterior se reinició por watchdog, auto-arrancar el macro.
+; Pequeño delay para que la GUI termine de asentarse antes de Iniciar().
+if (IniRead(configPath, "Watchdog", "AutoStart", "0") = "1") {
+    try IniDelete(configPath, "Watchdog", "AutoStart")  ; consumir flag (single-shot)
+    SetTimer(() => Iniciar(), -1500)
+}
 if (rgbActivo)
-    SetTimer(ActualizarRGB, 30)
+    SetTimer(ActualizarRGB, 60)
 
 ; ===== HOVER via polling — efecto respiratorio =====
 global hoverActual := ""
@@ -1608,6 +1768,61 @@ LimpiarHoverGui(gui) {
         }
         hoverBotones.Delete(hwnd)
     }
+}
+
+; ===== AUTO-CIERRE DE PANELES SECUNDARIOS =====
+; Cierra paneles tras N segundos sin que el cursor pase por encima.
+; No aplica al historial ni a la ventana principal.
+global autoCierrePaneles := Map()
+
+RegistrarAutoCierre(gui, closeFn, segundos := 7) {
+    global autoCierrePaneles
+    if (!IsObject(gui))
+        return
+    try {
+        autoCierrePaneles[gui.Hwnd] := { gui: gui, closeFn: closeFn,
+            lastActivity: A_TickCount, delay: segundos * 1000 }
+        SetTimer(ChequearAutoCierre, 400)
+    }
+}
+
+ChequearAutoCierre() {
+    global autoCierrePaneles
+    if (autoCierrePaneles.Count = 0) {
+        SetTimer(ChequearAutoCierre, 0)
+        return
+    }
+    pt := Buffer(8, 0)
+    DllCall("GetCursorPos", "Ptr", pt)
+    mx := NumGet(pt, 0, "Int")
+    my := NumGet(pt, 4, "Int")
+    aEliminar := []
+    aCerrar := []
+    for hwnd, data in autoCierrePaneles {
+        if (!WinExist("ahk_id " hwnd)) {
+            aEliminar.Push(hwnd)
+            continue
+        }
+        sobreGui := false
+        try {
+            data.gui.GetPos(&gx, &gy, &gw, &gh)
+            if (mx >= gx && mx <= gx + gw && my >= gy && my <= gy + gh)
+                sobreGui := true
+        }
+        if (sobreGui) {
+            data.lastActivity := A_TickCount
+        } else if (A_TickCount - data.lastActivity > data.delay) {
+            aEliminar.Push(hwnd)
+            aCerrar.Push(data.closeFn)
+        }
+    }
+    for hwnd in aEliminar
+        try autoCierrePaneles.Delete(hwnd)
+    for fn in aCerrar {
+        try fn.Call()
+    }
+    if (autoCierrePaneles.Count = 0)
+        SetTimer(ChequearAutoCierre, 0)
 }
 
 HoverPoll() {
@@ -2191,6 +2406,7 @@ AbrirPanelWebhook(*) {
 
     wg.Show("w" W " h288 Center")
     RedondearVentana(wg.Hwnd, 14)
+    RegistrarAutoCierre(wg, (*) => (LimpiarHoverGui(wg), wg.Destroy(), webhookGuiRef := ""))
 }
 
 EnviarWebhookForce(titulo, mensaje, colorHex) {
@@ -2236,12 +2452,182 @@ GuardarRGBs() {
 
 GuardarPosiciones() {
     global configPath, miGui, historialGui
-    miGui.GetPos(&mx, &my)
-    IniWrite(mx, configPath, "Pos", "MainX")
-    IniWrite(my, configPath, "Pos", "MainY")
-    historialGui.GetPos(&hx, &hy)
-    IniWrite(hx, configPath, "Pos", "HistX")
-    IniWrite(hy, configPath, "Pos", "HistY")
+    ; try alrededor de cada uno: si la ventana está minimizada/oculta puede tirar
+    try {
+        miGui.GetPos(&mx, &my)
+        IniWrite(mx, configPath, "Pos", "MainX")
+        IniWrite(my, configPath, "Pos", "MainY")
+    }
+    try {
+        historialGui.GetPos(&hx, &hy)
+        IniWrite(hx, configPath, "Pos", "HistX")
+        IniWrite(hy, configPath, "Pos", "HistY")
+    }
+}
+
+; ===== PANEL DE PARTÍCULAS =====
+AbrirPanelParticulas(*) {
+    global partGui, partGuiVisible, configPath
+    global particulasActivas, particulasCantidad, particulasVelocidad, particulasTamano, particulasOpacidad
+    global colorFondoPrincipal, colorTextoPrincipal, colorBarra, colorTextoBarra
+    global colorBotonNormal, colorBotonHover, colorBtnTexto
+
+    if (partGuiVisible && IsObject(partGui)) {
+        try LimpiarHoverGui(partGui)
+        try partGui.Destroy()
+        partGuiVisible := false
+        return
+    }
+
+    partGui := Gui("+AlwaysOnTop -Caption +ToolWindow")
+    partGui.BackColor := colorFondoPrincipal
+    W := 260
+
+    ; Barra superior arrastrable + cierre al click
+    barr := partGui.Add("Text", "x0 y0 w" W " h28 Background" colorBarra " Center +0x200",
+                        "  " Chr(0x2728) "  Partículas")
+    barr.SetFont("s10 c" colorTextoBarra " Bold", "Segoe UI Semibold")
+    barr.OnEvent("Click", (*) => PostMessage(0xA1, 2,,, "ahk_id " partGui.Hwnd))
+    barr.OnEvent("DoubleClick", (*) => CerrarPanelParticulas())
+
+    y := 40
+
+    ; Toggle activas
+    chk := partGui.Add("CheckBox", "x16 y" y " w" (W - 32) " h22 c" colorTextoPrincipal " Background" colorFondoPrincipal,
+                       " Activar partículas")
+    chk.SetFont("s10 Bold", "Segoe UI")
+    chk.Value := particulasActivas ? 1 : 0
+    chk.OnEvent("Click", PartChkActivas)
+    y += 32
+
+    ; ── Slider: Cantidad ──
+    partGui.Add("Text", "x16 y" y " w120 h18 c" colorTextoPrincipal " Background" colorFondoPrincipal, "Cantidad").SetFont("s9 Bold", "Segoe UI")
+    lblCant := partGui.Add("Text", "x" (W - 60) " y" y " w44 h18 Right c" colorTextoPrincipal " Background" colorFondoPrincipal, particulasCantidad "%")
+    lblCant.SetFont("s9", "Segoe UI")
+    y += 18
+    sldCant := partGui.Add("Slider", "x16 y" y " w" (W - 32) " h22 Range0-200 ToolTip", particulasCantidad)
+    sldCant.OnEvent("Change", PartSlidCant)
+    y += 30
+
+    ; ── Slider: Velocidad ──
+    partGui.Add("Text", "x16 y" y " w120 h18 c" colorTextoPrincipal " Background" colorFondoPrincipal, "Velocidad").SetFont("s9 Bold", "Segoe UI")
+    lblVel := partGui.Add("Text", "x" (W - 60) " y" y " w44 h18 Right c" colorTextoPrincipal " Background" colorFondoPrincipal, particulasVelocidad "%")
+    lblVel.SetFont("s9", "Segoe UI")
+    y += 18
+    sldVel := partGui.Add("Slider", "x16 y" y " w" (W - 32) " h22 Range0-200 ToolTip", particulasVelocidad)
+    sldVel.OnEvent("Change", PartSlidVel)
+    y += 30
+
+    ; ── Slider: Tamaño ──
+    partGui.Add("Text", "x16 y" y " w120 h18 c" colorTextoPrincipal " Background" colorFondoPrincipal, "Tamaño").SetFont("s9 Bold", "Segoe UI")
+    lblTam := partGui.Add("Text", "x" (W - 60) " y" y " w44 h18 Right c" colorTextoPrincipal " Background" colorFondoPrincipal, particulasTamano "%")
+    lblTam.SetFont("s9", "Segoe UI")
+    y += 18
+    sldTam := partGui.Add("Slider", "x16 y" y " w" (W - 32) " h22 Range50-200 ToolTip", particulasTamano)
+    sldTam.OnEvent("Change", PartSlidTam)
+    y += 30
+
+    ; ── Slider: Opacidad ──
+    partGui.Add("Text", "x16 y" y " w120 h18 c" colorTextoPrincipal " Background" colorFondoPrincipal, "Opacidad").SetFont("s9 Bold", "Segoe UI")
+    lblOpa := partGui.Add("Text", "x" (W - 60) " y" y " w44 h18 Right c" colorTextoPrincipal " Background" colorFondoPrincipal, particulasOpacidad "%")
+    lblOpa.SetFont("s9", "Segoe UI")
+    y += 18
+    sldOpa := partGui.Add("Slider", "x16 y" y " w" (W - 32) " h22 Range25-200 ToolTip", particulasOpacidad)
+    sldOpa.OnEvent("Change", PartSlidOpa)
+    y += 30
+
+    ; Guardar referencias a las labels para que los callbacks de slider las actualicen
+    partGui._lblCant := lblCant
+    partGui._lblVel  := lblVel
+    partGui._lblTam  := lblTam
+    partGui._lblOpa  := lblOpa
+
+    ; Botones inferiores
+    btnAplicar := partGui.Add("Text", "x16 y" y " w110 h32 +0x201 Background" colorBotonNormal " c" colorBtnTexto " Center",
+                              Chr(0x2714) "  Aplicar")
+    btnAplicar.SetFont("s10 Bold", "Segoe UI Semibold")
+    btnAplicar.OnEvent("Click", PartBtnAplicar)
+    RegistrarHover(btnAplicar, () => colorBotonNormal)
+
+    btnDefecto := partGui.Add("Text", "x" (W - 16 - 110) " y" y " w110 h32 +0x201 Background" colorBotonNormal " c" colorBtnTexto " Center",
+                              Chr(0x21BB) "  Por defecto")
+    btnDefecto.SetFont("s10 Bold", "Segoe UI Semibold")
+    btnDefecto.OnEvent("Click", PartBtnDefecto)
+    RegistrarHover(btnDefecto, () => colorBotonNormal)
+
+    y += 42
+    partGui.Show("w" W " h" y " Center")
+    RedondearVentana(partGui.Hwnd, 12)
+    partGuiVisible := true
+    RegistrarAutoCierre(partGui, CerrarPanelParticulas)
+}
+
+PartChkActivas(ctrl, *) {
+    global particulasActivas, configPath
+    particulasActivas := ctrl.Value = 1
+    try IniWrite(particulasActivas ? 1 : 0, configPath, "Particulas", "Activas")
+    AplicarConfigParticulas()
+}
+
+PartSlidCant(ctrl, *) {
+    global particulasCantidad, partGui
+    particulasCantidad := ctrl.Value
+    try partGui._lblCant.Value := particulasCantidad "%"
+}
+PartSlidVel(ctrl, *) {
+    global particulasVelocidad, partGui
+    particulasVelocidad := ctrl.Value
+    try partGui._lblVel.Value := particulasVelocidad "%"
+}
+PartSlidTam(ctrl, *) {
+    global particulasTamano, partGui
+    particulasTamano := ctrl.Value
+    try partGui._lblTam.Value := particulasTamano "%"
+}
+PartSlidOpa(ctrl, *) {
+    global particulasOpacidad, partGui
+    particulasOpacidad := ctrl.Value
+    try partGui._lblOpa.Value := particulasOpacidad "%"
+}
+
+PartBtnAplicar(*) {
+    global configPath, particulasCantidad, particulasVelocidad, particulasTamano, particulasOpacidad
+    try {
+        IniWrite(particulasCantidad,  configPath, "Particulas", "Cantidad")
+        IniWrite(particulasVelocidad, configPath, "Particulas", "Velocidad")
+        IniWrite(particulasTamano,    configPath, "Particulas", "Tamano")
+        IniWrite(particulasOpacidad,  configPath, "Particulas", "Opacidad")
+    }
+    AplicarConfigParticulas()
+    CerrarPanelParticulas()
+}
+
+PartBtnDefecto(*) {
+    global particulasActivas, particulasCantidad, particulasVelocidad, particulasTamano, particulasOpacidad, configPath
+    particulasActivas   := true
+    particulasCantidad  := 100
+    particulasVelocidad := 100
+    particulasTamano    := 100
+    particulasOpacidad  := 100
+    try {
+        IniWrite(1,   configPath, "Particulas", "Activas")
+        IniWrite(100, configPath, "Particulas", "Cantidad")
+        IniWrite(100, configPath, "Particulas", "Velocidad")
+        IniWrite(100, configPath, "Particulas", "Tamano")
+        IniWrite(100, configPath, "Particulas", "Opacidad")
+    }
+    AplicarConfigParticulas()
+    CerrarPanelParticulas()
+    AbrirPanelParticulas()  ; reabrir para que los sliders se vuelvan a posicionar en 100%
+}
+
+CerrarPanelParticulas() {
+    global partGui, partGuiVisible
+    if (partGuiVisible && IsObject(partGui)) {
+        try LimpiarHoverGui(partGui)
+        try partGui.Destroy()
+        partGuiVisible := false
+    }
 }
 
 AbrirPanelRGB(*) {
@@ -2363,8 +2749,9 @@ AbrirPanelRGB(*) {
     RedondearVentana(rgbGui.Hwnd, 14)
     rgbGuiVisible := true
     ; Asegurar que el timer corre para animar el preview (aunque no haya elementos activos)
-    SetTimer(ActualizarRGB, 30)
+    SetTimer(ActualizarRGB, 60)
     rgbGui.OnEvent("Close", CerrarPanelRGB)
+    RegistrarAutoCierre(rgbGui, (*) => (IsObject(rgbGui) ? (LimpiarHoverGui(rgbGui), rgbGui.Destroy()) : 0, CerrarPanelRGB()))
 }
 
 CerrarPanelRGB(*) {
@@ -2430,7 +2817,7 @@ ToggleRGBElemento(elemento, btn) {
     GuardarRGBs()
 
     if (rgbActivo)
-        SetTimer(ActualizarRGB, 30)
+        SetTimer(ActualizarRGB, 60)
     else
         SetTimer(ActualizarRGB, 0)
 }
@@ -2531,6 +2918,7 @@ AbrirPanelTemas(*) {
     ActualizarColoresPanelTemas()
     temaGui.OnEvent("Close", (*) => (CerrarPanelTemas(), OnMessage(0x20A, ManejarScrollTema, 0)))
     OnMessage(0x20A, ManejarScrollTema)
+    RegistrarAutoCierre(temaGui, (*) => (CerrarPanelTemas(), OnMessage(0x20A, ManejarScrollTema, 0)))
 }
 
 ArrastrarPanelTemas(*) {
@@ -3246,7 +3634,7 @@ AplicarTema(tema, guardar := true, fromTrans := false) {
     temaPremiumActivo := InStr(tema.nombre, "P R E M I U M") > 0
     if (temaPremiumActivo) {
         rgbActivo := true
-        SetTimer(ActualizarRGB, 30)
+        SetTimer(ActualizarRGB, 60)
     } else {
         ; Al salir de premium, restaurar rgbActivo según los flags reales del usuario
         rgbActivo := rgbBarra || rgbBotones || rgbLogo || rgbTexto
@@ -3363,11 +3751,18 @@ ActualizarRGB(*) {
     global rgbBarra, rgbBotones, rgbLogo, rgbTexto
     global rgbVelocidad, rgbSaturacion, rgbBrillo, rgbDireccion
     global rgbPreviewCtrl, rgbGuiVisible
+    global temaPremiumActivo, miGui
 
-    global temaPremiumActivo
-    ; Factor 0.2 porque el timer ahora va a 30ms (antes 150ms = 5x más lento)
-    ; — esto mantiene la velocidad perceptual con muchos más frames
-    rgbBarraHue += rgbVelocidad * rgbDireccion * 0.2
+    ; OPTIMIZACIÓN: si la ventana principal está minimizada no se ve nada, no merece
+    ; la pena gastar CPU + GDI handles cambiando colores. Crítico en premium mode.
+    try if (IsObject(miGui) && DllCall("IsIconic", "Ptr", miGui.Hwnd, "Int"))
+        return
+
+    ; Todo el cuerpo en try para que un control destruido / hwnd basura no tumbe el timer.
+    try {
+
+    ; Timer va a 60ms ahora → 0.4 mantiene velocidad similar al antiguo 0.2 a 30ms
+    rgbBarraHue += rgbVelocidad * rgbDireccion * 0.4
     if (rgbBarraHue >= 360)
         rgbBarraHue -= 360
     else if (rgbBarraHue < 0)
@@ -3381,15 +3776,15 @@ ActualizarRGB(*) {
         cLogo  := HSVaHex(Mod(rgbBarraHue + 240, 360), 1.0, 1.0)
         cTexto := HSVaHex(Mod(rgbBarraHue + 60, 360), 1.0, 1.0)
 
+        ; OPTIMIZACIÓN: NADA de SetFont aquí. SetFont crea un HFONT cada llamada,
+        ; y a 33+ veces/seg eso fuga handles GDI y eventualmente revienta el proceso.
+        ; La fuente ya está aplicada por AplicarTema una sola vez. Solo cambiamos colores.
         barra.Opt("Background" cBarra)
-        barra.SetFont("s13 c000000 Bold", "Segoe UI Semibold")
         DllCall("InvalidateRect", "Ptr", barra.Hwnd, "Ptr", 0, "Int", 1)
         barraHistorial.Opt("Background" cBarra)
-        barraHistorial.SetFont("s11 c000000 Bold", "Segoe UI")
         DllCall("InvalidateRect", "Ptr", barraHistorial.Hwnd, "Ptr", 0, "Int", 1)
 
         logoMacro.Opt("c" cLogo)
-        logoMacro.SetFont("s49 c" cLogo " Bold", "Segoe UI Symbol")
         DllCall("InvalidateRect", "Ptr", logoMacro.Hwnd, "Ptr", 0, "Int", 1)
 
         tituloMacro.Opt("c" cTexto)
@@ -3421,21 +3816,16 @@ ActualizarRGB(*) {
         }
     }
 
+    ; OPTIMIZACIÓN: sin SetFont aquí tampoco — la fuente la pone AplicarTema una vez.
     if (rgbBarra) {
         barra.Opt("Background" colorRGBActual)
-        barra.SetFont("s13 c000000 Bold", "Segoe UI Semibold")
         DllCall("InvalidateRect", "Ptr", barra.Hwnd, "Ptr", 0, "Int", 1)
-        DllCall("UpdateWindow",   "Ptr", barra.Hwnd)
         barraHistorial.Opt("Background" colorRGBActual)
-        barraHistorial.SetFont("s11 c000000 Bold", "Segoe UI")
         DllCall("InvalidateRect", "Ptr", barraHistorial.Hwnd, "Ptr", 0, "Int", 1)
-        DllCall("UpdateWindow",   "Ptr", barraHistorial.Hwnd)
     }
     if (rgbLogo) {
         logoMacro.Opt("c" colorRGBActual)
-        logoMacro.SetFont("s49 c" colorRGBActual " Bold", "Segoe UI Symbol")
         DllCall("InvalidateRect", "Ptr", logoMacro.Hwnd, "Ptr", 0, "Int", 1)
-        DllCall("UpdateWindow", "Ptr", logoMacro.Hwnd)
     }
     if (rgbTexto) {
         tituloMacro.Opt("c" colorRGBActual)
@@ -3450,6 +3840,8 @@ ActualizarRGB(*) {
         for btn in [btnIniciar, btnParar, btnCodigo, btnReset, btnHistorial, btnTema, btnMin, btnClose, btnUpdate, btnOverlay, btnRGBBtn, btnStatsBtn, btnWebhook, btnLogros]
             btn.Opt("Background" colorRGBActual " c000000")
     }
+
+    }  ; fin del try que envuelve todo el cuerpo de ActualizarRGB
 }
 
 HSVaHex(h, s, v) {
@@ -3509,11 +3901,16 @@ Minimizar(*) {
 }
 
 Cerrar(*) {
-    global miGui, historialGui
+    global miGui, historialGui, overlayPartMain, overlayPartHist
     GuardarStats()
     GuardarRGBs()
     IniWrite(historialVisible ? 1 : 0, configPath, "UI", "HistorialVisible")
     GuardarPosiciones()
+    ; Ocultar los overlays de partículas para que no se vean flotando durante el fade
+    if (IsObject(overlayPartMain))
+        try overlayPartMain.Hide()
+    if (IsObject(overlayPartHist))
+        try overlayPartHist.Hide()
     ; Fade-out ambas ventanas
     loop 12 {
         op := Round(255 * (1 - A_Index / 12))
@@ -3537,13 +3934,19 @@ AbrirCodigo(*) {
 }
 
 ToggleHistorial(*) {
-    global historialGui, historialVisible, configPath
+    global historialGui, historialVisible, configPath, overlayPartHist
     hwnd := historialGui.Hwnd
     if historialVisible {
         historialGui.Hide()
+        if (IsObject(overlayPartHist))
+            try overlayPartHist.Hide()
         historialVisible := false
     } else {
         historialGui.Show("NoActivate")
+        if (IsObject(overlayPartHist)) {
+            historialGui.GetPos(&_hgx, &_hgy, &_hgw, &_hgh)
+            try overlayPartHist.Show("x" _hgx " y" (_hgy + 25) " w" _hgw " h" (_hgh - 25) " NoActivate")
+        }
         ; Forzar repintado completo: necesario porque WS_CLIPCHILDREN (de partículas)
         ; puede impedir que los hijos se invaliden al reaparecer la ventana
         DllCall("RedrawWindow", "Ptr", hwnd, "Ptr", 0, "Ptr", 0, "UInt", 0x0585)
@@ -3908,6 +4311,8 @@ AppendRichText(hRich, texto, hexColor) {
     NumPut("Int", 0, ptFinal, 0)
     NumPut("Int", 0, ptFinal, 4)
     SendMessage(EM_SETSCROLLPOS, 0, ptFinal.Ptr, , "ahk_id " hRich)
+    ; El RichEdit re-muestra su scrollbar nativa al cambiar contenido — re-ocultarla
+    DllCall("ShowScrollBar", "Ptr", hRich, "Int", 1, "Int", 0)
 }
 
 HexToBGR(hex) {
@@ -4331,8 +4736,10 @@ EjecutarMacro(*) {
         SendInput "{Enter}"
     }
 
-    MouseMove(1, 0, 0, "R")	
+    MouseMove(1, 0, 0, "R")
     MouseMove(-1, 0, 0, "R")
+    global ultimoAfkMove
+    ultimoAfkMove := A_TickCount   ; watchdog: marca que el AFK acaba de moverse
     accionEnCurso := false
 }
 
@@ -4752,6 +5159,7 @@ AbrirPanelLogros(*) {
     logrosGui.Show("w" W " h" H " Center")
     RedondearVentana(logrosGui.Hwnd, 14)
     logrosGuiVisible := true
+    RegistrarAutoCierre(logrosGui, (*) => (LimpiarHoverGui(logrosGui), logrosGui.Destroy(), logrosGuiVisible := false))
 }
 
 FlashBarraHistorial() {
@@ -4769,86 +5177,102 @@ FlashBarraHistorial() {
     SetTimer(FlashBarraHistorial, -50)
 }
 
-; ===== SCROLLBAR CUSTOM (encima del nativo blanco del RichEdit) =====
+; ===== SCROLLBAR CUSTOM (sin WS_VSCROLL en el RichEdit → no hay barra nativa que se pelee) =====
+; Usamos EM_GETLINECOUNT / EM_GETFIRSTVISIBLELINE en lugar de GetScrollInfo porque
+; los EM_ messages funcionan siempre, aunque el control no tenga WS_VSCROLL.
 ActualizarScrollbar() {
     global historialBox, scrollTrack, scrollThumb, historialVisible
+    global ultimoThumbY, ultimoThumbH
     if (!historialVisible || !IsObject(historialBox) || !IsObject(scrollTrack) || !IsObject(scrollThumb))
         return
 
-    ; Re-ocultar la nativa por si reapareció al cambiar contenido
-    DllCall("ShowScrollBar", "Ptr", historialBox.Hwnd, "Int", 1, "Int", 0)
+    static EM_GETLINECOUNT        := 0x00BA
+    static EM_GETFIRSTVISIBLELINE := 0x00CE
 
-    ; Leer info del scroll vertical del RichEdit
-    siBuf := Buffer(28, 0)
-    NumPut("UInt", 28, siBuf, 0)
-    NumPut("UInt", 0x17, siBuf, 4)  ; SIF_ALL
-    if (!DllCall("GetScrollInfo", "Ptr", historialBox.Hwnd, "Int", 1, "Ptr", siBuf))
-        return
-    nMin  := NumGet(siBuf,  8, "Int")
-    nMax  := NumGet(siBuf, 12, "Int")
-    nPage := NumGet(siBuf, 16, "UInt")
-    nPos  := NumGet(siBuf, 20, "Int")
+    totalLines   := SendMessage(EM_GETLINECOUNT,        0, 0, , "ahk_id " historialBox.Hwnd)
+    firstVisLine := SendMessage(EM_GETFIRSTVISIBLELINE, 0, 0, , "ahk_id " historialBox.Hwnd)
+
+    ; Líneas visibles: la box es h=110 y la fuente s11 ≈ 18-19 px/línea → ~6 visibles
+    visibleLines := 6
 
     scrollTrack.GetPos(&trackX, &trackY, &trackW, &trackH)
-    rango := nMax - nMin + 1
 
-    if (rango <= nPage || rango <= 0) {
-        ; No hace falta scroll — thumb ocupa todo el track (estado inactivo visual)
-        scrollThumb.Move(trackX + 1, trackY, trackW - 2, trackH)
-        return
+    if (totalLines <= visibleLines || totalLines <= 0) {
+        nuevoY := trackY
+        nuevoH := trackH
+    } else {
+        ratioVisible := visibleLines / totalLines
+        nuevoH := Max(20, Round(trackH * ratioVisible))
+        maxFirstLine := totalLines - visibleLines
+        if (maxFirstLine <= 0)
+            maxFirstLine := 1
+        ratioPos := firstVisLine / maxFirstLine
+        if (ratioPos < 0)
+            ratioPos := 0
+        if (ratioPos > 1)
+            ratioPos := 1
+        nuevoY := trackY + Round((trackH - nuevoH) * ratioPos)
     }
 
-    ratioVisible := nPage / rango
-    thumbH := Max(20, Round(trackH * ratioVisible))
-    maxScroll := nMax - nPage - nMin + 1
-    if (maxScroll <= 0)
-        maxScroll := 1
-    ratioPos := (nPos - nMin) / maxScroll
-    if (ratioPos < 0)
-        ratioPos := 0
-    if (ratioPos > 1)
-        ratioPos := 1
-    thumbY := trackY + Round((trackH - thumbH) * ratioPos)
-    scrollThumb.Move(trackX + 1, thumbY, trackW - 2, thumbH)
+    ; Sólo mover si cambió — evita parpadeo por repaint redundante cada 150 ms
+    if (nuevoY != ultimoThumbY || nuevoH != ultimoThumbH) {
+        scrollThumb.Move(trackX + 1, nuevoY, trackW - 2, nuevoH)
+        ultimoThumbY := nuevoY
+        ultimoThumbH := nuevoH
+    }
 }
 
 ClickScrollbar(*) {
-    global historialBox, scrollTrack, historialGui
-    if (!IsObject(historialBox) || !IsObject(scrollTrack))
+    global historialBox, scrollTrack, scrollThumb, historialGui
+    if (!IsObject(historialBox) || !IsObject(scrollTrack) || !IsObject(scrollThumb))
         return
 
-    ; Drag loop: actualizar scroll mientras el botón esté pulsado
+    static EM_GETLINECOUNT        := 0x00BA
+    static EM_GETFIRSTVISIBLELINE := 0x00CE
+    static EM_LINESCROLL          := 0x00B6
+    static visibleLines           := 6
+
     historialGui.GetPos(&hgX, &hgY)
     scrollTrack.GetPos(, &trackYGui,, &trackH)
+    scrollThumb.GetPos(, &thumbYGui,, &thumbH)
     trackScreenY := hgY + trackYGui
+    thumbScreenY := hgY + thumbYGui
 
-    static EM_SETSCROLLPOS := 0x04DE
+    ; Offset del click dentro del thumb (clave para que el drag no "salte"):
+    ; si el click cayó dentro del thumb, mantenemos ese offset durante el drag.
+    ; Si cayó en el track (fuera del thumb), centramos el thumb bajo el cursor.
+    MouseGetPos(,, &mYInit)
+    clickOffset := mYInit - thumbScreenY
+    if (clickOffset < 0 || clickOffset > thumbH)
+        clickOffset := thumbH / 2
+
+    ; Recorrido máximo del thumb: trackH - thumbH (el thumb no puede salirse del track)
+    effectiveRange := trackH - thumbH
+    if (effectiveRange < 1)
+        effectiveRange := 1
 
     while (GetKeyState("LButton", "P")) {
         MouseGetPos(,, &mY)
-        relativeY := mY - trackScreenY
-        ratio := relativeY / trackH
-        if (ratio < 0)
-            ratio := 0
-        if (ratio > 1)
-            ratio := 1
 
-        siBuf := Buffer(28, 0)
-        NumPut("UInt", 28, siBuf, 0)
-        NumPut("UInt", 0x17, siBuf, 4)
-        DllCall("GetScrollInfo", "Ptr", historialBox.Hwnd, "Int", 1, "Ptr", siBuf)
-        nMin  := NumGet(siBuf,  8, "Int")
-        nMax  := NumGet(siBuf, 12, "Int")
-        nPage := NumGet(siBuf, 16, "UInt")
-        maxScroll := nMax - nPage - nMin + 1
-        if (maxScroll <= 0)
-            maxScroll := 1
+        ; Nueva posición del top del thumb relativa al top del track
+        newThumbTopRel := (mY - clickOffset) - trackScreenY
+        if (newThumbTopRel < 0)
+            newThumbTopRel := 0
+        if (newThumbTopRel > effectiveRange)
+            newThumbTopRel := effectiveRange
 
-        newPos := nMin + Round(maxScroll * ratio)
-        pt := Buffer(8, 0)
-        NumPut("Int", 0, pt, 0)
-        NumPut("Int", newPos, pt, 4)
-        SendMessage(EM_SETSCROLLPOS, 0, pt.Ptr, , "ahk_id " historialBox.Hwnd)
+        ratio := newThumbTopRel / effectiveRange
+
+        totalLines   := SendMessage(EM_GETLINECOUNT,        0, 0, , "ahk_id " historialBox.Hwnd)
+        firstVisLine := SendMessage(EM_GETFIRSTVISIBLELINE, 0, 0, , "ahk_id " historialBox.Hwnd)
+        maxFirstLine := totalLines - visibleLines
+        if (maxFirstLine <= 0)
+            maxFirstLine := 1
+
+        targetLine := Round(maxFirstLine * ratio)
+        delta := targetLine - firstVisLine
+        if (delta != 0)
+            SendMessage(EM_LINESCROLL, 0, delta, , "ahk_id " historialBox.Hwnd)
 
         ActualizarScrollbar()
         Sleep(16)
@@ -4872,6 +5296,8 @@ PrependRichSilent(hRich, texto, hexColor) {
     NumPut("UInt", HexToBGR(hexColor), cf, 20)
     SendMessage(EM_SETCHARFORMAT, SCF_SELECTION, cf.Ptr, , "ahk_id " hRich)
     SendMessage(EM_SETSEL, 0, 0, , "ahk_id " hRich)
+    ; El RichEdit re-muestra su scrollbar nativa al cambiar contenido — re-ocultarla
+    DllCall("ShowScrollBar", "Ptr", hRich, "Int", 1, "Int", 0)
 }
 
 RecolorRango(hRich, desde, hasta, hexColor) {
@@ -5090,10 +5516,17 @@ AbrirVentanaActualizacion(*) {
     btnActualizar._habilitado := false
     RegistrarHover(btnActualizar, () => colorBotonNormal)
 
-    H := btnY + 38 + 14
+    ; ── Link al repo de GitHub (para instalación directa por amigos) ──
+    linkY := btnY + 38 + 12
+    lblRepo := updateGui.Add("Text", "x16 y" linkY " w" (W - 32) " h16 Center Background" colorFondoPrincipal " c" colorTextoPrincipal, Chr(0x1F517) "  Repo: github.com/johantakuma2009-bit/brawlmacro")
+    lblRepo.SetFont("s9 Underline", "Segoe UI")
+    lblRepo.OnEvent("Click", (*) => Run("https://github.com/johantakuma2009-bit/brawlmacro"))
+
+    H := linkY + 16 + 14
     updateGui.Show("w" W " h" H " Center")
     RedondearVentana(updateGui.Hwnd, 14)
     updateGuiVisible := true
+    RegistrarAutoCierre(updateGui, (*) => (LimpiarHoverGui(updateGui), updateGui.Destroy(), updateGuiVisible := false))
 
     ; Comprobar versión en segundo plano
     SetTimer(() => ComprobarVersionRemota(lblVerRemota, lblEstado, btnActualizar), -100)
