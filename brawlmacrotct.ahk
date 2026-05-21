@@ -6,7 +6,7 @@ CoordMode("Mouse", "Screen")
 ; ===== CONFIGURACION =====
 configPath := A_ScriptDir "\brawlmacro_config.ini"
 global eggsBackupPath := A_ScriptDir "\brawlmacro_eggs.txt"
-global VERSION_ACTUAL := "27.7.2"
+global VERSION_ACTUAL := "27.7.3"
 
 ; ===== TEMAS =====
 temas := [
@@ -128,7 +128,7 @@ global colorRGBActual := colorBarra
 global rgbPreviewCtrl := ""
 global overlayPixeles := "", overlayVisible := false
 global miGui, barra, barraHistorial, logoMacro, tituloMacro, timerLabel
-global btnIniciar, btnParar, btnCodigo, btnReset, btnHistorial, btnTema, btnMin, btnClose, btnUpdate, btnOverlay, btnRGBBtn, btnStatsBtn, btnWebhook, btnLogros
+global btnIniciar, btnParar, btnCodigo, btnReset, btnHistorial, btnTema, btnMin, btnClose, btnUpdate, btnOverlay, btnRGBBtn, btnStatsBtn, btnWebhook, btnLogros, btnPart
 global hoverAccent := "", hoverAnimStep := 0, hoverAccentTop := "", hoverAccentHist := ""
 global hoverAccentBot := "", hoverAccentRight := "", hoverAccentBotHist := "", hoverAccentRightHist := ""
 global colorBotonNormal, colorBotonHover, colorFondoPrincipal, colorTextoPrincipal, colorBarra, colorTextoBarra
@@ -3541,7 +3541,7 @@ TransicionPaso() {
     global barra, barraHistorial, colorBarraOverride
     global tituloMacro, timerLabel, cooldownText, afkText, secuenciasLabel, destruccionesLabel, contadorLabel, logoMacro
     global btnIniciar, btnParar, btnCodigo, btnReset, btnHistorial, btnTema, btnMin, btnClose
-    global btnUpdate, btnOverlay, btnRGBBtn, btnStatsBtn, btnWebhook, btnLogros
+    global btnUpdate, btnOverlay, btnRGBBtn, btnStatsBtn, btnWebhook, btnLogros, btnPart
     global colorLogoEnTransicion, colorFondoEnTransicion
     global luzActiva, luzAccion, luzApagado, historialBox, separadorHistorial
     global scrollTrack, scrollThumb
@@ -3581,7 +3581,7 @@ TransicionPaso() {
     DllCall("InvalidateRect", "Ptr", barraHistorial.Hwnd, "Ptr", 0, "Int", 0)
 
     ; TODOS los botones
-    for btn in [btnIniciar, btnParar, btnCodigo, btnReset, btnHistorial, btnTema, btnMin, btnClose, btnUpdate, btnOverlay, btnRGBBtn, btnStatsBtn, btnWebhook, btnLogros] {
+    for btn in [btnIniciar, btnParar, btnCodigo, btnReset, btnHistorial, btnTema, btnMin, btnClose, btnUpdate, btnOverlay, btnRGBBtn, btnStatsBtn, btnWebhook, btnLogros, btnPart] {
         if (IsObject(btn)) {
             btn.Opt("Background" cBoton)
             DllCall("InvalidateRect", "Ptr", btn.Hwnd, "Ptr", 0, "Int", 1)
@@ -3736,7 +3736,7 @@ AplicarTema(tema, guardar := true, fromTrans := false) {
     luzAccion.Opt("Background" colorFondoPrincipal)
     luzApagado.Opt("Background" colorFondoPrincipal)
     SendMessage(0x0443, 0, HexToBGR(colorFondoHistorial), , "ahk_id " historialBox.Hwnd)
-    for btn in [btnIniciar, btnParar, btnCodigo, btnReset, btnHistorial, btnTema, btnMin, btnClose, btnUpdate, btnOverlay, btnRGBBtn, btnStatsBtn, btnWebhook, btnLogros] {
+    for btn in [btnIniciar, btnParar, btnCodigo, btnReset, btnHistorial, btnTema, btnMin, btnClose, btnUpdate, btnOverlay, btnRGBBtn, btnStatsBtn, btnWebhook, btnLogros, btnPart] {
         btn.Opt("Background" colorBotonNormal " c" colorBtnTexto)
         btn.SetFont("s11 c" colorBtnTexto " Bold", "Segoe UI Symbol")
         if (!fromTrans) {
@@ -3752,6 +3752,7 @@ AplicarTema(tema, guardar := true, fromTrans := false) {
     btnStatsBtn.SetFont("s9 c" colorBtnTexto, "Segoe UI Emoji")
     btnWebhook.SetFont("s9 c" colorBtnTexto, "Segoe UI Emoji")
     btnLogros.SetFont("s9 c" colorBtnTexto, "Segoe UI Emoji")
+    btnPart.SetFont("s9 c" colorBtnTexto, "Segoe UI Emoji")
     ActualizarEstadoVisual()
     if (fromTrans) {
         ; Reactivar redraws y forzar un único repintado atómico — sin frame en blanco
@@ -3814,7 +3815,7 @@ ActualizarRGB(*) {
         if (IsObject(destruccionesLabel))
             destruccionesLabel.Opt("c" cTexto)
 
-        for btn in [btnIniciar, btnParar, btnCodigo, btnReset, btnHistorial, btnTema, btnMin, btnClose, btnUpdate, btnOverlay, btnRGBBtn, btnStatsBtn, btnWebhook]
+        for btn in [btnIniciar, btnParar, btnCodigo, btnReset, btnHistorial, btnTema, btnMin, btnClose, btnUpdate, btnOverlay, btnRGBBtn, btnStatsBtn, btnWebhook, btnLogros, btnPart]
             btn.Opt("Background" cBoton " c000000")
 
         ; Actualizar preview RGB si está abierto
@@ -3857,7 +3858,7 @@ ActualizarRGB(*) {
             destruccionesLabel.Opt("c" colorRGBActual)
     }
     if (rgbBotones) {
-        for btn in [btnIniciar, btnParar, btnCodigo, btnReset, btnHistorial, btnTema, btnMin, btnClose, btnUpdate, btnOverlay, btnRGBBtn, btnStatsBtn, btnWebhook, btnLogros]
+        for btn in [btnIniciar, btnParar, btnCodigo, btnReset, btnHistorial, btnTema, btnMin, btnClose, btnUpdate, btnOverlay, btnRGBBtn, btnStatsBtn, btnWebhook, btnLogros, btnPart]
             btn.Opt("Background" colorRGBActual " c000000")
     }
 
