@@ -6,7 +6,7 @@ CoordMode("Mouse", "Screen")
 ; ===== CONFIGURACION =====
 configPath := A_ScriptDir "\brawlmacro_config.ini"
 global eggsBackupPath := A_ScriptDir "\brawlmacro_eggs.txt"
-global VERSION_ACTUAL := "27.6.9"
+global VERSION_ACTUAL := "27.7.0"
 
 ; ===== TEMAS =====
 temas := [
@@ -4567,11 +4567,18 @@ EjecutarMacro(*) {
     global ultimoPasoEjecutado
     global modoDestruccion, contadorDestruccion
     global tiempoUltimoLanzamiento
+    global ultimoAfkMove
     static PASOS_ENTRE_PRIO := 5   ; CheckPrioridad cada N pasos normales revisados
 
     if (!activo || accionEnCurso || BloqueoGlobalActivo())
         return
     accionEnCurso := true
+
+    ; Proof-of-life para el watchdog: cada ejecución del timer cuenta como "vivo".
+    ; Antes, ultimoAfkMove solo se actualizaba si NO se ejecutaba ningún paso, así
+    ; que cuando el macro funcionaba BIEN (ejecutando pasos continuamente), el
+    ; watchdog creía que estaba colgado y hacía Reload() cada ~90 segundos.
+    ultimoAfkMove := A_TickCount
 
     if (modoCadena) {
         if (A_TickCount > finCadena) {
