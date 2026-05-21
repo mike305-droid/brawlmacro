@@ -6,7 +6,7 @@ CoordMode("Mouse", "Screen")
 ; ===== CONFIGURACION =====
 configPath := A_ScriptDir "\brawlmacro_config.ini"
 global eggsBackupPath := A_ScriptDir "\brawlmacro_eggs.txt"
-global VERSION_ACTUAL := "27.6.7"
+global VERSION_ACTUAL := "27.6.8"
 
 ; ===== TEMAS =====
 temas := [
@@ -4716,12 +4716,13 @@ EjecutarMacro(*) {
         SendInput "!{F4}"
         Sleep 7000
 
-        AgregarHistorial("🔄 Abriendo Brawlhalla...", "FF8800")
-        SendInput "{LWin}"
-        Sleep 4000
-        SendInput "brawlhalla"
-        Sleep 1500
-        SendInput "{Enter}"
+        ; Esperar a que el proceso muera realmente (hasta 5s extra)
+        cierreT0 := A_TickCount
+        while (ProcessExist("Brawlhalla.exe") && (A_TickCount - cierreT0) < 5000)
+            Sleep 250
+
+        AgregarHistorial("🔄 Abriendo Brawlhalla por Steam...", "FF8800")
+        try Run("steam://rungameid/291550")
         tiempoUltimoLanzamiento := A_TickCount
     }
 
@@ -4730,12 +4731,13 @@ EjecutarMacro(*) {
     if (tiempoUltimoLanzamiento > 0 && (A_TickCount - tiempoUltimoLanzamiento) > 60000) {
         tiempoUltimoLanzamiento := A_TickCount
         ultimoCambio := A_TickCount
-        AgregarHistorial("⚠️ Sin detección tras 2 min - reintentando lanzamiento...", "FF8800")
-        SendInput "{LWin}"
-        Sleep 4000
-        SendInput "brawlhalla"
-        Sleep 1500
-        SendInput "{Enter}"
+        ; Si el juego ya está corriendo, no relances — el problema es de detección, no de lanzamiento
+        if (ProcessExist("Brawlhalla.exe")) {
+            AgregarHistorial("⚠️ Sin detección tras 2 min - Brawlhalla corre pero el macro no detecta", "FF8800")
+        } else {
+            AgregarHistorial("⚠️ Sin detección tras 2 min - reintentando lanzamiento por Steam...", "FF8800")
+            try Run("steam://rungameid/291550")
+        }
     }
 
     MouseMove(1, 0, 0, "R")
@@ -5383,14 +5385,15 @@ LanzarBrawlhalla() {
     if (brawlhallaLanzado)
         return  ; ya se lanzó esta sesión, no relanzar al pulsar Iniciar otra vez
     brawlhallaLanzado := true
-    AgregarHistorial(Chr(0x1F504) " Abriendo Brawlhalla...", "FF8800")
 
-    ; Método Windows: Win → espera 3s → escribir → espera 2s → Enter
-    SendInput "{LWin}"
-    Sleep 3000
-    SendInput "brawlhalla"
-    Sleep 2000
-    SendInput "{Enter}"
+    ; Si ya está corriendo, no hacer nada (evita abrir Steam por segunda vez)
+    if (ProcessExist("Brawlhalla.exe")) {
+        AgregarHistorial(Chr(0x2705) " Brawlhalla ya está abierto", "00CC44")
+        return
+    }
+
+    AgregarHistorial(Chr(0x1F504) " Abriendo Brawlhalla por Steam...", "FF8800")
+    try Run("steam://rungameid/291550")
 }
 
 Iniciar(*) {
