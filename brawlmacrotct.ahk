@@ -6,7 +6,7 @@ CoordMode("Mouse", "Screen")
 ; ===== CONFIGURACION =====
 configPath := A_ScriptDir "\brawlmacro_config.ini"
 global eggsBackupPath := A_ScriptDir "\brawlmacro_eggs.txt"
-global VERSION_ACTUAL := "27.7.3"
+global VERSION_ACTUAL := "27.7.4"
 
 ; ===== TEMAS =====
 temas := [
@@ -221,7 +221,7 @@ global webhookEventos := Map(
     "destruccion", true,
     "altf4",       true,
     "milestone",   true,
-    "secuencia",   false
+    "secuencia",   true
 )
 
 CargarStats() {
@@ -1612,7 +1612,7 @@ particulasVelocidad := Integer(IniRead(configPath, "Particulas", "Velocidad",  "
 particulasTamano    := Integer(IniRead(configPath, "Particulas", "Tamano",     "100"))
 particulasOpacidad  := Integer(IniRead(configPath, "Particulas", "Opacidad",   "100"))
 
-barra := miGui.Add("Text", "x0 y0 w400 h25 Background" colorBarra " Center", "AFK MACRO")
+barra := miGui.Add("Text", "x0 y0 w400 h25 Background" colorBarra " Center", "BrawlMacro V30")
 barra.SetFont("s13 c" colorTextoBarra " Bold", "Segoe UI Semibold")
 barra.OnEvent("Click", ArrastrarVentana)
 barra.OnEvent("DoubleClick", ClickTitulo)
