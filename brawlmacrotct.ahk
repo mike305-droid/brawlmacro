@@ -6,7 +6,7 @@ CoordMode("Mouse", "Screen")
 ; ===== CONFIGURACION =====
 configPath := A_ScriptDir "\brawlmacro_config.ini"
 global eggsBackupPath := A_ScriptDir "\brawlmacro_eggs.txt"
-global VERSION_ACTUAL := "27.7.1"
+global VERSION_ACTUAL := "27.7.2"
 
 ; ===== TEMAS =====
 temas := [
@@ -220,7 +220,8 @@ global webhookEventos := Map(
     "parado",      true,
     "destruccion", true,
     "altf4",       true,
-    "milestone",   true
+    "milestone",   true,
+    "secuencia",   false
 )
 
 CargarStats() {
@@ -2155,8 +2156,11 @@ LeerWebhook() {
     global configPath, webhookURL, webhookEnabled, webhookEventos
     webhookURL := IniRead(configPath, "Webhook", "URL", "")
     webhookEnabled := Integer(IniRead(configPath, "Webhook", "Enabled", "0")) = 1
-    for k, _ in webhookEventos.Clone()
-        webhookEventos[k] := Integer(IniRead(configPath, "Webhook", "Evt_" k, "1")) = 1
+    for k, defaultValue in webhookEventos.Clone() {
+        ; Si no existe en el INI, usa el default del mapa (true/false)
+        defaultStr := defaultValue ? "1" : "0"
+        webhookEventos[k] := Integer(IniRead(configPath, "Webhook", "Evt_" k, defaultStr)) = 1
+    }
 }
 
 GuardarWebhook() {
@@ -2328,6 +2332,10 @@ EnviarWebhookEvento(tipo) {
             EnviarWebhookConFoto(Chr(0x1F480) " Alt+F4 ejecutado",
                 "Brawlhalla cerrado y relanzándose.`nDestrucciones totales: " destru "`n📸 Captura adjunta:",
                 "FF2222")
+        case "secuencia":
+            EnviarWebhook(Chr(0x2705) " Secuencia completada",
+                "Secuencia completada: " contadorSecuencias " (sesión)`nTotal: " secs,
+                "00AAFF")
     }
 }
 
@@ -2381,15 +2389,16 @@ AbrirPanelWebhook(*) {
     cbDest := wg.Add("CheckBox", "x22 y166 w" (W - 34) " h18 c" colorTextoPrincipal " Background" colorFondoPrincipal " Checked" (webhookEventos["destruccion"] ? 1 : 0), " " Chr(0x26A0) " Modo destrucción activado")
     cbAlt  := wg.Add("CheckBox", "x22 y184 w" (W - 34) " h18 c" colorTextoPrincipal " Background" colorFondoPrincipal " Checked" (webhookEventos["altf4"] ? 1 : 0), " " Chr(0x1F480) " Alt+F4 ejecutado")
     cbMile := wg.Add("CheckBox", "x22 y202 w" (W - 34) " h18 c" colorTextoPrincipal " Background" colorFondoPrincipal " Checked" (webhookEventos["milestone"] ? 1 : 0), " " Chr(0x1F3C6) " Hitos de secuencias")
-    for cb in [cbInic, cbPar, cbDest, cbAlt, cbMile]
+    cbSeq  := wg.Add("CheckBox", "x22 y220 w" (W - 34) " h18 c" colorTextoPrincipal " Background" colorFondoPrincipal " Checked" (webhookEventos["secuencia"] ? 1 : 0), " " Chr(0x2705) " Cada secuencia completada")
+    for cb in [cbInic, cbPar, cbDest, cbAlt, cbMile, cbSeq]
         cb.SetFont("s9", "Segoe UI")
 
-    lblStatus := wg.Add("Text", "x12 y226 w" (W - 24) " h16 c" colorTextoPrincipal " Background" colorFondoPrincipal, "")
+    lblStatus := wg.Add("Text", "x12 y244 w" (W - 24) " h16 c" colorTextoPrincipal " Background" colorFondoPrincipal, "")
     lblStatus.SetFont("s9 Italic", "Segoe UI")
 
     btnW := Round((W - 36) / 2)
-    btnTest := wg.Add("Text", "x12 y248 w" btnW " h28 +0x201 Background" colorBotonNormal " c" colorBtnTexto " Center", Chr(0x1F9EA) " Probar")
-    btnSave := wg.Add("Text", "x" (24 + btnW) " y248 w" btnW " h28 +0x201 Background" colorBotonNormal " c" colorBtnTexto " Center", Chr(0x1F4BE) " Guardar")
+    btnTest := wg.Add("Text", "x12 y266 w" btnW " h28 +0x201 Background" colorBotonNormal " c" colorBtnTexto " Center", Chr(0x1F9EA) " Probar")
+    btnSave := wg.Add("Text", "x" (24 + btnW) " y266 w" btnW " h28 +0x201 Background" colorBotonNormal " c" colorBtnTexto " Center", Chr(0x1F4BE) " Guardar")
     for b in [btnTest, btnSave]
         b.SetFont("s10 c" colorBtnTexto " Bold", "Segoe UI")
 
@@ -2401,6 +2410,7 @@ AbrirPanelWebhook(*) {
         webhookEventos["destruccion"] := cbDest.Value,
         webhookEventos["altf4"]      := cbAlt.Value,
         webhookEventos["milestone"]  := cbMile.Value,
+        webhookEventos["secuencia"]  := cbSeq.Value,
         GuardarWebhook()
     )
 
@@ -2414,7 +2424,7 @@ AbrirPanelWebhook(*) {
     RegistrarHover(btnTest, () => colorBotonNormal)
     RegistrarHover(btnSave, () => colorBotonNormal)
 
-    wg.Show("w" W " h288 Center")
+    wg.Show("w" W " h306 Center")
     RedondearVentana(wg.Hwnd, 14)
     RegistrarAutoCierre(wg, (*) => (LimpiarHoverGui(wg), wg.Destroy(), webhookGuiRef := ""))
 }
@@ -4512,10 +4522,16 @@ CheckPrioridad() {
                                 paso.lastUsed := A_TickCount
                                 ActivarBloqueoGlobal(paso)
                                 ultimoCambio := A_TickCount
+                                ; Recuperación de modo destrucción si detectamos algo
+                                if (modoDestruccion) {
+                                    modoDestruccion := false
+                                    AgregarHistorial(Chr(0x2705) " Detección recuperada - saliendo de modo destrucción", "00CC44")
+                                }
                                 if (paso.nombre = "LEAVINGGAME..." && paso.cooldown = 190000) {
                                     contadorSecuencias += 1
                                     ActualizarSecuencias()
                                     AgregarHistorial(paso.nombre " -> COOLDOWN " Round(paso.cooldown/1000) "s | Secuencias: " contadorSecuencias, paso.HasProp("categoria") ? ObtenerColorCategoria(paso.categoria) : "")
+                                    EnviarWebhookEvento("secuencia")
                                     DespuesDeAccion(true)
                                 } else {
                                     AgregarHistorial(paso.nombre " -> COOLDOWN " Round(paso.cooldown/1000) "s", paso.HasProp("categoria") ? ObtenerColorCategoria(paso.categoria) : "")
@@ -4594,6 +4610,11 @@ EjecutarMacro(*) {
                             SendInput "{" p.accion "}"
                         p.lastUsed := A_TickCount
                         ActivarBloqueoGlobal(p)
+                        ; Recuperación de modo destrucción si detectamos algo
+                        if (modoDestruccion) {
+                            modoDestruccion := false
+                            AgregarHistorial(Chr(0x2705) " Detección recuperada - saliendo de modo destrucción", "00CC44")
+                        }
                         AgregarHistorial(p.nombre " (chain)", p.HasProp("CH") ? p.CH : "")
                         LuzAccionFlash()
                         if p.HasProp("siguiente") {
@@ -4685,6 +4706,13 @@ EjecutarMacro(*) {
             if (paso.nombre != ultimoPasoEjecutado) {
                 ultimoCambio := A_TickCount
                 ultimoPasoEjecutado := paso.nombre
+            }
+            ; Si el macro estaba en modo destrucción y acaba de detectar algo, salir del modo.
+            ; Antes se quedaba pegado en "MODO DESTRUCCION en: Xs" para siempre si
+            ; el juego se recuperaba durante la ventana de 60s antes del Alt+F4.
+            if (modoDestruccion) {
+                modoDestruccion := false
+                AgregarHistorial(Chr(0x2705) " Detección recuperada - saliendo de modo destrucción", "00CC44")
             }
             AgregarHistorial(paso.nombre, paso.HasProp("categoria") ? ObtenerColorCategoria(paso.categoria) : "")
             LuzAccionFlash(paso.HasProp("categoria") ? ObtenerColorCategoria(paso.categoria) : "")
