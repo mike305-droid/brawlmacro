@@ -6,7 +6,7 @@ CoordMode("Mouse", "Screen")
 ; ===== CONFIGURACION =====
 configPath := A_ScriptDir "\brawlmacro_config.ini"
 global eggsBackupPath := A_ScriptDir "\brawlmacro_eggs.txt"
-global VERSION_ACTUAL := "27.7.4"
+global VERSION_ACTUAL := "27.7.5"
 
 ; ===== TEMAS =====
 temas := [
@@ -1049,15 +1049,16 @@ ActualizarParticulas() {
 }
 
 ; ===== WATCHDOG AFK =====
-; Si el macro está activo pero el AFK (MouseMove ±1px) no se ha disparado en > 3 min,
-; algo se atascó (diálogo de error, deadlock, fuga, lo que sea). Re-lanzamos el script
-; para que la AFK vuelva a funcionar antes de que Windows considere el PC inactivo.
+; Si el macro está activo pero ningún timer ha actualizado el heartbeat en > 3 min,
+; AHK está realmente congelado (Windows Update, antivirus, deadlock, etc).
+; Re-lanzamos el script para recuperar la actividad.
+; Heartbeats: EjecutarMacro (cada 50ms) + ActualizarTrayIcon (cada 1s).
 WatchdogAFK() {
     global activo, ultimoAfkMove, configPath
     if (!activo)
         return
     elapsed := A_TickCount - ultimoAfkMove
-    if (elapsed > 90000) {  ; 90 s sin AFK = algo se atascó
+    if (elapsed > 180000) {  ; 3 minutos sin heartbeat = AHK realmente colgado
         try {
             IniWrite(FormatTime(, "yyyy-MM-dd HH:mm:ss"), configPath, "Watchdog", "UltimoReinicio")
             IniWrite(elapsed, configPath, "Watchdog", "MsSinAFK")
@@ -1329,7 +1330,11 @@ EstablecerTrayIcon(hexColor) {
 }
 
 ActualizarTrayIcon() {
-    global activo, modoDestruccion, ultimoCambio
+    global activo, modoDestruccion, ultimoCambio, ultimoAfkMove
+    ; Heartbeat secundario para el watchdog: este timer (cada 1s) es ligerísimo
+    ; y prácticamente nunca falla. Sirve de respaldo si EjecutarMacro se bloquea
+    ; brevemente en algún Sleep/SendInput largo.
+    ultimoAfkMove := A_TickCount
     if (modoDestruccion) {
         EstablecerTrayIcon("FF2222")
         return
