@@ -6,7 +6,7 @@ CoordMode("Mouse", "Screen")
 ; ===== CONFIGURACION =====
 configPath := A_ScriptDir "\brawlmacro_config.ini"
 global eggsBackupPath := A_ScriptDir "\brawlmacro_eggs.txt"
-global VERSION_ACTUAL := "27.6.8"
+global VERSION_ACTUAL := "27.6.9"
 
 ; ===== TEMAS =====
 temas := [
@@ -2185,16 +2185,24 @@ EnviarWebhook(titulo, mensaje, colorHex := "5865F2") {
 
 EnviarWebhookSync(titulo, mensaje, colorHex) {
     global webhookURL
+    if (webhookURL = "")
+        return
     colorInt := Integer("0x" colorHex)
     titulo := EscapeJson(titulo)
     mensaje := EscapeJson(mensaje)
     json := '{"embeds":[{"title":"' titulo '","description":"' mensaje '","color":' colorInt ',"footer":{"text":"AFK Macro"}}]}'
-    try {
-        whr := ComObject("WinHttp.WinHttpRequest.5.1")
-        whr.Open("POST", webhookURL, false)
-        whr.SetRequestHeader("Content-Type", "application/json; charset=utf-8")
-        whr.Send(json)
-    }
+
+    ; ⚡ NUNCA usar WinHttpRequest síncrono aquí — bloqueaba el macro entero hasta 4 min
+    ;    si Discord o el internet iban lentos. Ahora lanzamos curl.exe en background:
+    payloadFile := A_Temp "\brawlmacro_wh_" A_TickCount ".json"
+    try FileDelete(payloadFile)
+    try FileAppend(json, payloadFile, "UTF-8")
+    cmd := A_ComSpec ' /c curl.exe -s -m 20 -X POST'
+         . ' -H "Content-Type: application/json; charset=utf-8"'
+         . ' --data-binary "@' payloadFile '"'
+         . ' "' webhookURL '"'
+         . ' & del "' payloadFile '"'
+    try Run(cmd, , "Hide")
 }
 
 ; ===== SCREENSHOT A DISCORD (Alt+F4 / destrucción) =====
@@ -5546,6 +5554,7 @@ ComprobarVersionRemota(lblVer, lblEstado, btnAct) {
 
     try {
         whr := ComObject("WinHttp.WinHttpRequest.5.1")
+        whr.SetTimeouts(5000, 5000, 5000, 5000)
         urlConTimestamp := GITHUB_VERSION_URL "?t=" A_TickCount
         whr.Open("GET", urlConTimestamp, false)
         whr.Send()
@@ -5614,6 +5623,8 @@ DescargarYActualizar(verRemota, lblEstado, btnAct) {
 
     try {
         whr := ComObject("WinHttp.WinHttpRequest.5.1")
+        ; Timeout más generoso para descargas grandes: 30s
+        whr.SetTimeouts(5000, 5000, 30000, 30000)
         ; Añadir timestamp para evitar caché
         urlConTimestamp := GITHUB_SCRIPT_URL "?t=" A_TickCount
         whr.Open("GET", urlConTimestamp, false)
