@@ -6,7 +6,7 @@ CoordMode("Mouse", "Screen")
 ; ===== CONFIGURACION =====
 configPath := A_ScriptDir "\brawlmacro_config.ini"
 global eggsBackupPath := A_ScriptDir "\brawlmacro_eggs.txt"
-global VERSION_ACTUAL := "27.7.5"
+global VERSION_ACTUAL := "27.7.6"
 
 ; ===== TEMAS =====
 temas := [
@@ -4498,6 +4498,7 @@ BloqueoGlobalActivo() {
 ; ===== CHECK PRIORIDAD =====
 CheckPrioridad() {
     global pasosPrioridad, pasosNormales, activo, accionEnCurso, ultimoCambio, contadorSecuencias
+    global modoDestruccion
 
     if BloqueoGlobalActivo()
         return false
