@@ -6,7 +6,7 @@ CoordMode("Mouse", "Screen")
 ; ===== CONFIGURACION =====
 configPath := A_ScriptDir "\brawlmacro_config.ini"
 global eggsBackupPath := A_ScriptDir "\brawlmacro_eggs.txt"
-global VERSION_ACTUAL := "27.7.8"
+global VERSION_ACTUAL := "27.7.9"
 
 ; ===== TEMAS =====
 temas := [
@@ -5983,7 +5983,7 @@ ToggleOverlayPixeles(*) {
 }
 
 DibujarOverlayPixeles() {
-    global overlayPixeles, pasosPrioridad, pasosNormales, scaleX, scaleY, temas, temaActual
+    global overlayPixeles, pasosPrioridad, pasosNormales, scaleX, scaleY
 
     try {
         if IsObject(overlayPixeles)
@@ -6001,28 +6001,7 @@ DibujarOverlayPixeles() {
     hWnd := overlayPixeles.Hwnd
     hDC  := DllCall("GetDC", "Ptr", hWnd, "Ptr")
 
-    tema := temas[temaActual]
-
-    ColoresCategoria(cat) {
-        switch cat {
-            case 1: return tema.histColor1
-            case 2: return tema.histColor2
-            case 3: return tema.histColor3
-            case 4: return tema.texto
-            case 5: return tema.luzAccion
-            case 6: return tema.afk
-        }
-        return tema.histColor1
-    }
-
-    HexToColorRef(hex) {
-        r := Integer("0x" SubStr(hex, 1, 2))
-        g := Integer("0x" SubStr(hex, 3, 2))
-        b := Integer("0x" SubStr(hex, 5, 2))
-        return (b << 16) | (g << 8) | r
-    }
-
-    DibujarCuadrado(hDC, x1s, y1s, x2s, y2s, hexColor) {
+    DibujarCuadrado(hDC, x1s, y1s, x2s, y2s, rgbColor) {
         ; Tamaño real del área de búsqueda, mínimo 4×4 para que se vea
         minSize := 4
         ancho := Max(x2s - x1s + 1, minSize)
@@ -6031,7 +6010,14 @@ DibujarOverlayPixeles() {
         rx := x1s - Max(0, Round((minSize - (x2s - x1s + 1)) / 2))
         ry := y1s - Max(0, Round((minSize - (y2s - y1s + 1)) / 2))
 
-        colorRef := HexToColorRef(hexColor)
+        ; Convertir paso.color (0xRRGGBB) a COLORREF de GDI (0x00BBGGRR)
+        r := (rgbColor >> 16) & 0xFF
+        g := (rgbColor >> 8)  & 0xFF
+        b := rgbColor & 0xFF
+        ; Evitar el color 010101 exacto (es el TransColor de la overlay → invisible)
+        if (r = 1 && g = 1 && b = 1)
+            b := 2
+        colorRef := (b << 16) | (g << 8) | r
 
         hBrush := DllCall("CreateSolidBrush", "UInt", colorRef, "Ptr")
         rect   := Buffer(16, 0)
@@ -6041,15 +6027,7 @@ DibujarOverlayPixeles() {
         NumPut("Int", ry + alto,   rect, 12)
         DllCall("FillRect", "Ptr", hDC, "Ptr", rect, "Ptr", hBrush)
         DllCall("DeleteObject", "Ptr", hBrush)
-
-        ; Borde blanco fino para que se vea sobre cualquier fondo
-        hPen := DllCall("CreatePen", "Int", 0, "Int", 1, "UInt", 0xFFFFFF, "Ptr")
-        hOldPen := DllCall("SelectObject", "Ptr", hDC, "Ptr", hPen)
-        hNoBrush := DllCall("GetStockObject", "Int", 5, "Ptr")
-        DllCall("SelectObject", "Ptr", hDC, "Ptr", hNoBrush)
-        DllCall("Rectangle", "Ptr", hDC, "Int", rx, "Int", ry, "Int", rx + ancho, "Int", ry + alto)
-        DllCall("SelectObject", "Ptr", hDC, "Ptr", hOldPen)
-        DllCall("DeleteObject", "Ptr", hPen)
+        ; (borde removido — ahora el color del cuadrado ES el color del paso a detectar)
     }
 
     for paso in pasosPrioridad {
@@ -6057,8 +6035,8 @@ DibujarOverlayPixeles() {
         y1s := Round(paso.y1 * scaleY)
         x2s := Round(paso.x2 * scaleX)
         y2s := Round(paso.y2 * scaleY)
-        cat := paso.HasProp("categoria") ? paso.categoria : 1
-        DibujarCuadrado(hDC, x1s, y1s, x2s, y2s, ColoresCategoria(cat))
+        colorPaso := paso.HasProp("color") ? paso.color : 0xFF00FF  ; magenta fallback
+        DibujarCuadrado(hDC, x1s, y1s, x2s, y2s, colorPaso)
     }
 
     for paso in pasosNormales {
@@ -6066,8 +6044,8 @@ DibujarOverlayPixeles() {
         y1s := Round(paso.y1 * scaleY)
         x2s := Round(paso.x2 * scaleX)
         y2s := Round(paso.y2 * scaleY)
-        cat := paso.HasProp("categoria") ? paso.categoria : 1
-        DibujarCuadrado(hDC, x1s, y1s, x2s, y2s, ColoresCategoria(cat))
+        colorPaso := paso.HasProp("color") ? paso.color : 0xFF00FF
+        DibujarCuadrado(hDC, x1s, y1s, x2s, y2s, colorPaso)
     }
 
     DllCall("ReleaseDC", "Ptr", hWnd, "Ptr", hDC)
