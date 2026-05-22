@@ -6,7 +6,7 @@ CoordMode("Mouse", "Screen")
 ; ===== CONFIGURACION =====
 configPath := A_ScriptDir "\brawlmacro_config.ini"
 global eggsBackupPath := A_ScriptDir "\brawlmacro_eggs.txt"
-global VERSION_ACTUAL := "27.7.6"
+global VERSION_ACTUAL := "27.7.7"
 
 ; ===== TEMAS =====
 temas := [
@@ -4241,6 +4241,31 @@ AgregarHistorial(texto, CH := "") {
     global contadorAcciones, histFlashStep
     local hora := FormatTime(A_Now, "HH:mm:ss")
     local colorHex := (CH != "" ? CH : ObtenerColorHistorial())
+
+    ; Limitar historial a ~500 líneas para evitar que el RichEdit colapse
+    ; tras muchas horas de uso. Cada ~100 entradas comprobamos y recortamos.
+    static contadorAddes := 0
+    contadorAddes += 1
+    if (contadorAddes >= 100) {
+        contadorAddes := 0
+        try {
+            static EM_GETLINECOUNT := 0x00BA
+            totalLines := SendMessage(EM_GETLINECOUNT, 0, 0, , "ahk_id " historialBox.Hwnd)
+            if (totalLines > 500) {
+                ; Borrar las líneas más antiguas (del final) dejando las 400 más recientes
+                static EM_LINEINDEX := 0x00BB
+                static EM_SETSEL := 0x00B1
+                static EM_REPLACESEL := 0x00C2
+                cutFromLine := 400
+                cutIdx := SendMessage(EM_LINEINDEX, cutFromLine, 0, , "ahk_id " historialBox.Hwnd)
+                totalLen := SendMessage(0x000E, 0, 0, , "ahk_id " historialBox.Hwnd)  ; WM_GETTEXTLENGTH
+                if (cutIdx > 0 && cutIdx < totalLen) {
+                    SendMessage(EM_SETSEL, cutIdx, totalLen, , "ahk_id " historialBox.Hwnd)
+                    SendMessage(EM_REPLACESEL, 0, StrPtr(""), , "ahk_id " historialBox.Hwnd)
+                }
+            }
+        }
+    }
 
     if (texto = histUltimoTexto && histUltimoCount < 5) {
         ; Mismo paso: incrementar y reemplazar la primera línea (posición 0)
