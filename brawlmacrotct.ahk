@@ -6,7 +6,7 @@ CoordMode("Mouse", "Screen")
 ; ===== CONFIGURACION =====
 configPath := A_ScriptDir "\brawlmacro_config.ini"
 global eggsBackupPath := A_ScriptDir "\brawlmacro_eggs.txt"
-global VERSION_ACTUAL := "27.7.9"
+global VERSION_ACTUAL := "27.8.0"
 
 ; ===== TEMAS =====
 temas := [
@@ -5809,7 +5809,15 @@ ArrastrarVentanaActualizacion(*) {
 }
 
 ComprobarVersionRemota(lblVer, lblEstado, btnAct) {
-    global GITHUB_VERSION_URL, VERSION_ACTUAL, colorBotonNormal, colorBtnTexto
+    global GITHUB_VERSION_URL, VERSION_ACTUAL, colorBotonNormal, colorBtnTexto, updateGuiVisible
+
+    ; Helper: verifica si la ventana del actualizador sigue viva antes de tocar sus controles.
+    ; Si el usuario cerró la ventana (manualmente o por auto-cierre 7s) mientras la request
+    ; HTTP estaba en vuelo, los controles ya están destruidos y escribir en ellos peta.
+    UIviva() {
+        global updateGuiVisible, updateGui
+        return updateGuiVisible && IsObject(updateGui)
+    }
 
     try {
         whr := ComObject("WinHttp.WinHttpRequest.5.1")
@@ -5817,34 +5825,50 @@ ComprobarVersionRemota(lblVer, lblEstado, btnAct) {
         urlConTimestamp := GITHUB_VERSION_URL "?t=" A_TickCount
         whr.Open("GET", urlConTimestamp, false)
         whr.Send()
+
+        if (!UIviva())
+            return  ; el usuario cerró la ventana mientras la request estaba en vuelo
+
         if (whr.Status != 200) {
-            lblVer.Value := "—"
-            lblVer.Opt("cFF5555")
-            lblEstado.Value := Chr(0x26A0) "  Sin conexión con GitHub. Revisa tu internet."
-            lblEstado.Opt("cFF5555")
+            try {
+                lblVer.Value := "—"
+                lblVer.Opt("cFF5555")
+                lblEstado.Value := Chr(0x26A0) "  Sin conexión con GitHub. Revisa tu internet."
+                lblEstado.Opt("cFF5555")
+            }
             return
         }
         verRemota := Trim(whr.ResponseText, " `t`r`n")
-        lblVer.Value := "v" verRemota
+
+        try lblVer.Value := "v" verRemota
 
         if (VersionMayor(verRemota, VERSION_ACTUAL)) {
-            lblVer.Opt("c00DD66")
-            lblEstado.Value := Chr(0x1F389) "  ¡Nueva versión disponible! Pulsa para instalar."
-            lblEstado.Opt("c00DD66")
-            btnAct.Opt("Background" colorBotonNormal " c" colorBtnTexto)
-            btnAct.SetFont("s11 c" colorBtnTexto " Bold", "Segoe UI Semibold")
-            btnAct._habilitado := true
-            btnAct.OnEvent("Click", (*) => DescargarYActualizar(verRemota, lblEstado, btnAct))
+            try {
+                lblVer.Opt("c00DD66")
+                lblEstado.Value := Chr(0x1F389) "  ¡Nueva versión disponible! Pulsa para instalar."
+                lblEstado.Opt("c00DD66")
+                btnAct.Opt("Background" colorBotonNormal " c" colorBtnTexto)
+                btnAct.SetFont("s11 c" colorBtnTexto " Bold", "Segoe UI Semibold")
+                btnAct._habilitado := true
+                btnAct.OnEvent("Click", (*) => DescargarYActualizar(verRemota, lblEstado, btnAct))
+            }
         } else {
-            lblVer.Opt("c" (ColorEsClaro(lblVer) ? "007733" : "88FFAA"))
-            lblEstado.Value := Chr(0x2705) "  Estás al día con la última versión."
-            lblEstado.Opt("c" (ColorEsClaro(lblEstado) ? "007733" : "88FFAA"))
+            try {
+                lblVer.Opt("c" (ColorEsClaro(lblVer) ? "007733" : "88FFAA"))
+                lblEstado.Value := Chr(0x2705) "  Estás al día con la última versión."
+                lblEstado.Opt("c" (ColorEsClaro(lblEstado) ? "007733" : "88FFAA"))
+            }
         }
     } catch Error as e {
-        lblVer.Value := "—"
-        lblVer.Opt("cFF5555")
-        lblEstado.Value := Chr(0x26A0) "  Error: " e.Message
-        lblEstado.Opt("cFF5555")
+        ; Si el catch ocurre PORQUE los controles ya están destruidos, no hacer nada.
+        if (!UIviva())
+            return
+        try {
+            lblVer.Value := "—"
+            lblVer.Opt("cFF5555")
+            lblEstado.Value := Chr(0x26A0) "  Error: " e.Message
+            lblEstado.Opt("cFF5555")
+        }
     }
 }
 
