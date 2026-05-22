@@ -6,7 +6,7 @@ CoordMode("Mouse", "Screen")
 ; ===== CONFIGURACION =====
 configPath := A_ScriptDir "\brawlmacro_config.ini"
 global eggsBackupPath := A_ScriptDir "\brawlmacro_eggs.txt"
-global VERSION_ACTUAL := "27.7.7"
+global VERSION_ACTUAL := "27.7.8"
 
 ; ===== TEMAS =====
 temas := [
@@ -155,6 +155,13 @@ global partGui := "", partGuiVisible := false
 ; ===== LOGO GIRATORIO (GDI+) =====
 global gdipToken := 0, gdipInited := false
 global logoFontFamily := 0, logoStringFormat := 0
+; Cache del engranaje pre-renderizado (32 ángulos cubriendo 0-45° por simetría de 8 dientes)
+global logoGearFont := 0           ; handle del font (no solo la familia)
+global logoGearCache := []          ; array de 32 HBITMAPs ya rotados
+global logoGearCacheColor := ""     ; color hex con el que está construido el cache
+global logoGearCacheW := 0          ; ancho del bitmap cacheado
+global logoGearCacheH := 0          ; alto del bitmap cacheado
+global LOGO_GEAR_CACHE_FRAMES := 32
 global logoAngulo := 0.0, logoVelActual := 0.0, logoVelObjetivo := 0.0
 global logoVelMax := 6.0  ; grados por tick @ ~30fps  →  ~180°/s (giro completo cada 2s)
 global logoNeedsRedraw := true
@@ -344,7 +351,7 @@ CerrarStatsGui(*) {
 
 ; ===== GDI+ + LOGO GIRATORIO =====
 InicializarGdip() {
-    global gdipToken, gdipInited, logoFontFamily, logoStringFormat
+    global gdipToken, gdipInited, logoFontFamily, logoStringFormat, logoGearFont
     if (gdipInited)
         return
     DllCall("LoadLibrary", "Str", "gdiplus.dll")
@@ -352,10 +359,133 @@ InicializarGdip() {
     NumPut("UInt", 1, si, 0)
     DllCall("gdiplus\GdiplusStartup", "Ptr*", &gdipToken, "Ptr", si, "Ptr", 0)
     DllCall("gdiplus\GdipCreateFontFamilyFromName", "WStr", "Segoe UI Symbol", "Ptr", 0, "Ptr*", &logoFontFamily)
+    if (!logoFontFamily)
+        DllCall("gdiplus\GdipCreateFontFamilyFromName", "WStr", "Segoe UI Emoji", "Ptr", 0, "Ptr*", &logoFontFamily)
+    if (!logoFontFamily)
+        DllCall("gdiplus\GdipCreateFontFamilyFromName", "WStr", "Arial", "Ptr", 0, "Ptr*", &logoFontFamily)
+    ; Crear UN solo font handle (reutilizable). Antes DibujarGearEnDC lo recreaba cada frame.
+    if (logoFontFamily)
+        DllCall("gdiplus\GdipCreateFont", "Ptr", logoFontFamily, "Float", 58, "Int", 1, "Int", 0, "Ptr*", &logoGearFont)
     DllCall("gdiplus\GdipCreateStringFormat", "Int", 0, "Int", 0, "Ptr*", &logoStringFormat)
-    DllCall("gdiplus\GdipSetStringFormatAlign",     "Ptr", logoStringFormat, "Int", 1)  ; center horizontal
-    DllCall("gdiplus\GdipSetStringFormatLineAlign", "Ptr", logoStringFormat, "Int", 1)  ; center vertical
+    DllCall("gdiplus\GdipSetStringFormatAlign",     "Ptr", logoStringFormat, "Int", 0)  ; top-left (compatible con DibujarGearEnDC)
+    DllCall("gdiplus\GdipSetStringFormatLineAlign", "Ptr", logoStringFormat, "Int", 0)
     gdipInited := true
+}
+
+; Libera el cache de bitmaps del engranaje (llamar al cambiar color o salir).
+LiberarCacheGear() {
+    global logoGearCache, logoGearCacheColor
+    for hbm in logoGearCache {
+        if (hbm)
+            DllCall("DeleteObject", "Ptr", hbm)
+    }
+    logoGearCache := []
+    logoGearCacheColor := ""
+}
+
+; Pre-renderiza 32 bitmaps del engranaje (uno por cada ~1.4° en el rango 0-45°)
+; en el color dado. El engranaje tiene 8 dientes → simetría rotacional de 45° → con 32 frames
+; en ese rango se ve perfectamente fluido cubriendo cualquier ángulo (se hace modulo 45).
+ConstruirCacheGear(colorHex, w, h) {
+    global logoGearCache, logoGearCacheColor, logoGearCacheW, logoGearCacheH
+    global logoFontFamily, logoGearFont, LOGO_GEAR_CACHE_FRAMES
+
+    if (!logoFontFamily || !logoGearFont)
+        return false
+
+    LiberarCacheGear()
+
+    cRgb := Integer("0x" colorHex)
+    cArgb := 0xFF000000 | cRgb
+
+    Loop LOGO_GEAR_CACHE_FRAMES {
+        angle := (A_Index - 1) * (45.0 / LOGO_GEAR_CACHE_FRAMES)
+
+        ; Crear bitmap GDI+ PARGB (alpha por pixel para preservar transparencia)
+        static PixelFormat32bppPARGB := 0xE200B
+        bmp := 0
+        if (DllCall("gdiplus\GdipCreateBitmapFromScan0",
+            "Int", w, "Int", h, "Int", 0,
+            "Int", PixelFormat32bppPARGB,
+            "Ptr", 0, "Ptr*", &bmp) != 0 || !bmp) {
+            LiberarCacheGear()
+            return false
+        }
+
+        g := 0
+        DllCall("gdiplus\GdipGetImageGraphicsContext", "Ptr", bmp, "Ptr*", &g)
+        if (!g) {
+            DllCall("gdiplus\GdipDisposeImage", "Ptr", bmp)
+            LiberarCacheGear()
+            return false
+        }
+
+        DllCall("gdiplus\GdipSetSmoothingMode",     "Ptr", g, "Int", 4)
+        DllCall("gdiplus\GdipSetTextRenderingHint", "Ptr", g, "Int", 4)
+        DllCall("gdiplus\GdipGraphicsClear",        "Ptr", g, "UInt", 0x00000000)  ; transparente
+
+        ; Medir centro del glifo (usando la misma lógica que DibujarGearEnDC)
+        mFmt := 0
+        DllCall("gdiplus\GdipCreateStringFormat", "Int", 0, "Int", 0, "Ptr*", &mFmt)
+        DllCall("gdiplus\GdipSetStringFormatAlign",     "Ptr", mFmt, "Int", 0)
+        DllCall("gdiplus\GdipSetStringFormatLineAlign", "Ptr", mFmt, "Int", 0)
+        bigR := Buffer(16, 0)
+        NumPut("Float", 0.0, bigR, 0)
+        NumPut("Float", 0.0, bigR, 4)
+        NumPut("Float", 1000.0, bigR, 8)
+        NumPut("Float", 1000.0, bigR, 12)
+        bb := Buffer(16, 0)
+        cp := 0, ln := 0
+        DllCall("gdiplus\GdipMeasureString", "Ptr", g, "WStr", Chr(9881), "Int", 1,
+                "Ptr", logoGearFont, "Ptr", bigR, "Ptr", mFmt, "Ptr", bb, "Int*", &cp, "Int*", &ln)
+        DllCall("gdiplus\GdipDeleteStringFormat", "Ptr", mFmt)
+        gearCX := NumGet(bb, 0, "Float") + NumGet(bb, 8, "Float") / 2.0
+        gearCY := NumGet(bb, 4, "Float") + NumGet(bb, 12, "Float") / 2.0
+        drawX := w / 2.0 - gearCX
+        drawY := h / 2.0 - gearCY
+
+        ; Crear brush con el color y dibujar el glifo rotado
+        brush := 0
+        DllCall("gdiplus\GdipCreateSolidFill", "UInt", cArgb, "Ptr*", &brush)
+
+        fmt := 0
+        DllCall("gdiplus\GdipCreateStringFormat", "Int", 0, "Int", 0, "Ptr*", &fmt)
+        DllCall("gdiplus\GdipSetStringFormatAlign",     "Ptr", fmt, "Int", 0)
+        DllCall("gdiplus\GdipSetStringFormatLineAlign", "Ptr", fmt, "Int", 0)
+
+        drawRect := Buffer(16, 0)
+        NumPut("Float", drawX,                  drawRect, 0)
+        NumPut("Float", drawY,                  drawRect, 4)
+        NumPut("Float", gearCX * 2.0 + 20.0,    drawRect, 8)
+        NumPut("Float", gearCY * 2.0 + 20.0,    drawRect, 12)
+
+        DllCall("gdiplus\GdipResetWorldTransform",     "Ptr", g)
+        DllCall("gdiplus\GdipTranslateWorldTransform", "Ptr", g, "Float",  w/2.0, "Float",  h/2.0, "Int", 0)
+        DllCall("gdiplus\GdipRotateWorldTransform",    "Ptr", g, "Float",  angle,                  "Int", 0)
+        DllCall("gdiplus\GdipTranslateWorldTransform", "Ptr", g, "Float", -w/2.0, "Float", -h/2.0, "Int", 0)
+        DllCall("gdiplus\GdipDrawString", "Ptr", g, "WStr", Chr(9881), "Int", 1, "Ptr", logoGearFont, "Ptr", drawRect, "Ptr", fmt, "Ptr", brush)
+
+        DllCall("gdiplus\GdipDeleteStringFormat", "Ptr", fmt)
+        DllCall("gdiplus\GdipDeleteBrush",        "Ptr", brush)
+        DllCall("gdiplus\GdipDeleteGraphics",     "Ptr", g)
+
+        ; Convertir a HBITMAP y guardar en cache
+        hbm := 0
+        DllCall("gdiplus\GdipCreateHBITMAPFromBitmap", "Ptr", bmp, "Ptr*", &hbm, "UInt", 0)
+        DllCall("gdiplus\GdipDisposeImage", "Ptr", bmp)
+
+        if (!hbm) {
+            LiberarCacheGear()
+            return false
+        }
+
+        logoGearCache.Push(hbm)
+    }
+
+    logoGearCacheColor := colorHex
+    logoGearCacheW := w
+    logoGearCacheH := h
+    return true
 }
 
 ; Pinta el engranaje rotado directamente sobre el HDC dado, usando GDI para el fondo y GDI+ para
@@ -435,18 +565,27 @@ DibujarGearEnDC(hdc, w, h, angulo, colorHex, fondoHex) {
         colorHex := HSVaHex(Mod(rgbBarraHue * 2, 360), 1.0, 1.0)
     }
 
-    family := 0
-    DllCall("gdiplus\GdipCreateFontFamilyFromName", "WStr", "Segoe UI Symbol", "Ptr", 0, "Ptr*", &family)
-    if (!family)
-        DllCall("gdiplus\GdipCreateFontFamilyFromName", "WStr", "Segoe UI Emoji", "Ptr", 0, "Ptr*", &family)
-    if (!family)
-        DllCall("gdiplus\GdipCreateFontFamilyFromName", "WStr", "Segoe UI", "Ptr", 0, "Ptr*", &family)
-    if (!family)
-        DllCall("gdiplus\GdipCreateFontFamilyFromName", "WStr", "Arial", "Ptr", 0, "Ptr*", &family)
+    ; Usar handles cacheados (creados una sola vez en InicializarGdip).
+    ; Antes esta función creaba y destruía el font family + font cada frame (20 DllCalls
+    ; extra/segundo a 20fps). Ahora los reutilizamos.
+    global logoFontFamily, logoGearFont
+    family := logoFontFamily
+    font := logoGearFont
+    fontWasLocal := false
+
+    ; Fallback defensivo: si por algún motivo no están cacheados, crearlos local (no debería pasar).
+    if (!family) {
+        DllCall("gdiplus\GdipCreateFontFamilyFromName", "WStr", "Segoe UI Symbol", "Ptr", 0, "Ptr*", &family)
+        if (!family)
+            DllCall("gdiplus\GdipCreateFontFamilyFromName", "WStr", "Arial", "Ptr", 0, "Ptr*", &family)
+        fontWasLocal := true
+    }
+    if (family && !font) {
+        DllCall("gdiplus\GdipCreateFont", "Ptr", family, "Float", 58, "Int", 1, "Int", 0, "Ptr*", &font)
+        fontWasLocal := true
+    }
 
     if (family) {
-        font := 0
-        DllCall("gdiplus\GdipCreateFont", "Ptr", family, "Float", 58, "Int", 1, "Int", 0, "Ptr*", &font)
         if (font) {
             ; Medir el centro visual real del glifo una sola vez y cachearlo.
             ; GdipMeasureString con alineación top-left devuelve el bounding box real
@@ -541,14 +680,67 @@ DibujarGearEnDC(hdc, w, h, angulo, colorHex, fondoHex) {
                 DllCall("gdiplus\GdipDeleteBrush", "Ptr", ghostBrush)
             }
 
-            DllCall("gdiplus\GdipDrawString", "Ptr", g, "WStr", Chr(9881), "Int", 1, "Ptr", font, "Ptr", drawRect, "Ptr", fmt, "Ptr", brushG)
+            ; ── DIBUJO PRINCIPAL DEL ENGRANAJE ──
+            ; Si tenemos cache del color actual y NO estamos en modo especial (premium/glitch),
+            ; usar BitBlt del bitmap pre-renderizado en vez de hacer la rotación + dibujo cada frame.
+            global logoGearCache, logoGearCacheColor, LOGO_GEAR_CACHE_FRAMES, temaPremiumActivo
+            global activo, rgbLogo
+            ; Solo usar cache cuando el color es ESTABLE entre frames:
+            ;  - activo=true → color pulsa con Sin() cada frame → invalidaría cache cada tick = malo
+            ;  - rgbLogo → color cicla con RGB cada frame
+            ;  - premium → anillos arcoíris animados
+            ;  - glitching → usa color rojo distinto
+            colorEsEstable := !activo && !rgbLogo && !temaPremiumActivo && !glitching
+            canUseCache := colorEsEstable && (logoGearCache.Length = LOGO_GEAR_CACHE_FRAMES) && (logoGearCacheColor = colorHex)
+
+            ; Si el color es estable pero cambió (o no hay cache), construirlo ahora
+            if (!canUseCache && colorEsEstable) {
+                if (ConstruirCacheGear(colorHex, w, h)) {
+                    canUseCache := true
+                }
+            }
+
+            if (canUseCache) {
+                ; Calcular qué frame del cache usar (engranaje tiene simetría de 45°)
+                angWrap := Mod(angulo, 45.0)
+                if (angWrap < 0)
+                    angWrap += 45.0
+                idx := Mod(Round(angWrap * LOGO_GEAR_CACHE_FRAMES / 45.0), LOGO_GEAR_CACHE_FRAMES) + 1
+                hbmCached := logoGearCache[idx]
+                if (hbmCached) {
+                    ; AlphaBlend respeta el alpha por pixel del bitmap PARGB
+                    DllCall("gdiplus\GdipFlush", "Ptr", g, "Int", 1)
+                    hdcMem := DllCall("CreateCompatibleDC", "Ptr", hdc, "Ptr")
+                    oldBmp := DllCall("SelectObject", "Ptr", hdcMem, "Ptr", hbmCached, "Ptr")
+                    blendFn := Buffer(4, 0)
+                    NumPut("UChar", 0,   blendFn, 0)   ; BlendOp = AC_SRC_OVER
+                    NumPut("UChar", 0,   blendFn, 1)   ; BlendFlags
+                    NumPut("UChar", 255, blendFn, 2)   ; SourceConstantAlpha
+                    NumPut("UChar", 1,   blendFn, 3)   ; AlphaFormat = AC_SRC_ALPHA
+                    DllCall("Msimg32\AlphaBlend",
+                        "Ptr",  hdc,
+                        "Int",  0, "Int", 0, "Int", w, "Int", h,
+                        "Ptr",  hdcMem,
+                        "Int",  0, "Int", 0, "Int", w, "Int", h,
+                        "UInt", NumGet(blendFn, 0, "UInt"))
+                    DllCall("SelectObject", "Ptr", hdcMem, "Ptr", oldBmp)
+                    DllCall("DeleteDC", "Ptr", hdcMem)
+                }
+            } else {
+                ; Fallback: dibujo en vivo (premium, glitch, o cache no disponible)
+                DllCall("gdiplus\GdipDrawString", "Ptr", g, "WStr", Chr(9881), "Int", 1, "Ptr", font, "Ptr", drawRect, "Ptr", fmt, "Ptr", brushG)
+            }
 
             DllCall("gdiplus\GdipDeleteStringFormat", "Ptr", fmt)
             if (brushG)
                 DllCall("gdiplus\GdipDeleteBrush", "Ptr", brushG)
-            DllCall("gdiplus\GdipDeleteFont", "Ptr", font)
+            ; Solo destruir font/family si los creamos local en este frame (fallback).
+            ; Si vinieron del cache global, NO se tocan — se reutilizan eternamente.
+            if (fontWasLocal && font)
+                DllCall("gdiplus\GdipDeleteFont", "Ptr", font)
         }
-        DllCall("gdiplus\GdipDeleteFontFamily", "Ptr", family)
+        if (fontWasLocal && family)
+            DllCall("gdiplus\GdipDeleteFontFamily", "Ptr", family)
     }
     DllCall("gdiplus\GdipDeleteGraphics", "Ptr", g)
 }
