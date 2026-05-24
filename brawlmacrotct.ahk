@@ -7,7 +7,7 @@ CoordMode("Mouse", "Screen")
 configPath := A_ScriptDir "\brawlmacro_config.ini"
 global eggsBackupPath := A_ScriptDir "\brawlmacro_eggs.txt"
 global heartbeatPath := A_ScriptDir "\brawlmacro_heartbeat.txt"
-global VERSION_ACTUAL := "27.10.2"
+global VERSION_ACTUAL := "27.10.3"
 
 ; ===== TEMAS =====
 temas := [
@@ -6073,12 +6073,12 @@ ActualizarVisibilidadFrt() {
 
 ; Lanza el juego asociado al perfil activo cuando se presiona Iniciar.
 ;   🌐 tct (perfilActivo=1) → Brawlhalla via Steam
-;   🔒 sp  (perfilActivo=2) → Roblox (configura tu metodo abajo)
-;   ⚔ frt  (perfilActivo=3) → no lanza nada, solo spam de clicks + teclas
+;   🔒 sp  (perfilActivo=2) → NO lanza nada (el usuario abre lo que quiera manualmente)
+;   ⚔ frt  (perfilActivo=3) → NO lanza nada, solo spam de clicks + teclas
 LanzarJuegoDelPerfil() {
     global brawlhallaLanzado, perfilActivo
     if (brawlhallaLanzado)
-        return  ; ya se lanzó esta sesión, no relanzar al pulsar Iniciar otra vez
+        return
     brawlhallaLanzado := true
 
     if (perfilActivo = 1) {
@@ -6091,27 +6091,7 @@ LanzarJuegoDelPerfil() {
         try Run("steam://rungameid/291550")
         return
     }
-
-    if (perfilActivo = 2) {
-        ; ── 🔒 sp → Roblox ──
-        ; Si ya esta abierto cualquier proceso de Roblox, no relanzar
-        if (ProcessExist("RobloxPlayerBeta.exe") || ProcessExist("Roblox.exe")) {
-            AgregarHistorial(Chr(0x2705) " Roblox ya está abierto", "00CC44")
-            return
-        }
-        AgregarHistorial(Chr(0x1F504) " Abriendo Roblox...", "FF8800")
-        ; Metodo URI scheme (funciona si tienes Roblox instalado normal):
-        try Run("roblox://")
-        ; Si el URI no funciona, descomenta y ajusta el path al exe directo:
-        ; try Run(A_AppData "\..\Local\Roblox\Versions\version-XXXXX\RobloxPlayerBeta.exe")
-        return
-    }
-
-    if (perfilActivo = 3) {
-        ; ── ⚔ frt → modo spam (clicks + cycle teclas), no lanza nada ──
-        AgregarHistorial(Chr(0x2694) " Modo frt activado: clicks + teclas 1-7", "FF8800")
-        return
-    }
+    ; sp y frt no lanzan ningun juego — el usuario decide
 }
 
 ; Alias retrocompatible
