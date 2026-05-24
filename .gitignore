@@ -9,6 +9,10 @@ brawlmacro_watchdog.pid
 # Stats migradas a config.ini en v27.9.2 — el archivo viejo no va al repo
 brawlmacro_stats.ini
 
+# Datos personales del usuario (no comparten en repo público)
+brawlmacro_config.ini
+brawlmacro_eggs.txt
+
 # Carpetas de mockups generados (pesadas, locales)
 mockups/
 mockups_png/
