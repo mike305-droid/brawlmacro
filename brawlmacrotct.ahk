@@ -6,7 +6,8 @@ CoordMode("Mouse", "Screen")
 ; ===== CONFIGURACION =====
 configPath := A_ScriptDir "\brawlmacro_config.ini"
 global eggsBackupPath := A_ScriptDir "\brawlmacro_eggs.txt"
-global VERSION_ACTUAL := "27.9.0"
+global heartbeatPath := A_ScriptDir "\brawlmacro_heartbeat.txt"
+global VERSION_ACTUAL := "27.9.1"
 
 ; ===== TEMAS =====
 temas := [
@@ -1297,6 +1298,21 @@ WatchdogAFK() {
     }
 }
 
+; ===== HEARTBEAT PARA WATCHDOG EXTERNO =====
+; Escribe en cada tick: <A_TickCount>|<PID actual>|<formato fecha legible>
+; El watchdog externo lee este archivo y verifica el mtime + PID. Si pasa >90s
+; sin actualizarse y el PID sigue vivo (= colgado de verdad), lo mata y reinicia.
+EscribirHeartbeat() {
+    global heartbeatPath
+    try {
+        f := FileOpen(heartbeatPath, "w", "UTF-8")
+        if (f) {
+            f.Write(A_TickCount "|" ProcessExist() "|" FormatTime(, "yyyy-MM-dd HH:mm:ss"))
+            f.Close()
+        }
+    }
+}
+
 
 ; Pinta partículas con alpha por píxel (PARGB) sobre la overlay layered y las muestra
 ; vía UpdateLayeredWindow. Así cada partícula se mezcla contra los píxeles reales que
@@ -1961,6 +1977,8 @@ SetTimer(ActualizarTrayIcon, 1000)
 SetTimer(VerificarLogros, 5000)
 SetTimer(ActualizarScrollbar, 150)
 SetTimer(WatchdogAFK, 30000)     ; cada 30 s; si activo && > 90 s sin AFK → Reload()
+SetTimer(EscribirHeartbeat, 5000) ; cada 5 s escribe pid + timestamp en heartbeat.txt para el watchdog externo
+EscribirHeartbeat()              ; un primer write inmediato
 
 ; Si la instancia anterior se reinició por watchdog, auto-arrancar el macro.
 ; Pequeño delay para que la GUI termine de asentarse antes de Iniciar().
@@ -4318,11 +4336,13 @@ Minimizar(*) {
 }
 
 Cerrar(*) {
-    global miGui, historialGui, overlayPartMain, overlayPartHist
+    global miGui, historialGui, overlayPartMain, overlayPartHist, heartbeatPath
     GuardarStats()
     GuardarRGBs()
     IniWrite(historialVisible ? 1 : 0, configPath, "UI", "HistorialVisible")
     GuardarPosiciones()
+    ; Borrar heartbeat para que el watchdog externo NO nos reinicie (cierre intencionado)
+    try FileDelete(heartbeatPath)
     ; Ocultar los overlays de partículas para que no se vean flotando durante el fade
     if (IsObject(overlayPartMain))
         try overlayPartMain.Hide()
@@ -5448,7 +5468,7 @@ SpawnConfetiParticles() {
 }
 
 ActualizarConfeti() {
-    global confetiGui, confetiParticles, confetiActivo
+    global confetiGui, confetiParticles, confetiActivo, confetiSubclassCb
     if (!confetiActivo || !IsObject(confetiGui)) {
         SetTimer(ActualizarConfeti, 0)
         return
@@ -5467,6 +5487,13 @@ ActualizarConfeti() {
     }
     if (allDead) {
         SetTimer(ActualizarConfeti, 0)
+        ; Liberar subclass callback ANTES de destruir el GUI
+        ; (sino se filtra un handle de callback en cada crítico → tras N críticos el proceso muere por handles GDI)
+        if (confetiSubclassCb) {
+            try DllCall("Comctl32.dll\RemoveWindowSubclass", "Ptr", confetiGui.Hwnd, "Ptr", confetiSubclassCb, "Ptr", 33)
+            try CallbackFree(confetiSubclassCb)
+            confetiSubclassCb := 0
+        }
         try confetiGui.Destroy()
         confetiGui := ""
         confetiActivo := false
@@ -5540,6 +5567,11 @@ InstalarSubclassConfeti() {
     global confetiGui, confetiSubclassCb
     if (!IsObject(confetiGui))
         return
+    ; Si por cualquier motivo había un callback previo huérfano, liberarlo antes
+    if (confetiSubclassCb) {
+        try CallbackFree(confetiSubclassCb)
+        confetiSubclassCb := 0
+    }
     confetiSubclassCb := CallbackCreate(ConfetiSubclassProc, "F", 6)
     DllCall("Comctl32.dll\SetWindowSubclass", "Ptr", confetiGui.Hwnd, "Ptr", confetiSubclassCb, "Ptr", 33, "Ptr", 0)
 }
