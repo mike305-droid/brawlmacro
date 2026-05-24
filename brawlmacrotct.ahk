@@ -7,7 +7,7 @@ CoordMode("Mouse", "Screen")
 configPath := A_ScriptDir "\brawlmacro_config.ini"
 global eggsBackupPath := A_ScriptDir "\brawlmacro_eggs.txt"
 global heartbeatPath := A_ScriptDir "\brawlmacro_heartbeat.txt"
-global VERSION_ACTUAL := "27.9.6"
+global VERSION_ACTUAL := "27.9.7"
 
 ; ===== TEMAS =====
 temas := [
@@ -107,7 +107,7 @@ pasosPrioridad := []
 pasosNormales := []
 
 ; ===== PASOS DE PRIORIDAD =====
-pasosPrioridad.Push({ tipo:"pimg", nombre:"LEAVINGGAME...", color:0xFFFFFF, categoria:1, accion:"Esc", hold:1000, tolerancia:1, delayClick:3000, delayTecla:1000, cooldown:190000, tct:true, lastUsed:0, x1:1445, y1:65, x2:1448, y2:69, esperarA:"leaving..." })
+pasosPrioridad.Push({ tipo:"pimg", nombre:"LEAVINGGAME...", color:0xFFFFFF, categoria:1, accion:"Esc", hold:1000, tolerancia:1, delayClick:3000, delayTecla:1000, cooldown:190000, tct:true, sp:true, lastUsed:0, x1:1445, y1:65, x2:1448, y2:69, esperarA:"leaving..." })
 
 ; ===== PIXEL PASOS NORMALES =====
 pasosNormales.Push({ tipo:"pimg", nombre:"play",          color:0xF6F7F8, categoria:2, hold:400, tolerancia:1, delayClick:30,  delayTecla:80, cooldown:200, tct:true, lastUsed:0, x1:37, y1:271, x2:37, y2:271 })
@@ -115,9 +115,23 @@ pasosNormales.Push({ tipo:"pimg", nombre:"playbob",       color:0xFED511, catego
 pasosNormales.Push({ tipo:"pimg", nombre:"playwhite",     color:0xFFFFFF, categoria:2, tolerancia:1, hold:400, delayClick:500, delayTecla:500, cooldown:500, tct:true, lastUsed:0, x1:34, y1:269, x2:34, y2:269 })
 
 
+pasosNormales.Push({ tipo:"pimg", nombre:"play",          color:0xF6F7F8, categoria:2, hold:400, tolerancia:1, delayClick:30,  delayTecla:80, cooldown:200, sp:true, lastUsed:0, x1:34, y1:526, x2:34, y2:532 })
+pasosNormales.Push({ tipo:"pimg", nombre:"playbob",       color:0xFED511, categoria:2, tolerancia:1, hold:100, delayClick:500, delayTecla:500, cooldown:100, sp:true, lastUsed:0, x1:34, y1:526, x2:34, y2:532 })
+pasosNormales.Push({ tipo:"pimg", nombre:"playwhite",     color:0xFFFFFF, categoria:2, tolerancia:1, hold:400, delayClick:500, delayTecla:500, cooldown:500, sp:true, lastUsed:0, x1:34, y1:526, x2:34, y2:532 })
+
+pasosNormales.Push({ tipo:"pimg", nombre:"enteringsp1",   color:0x15171A, categoria:5, tolerancia:1, hold:200, delayClick:500, delayTecla:500, cooldown:500, lastUsed:0, x1:465, y1:471, x2:466, y2:476 })
+pasosNormales.Push({ tipo:"pimg", nombre:"enteringsp2",   color:0x9EA9BB, categoria:5, tolerancia:1, hold:200, delayClick:500, delayTecla:500, cooldown:500, lastUsed:0, x1:734, y1:427, x2:738, y2:429 })
+
+pasosNormales.Push({ tipo:"pimg", nombre:"addrobot",      color:0x70C9D3, tolerancia:1, hold:200, delayClick:500, delayTecla:500, cooldown:500, lastUsed:0, x1:31, y1:256, x2:34, y2:256 })
+pasosNormales.Push({ tipo:"pimg", nombre:"configbot",     color:0x70C9D3, tolerancia:1, hold:200, delayClick:500, delayTecla:500, cooldown:500, lastUsed:0, x1:18, y1:268, x2:18, y2:268 })
+
+pasosNormales.Push({ tipo:"pimg", nombre:"easybot",       color:0xFFFFFF, tolerancia:1, hold:200, delayClick:500, delayTecla:500, cooldown:500, lastUsed:0, x1:239, y1:323, x2:239, y2:323 })
+pasosNormales.Push({ tipo:"pimg", nombre:"botbot",        color:0xFFFFFF, tolerancia:1, hold:200, delayClick:500, delayTecla:500, cooldown:500, lastUsed:0, x1:239, y1:323, x2:239, y2:323 })
+
 pasosNormales.Push({ tipo:"pimg", nombre:"ingame...",     color:0x70C9D3, categoria:4, accion:"c", hold:100, tolerancia:1, delayClick:10, delayTecla:10, cooldown:10, tct:true, lastUsed:0, x1:32, y1:266, x2:35, y2:268 })
 pasosNormales.Push({ tipo:"pimg", nombre:"glitch1",       color:0x0059A2, categoria:6, tiempoNecesario:4000, tiempoDetectando:0, accion:"Esc", hold:400, tolerancia:1, delayClick:30, delayTecla:250, cooldown:500, tct:true, lastUsed:0, x1:38, y1:252, x2:53, y2:259 })
 pasosNormales.Push({ tipo:"pimg", nombre:"featured",      color:0x0E2C45, categoria:6, tiempoNecesario:4000, tiempoDetectando:0, accion:"Esc", hold:400, tolerancia:1, delayClick:30, delayTecla:250, cooldown:500, tct:true, lastUsed:0, x1:166, y1:262, x2:166, y2:269 })
+
 
 pasosNormales.Push({ tipo:"pimg", nombre:"gamedone1",     color:0x000033, categoria:1, accion:"c", hold:400, tolerancia:1, delayClick:30, delayTecla:80, cooldown:500, tct:true, lastUsed:0, x1:941, y1:40, x2:959, y2:43 })
 pasosNormales.Push({ tipo:"pimg", nombre:"gamedone2",     color:0xF7F9F9, categoria:1, accion:"c", hold:400, tolerancia:1, delayClick:30, delayTecla:80, cooldown:500, tct:true, lastUsed:0, x1:900, y1:43, x2:900, y2:43 })
@@ -1907,12 +1921,10 @@ barra.SetFont("s13 c" colorTextoBarra " Bold", "Segoe UI Semibold")
 barra.OnEvent("Click", ArrastrarVentana)
 barra.OnEvent("DoubleClick", ClickTitulo)
 
-; P1/P2 zona de click INVISIBLE en la esquina inferior-izquierda del cuerpo.
-; No interfiere con la barra → sin parpadeo en transiciones.
-; Mismo color que el fondo → indistinguible visualmente.
-; Atajo F3 como acceso rápido alternativo (más abajo, en sección hotkeys).
-btnPerfil := miGui.Add("Text", "x5 y220 w14 h14 +0x201 Background" colorFondoPrincipal " c" colorFondoPrincipal, NombrePerfil())
-btnPerfil.SetFont("s6 c" colorFondoPrincipal, "Segoe UI")
+; Botón de perfil VISIBLE — muestra emoji 🌐 (tct/publico) o 🔒 (sp/privado).
+; Click alterna el perfil. F3 hace lo mismo desde teclado.
+btnPerfil := miGui.Add("Text", "x368 y59 w26 h26 +0x201 Center Background" colorBotonNormal " c" colorBtnTexto, EmojiPerfil())
+btnPerfil.SetFont("s11 c" colorBtnTexto " Bold", "Segoe UI Emoji")
 btnPerfil.OnEvent("Click", CambiarPerfil)
 
 btnReset    := miGui.Add("Text", "x308 y33 w20 h20 +0x201 Background" colorBotonNormal " c" colorBtnTexto, Chr(8635))
@@ -1975,7 +1987,7 @@ RegistrarHover(btnTema,      () => (rgbBotones ? colorRGBActual : colorBotonNorm
 RegistrarHover(btnHistorial, () => (rgbBotones ? colorRGBActual : colorBotonNormal))
 RegistrarHover(btnCodigo,    () => (rgbBotones ? colorRGBActual : colorBotonNormal))
 RegistrarHover(btnReset,     () => (rgbBotones ? colorRGBActual : colorBotonNormal))
-; btnPerfil sin hover visible — es zona oculta, no debe revelar nada al pasar el cursor
+RegistrarHover(btnPerfil,    () => (rgbBotones ? colorRGBActual : colorBotonNormal))
 RegistrarHover(btnMin,       () => (rgbBotones ? colorRGBActual : colorBotonNormal))
 RegistrarHover(btnClose,     () => (rgbBotones ? colorRGBActual : colorBotonNormal))
 RegistrarHover(btnUpdate,    () => (rgbBotones ? colorRGBActual : colorBotonNormal))
@@ -3987,8 +3999,8 @@ TransicionPaso() {
         }
     }
     if (IsObject(btnPerfil)) {
-        ; btnPerfil es zona invisible → sigue el fondo (cFondo ya interpolado arriba)
-        btnPerfil.Opt("Background" cFondo)
+        ; btnPerfil ahora es boton visible → sigue cBoton igual que los demas
+        btnPerfil.Opt("Background" cBoton)
         DllCall("InvalidateRect", "Ptr", btnPerfil.Hwnd, "Ptr", 0, "Int", 1)
     }
 
@@ -4159,8 +4171,8 @@ AplicarTema(tema, guardar := true, fromTrans := false) {
             DllCall("UpdateWindow",   "Ptr", btn.Hwnd)
         }
     }
-    ; btnPerfil = zona invisible (esquina inf-izq) → mismo color que fondo
-    btnPerfil.Opt("Background" colorFondoPrincipal " c" colorFondoPrincipal)
+    ; btnPerfil ahora es boton visible con emoji → colores normales de boton
+    btnPerfil.Opt("Background" colorBotonNormal " c" colorBtnTexto)
     if (!fromTrans) {
         DllCall("InvalidateRect", "Ptr", btnPerfil.Hwnd, "Ptr", 0, "Int", 1)
         DllCall("UpdateWindow",   "Ptr", btnPerfil.Hwnd)
@@ -4175,7 +4187,7 @@ AplicarTema(tema, guardar := true, fromTrans := false) {
     btnLogros.SetFont("s9 c" colorBtnTexto, "Segoe UI Emoji")
     btnPart.SetFont("s9 c" colorBtnTexto, "Segoe UI Emoji")
     btnCodigo.SetFont("s10 c" colorBtnTexto " Bold", "Segoe UI Symbol")
-    btnPerfil.SetFont("s6 c" colorFondoPrincipal, "Segoe UI")
+    btnPerfil.SetFont("s11 c" colorBtnTexto " Bold", "Segoe UI Emoji")
     ActualizarEstadoVisual()
     if (fromTrans) {
         ; Reactivar redraws y forzar un único repintado atómico — sin frame en blanco
@@ -4392,9 +4404,15 @@ AbrirCodigo(*) {
     Run('notepad.exe "' A_ScriptDir '\brawlmacrotct.ahk"')
 }
 
-; Devuelve el nombre legible del perfil activo (o del pasado por idx).
-; 1 = publico = 🌐 tct
-; 2 = privado = 🔒 sp
+; Devuelve solo el emoji del perfil (para el boton visible).
+EmojiPerfil(idx := 0) {
+    global perfilActivo
+    if (idx = 0)
+        idx := perfilActivo
+    return (idx = 1) ? Chr(0x1F310) : Chr(0x1F512)  ; 🌐 publico / 🔒 privado
+}
+
+; Devuelve el nombre legible completo (emoji + nombre) para el historial.
 NombrePerfil(idx := 0) {
     global perfilActivo
     if (idx = 0)
@@ -4405,13 +4423,15 @@ NombrePerfil(idx := 0) {
 }
 
 CambiarPerfil(*) {
-    global perfilActivo, btnPerfil, configPath
+    global perfilActivo, btnPerfil, configPath, brawlhallaLanzado
     perfilActivo := (perfilActivo = 1) ? 2 : 1
-    btnPerfil.Value := NombrePerfil()
+    btnPerfil.Value := EmojiPerfil()
     DllCall("InvalidateRect", "Ptr", btnPerfil.Hwnd, "Ptr", 0, "Int", 1)
     DllCall("UpdateWindow",   "Ptr", btnPerfil.Hwnd)
     IniWrite(perfilActivo, configPath, "UI", "PerfilActivo")
     AgregarHistorial("Perfil activo: " NombrePerfil(), "")
+    ; Resetea la flag para que al pulsar Iniciar en el nuevo perfil se lance SU juego
+    brawlhallaLanzado := false
 }
 
 ToggleHistorial(*) {
@@ -5953,21 +5973,44 @@ TickTypingReveal() {
 ; El flag se resetea automáticamente al reiniciar el script.
 global brawlhallaLanzado := false
 
-LanzarBrawlhalla() {
-    global brawlhallaLanzado
+; Lanza el juego asociado al perfil activo cuando se presiona Iniciar.
+;   🌐 tct (perfilActivo=1) → Brawlhalla via Steam
+;   🔒 sp  (perfilActivo=2) → Roblox (configura tu metodo abajo)
+LanzarJuegoDelPerfil() {
+    global brawlhallaLanzado, perfilActivo
     if (brawlhallaLanzado)
         return  ; ya se lanzó esta sesión, no relanzar al pulsar Iniciar otra vez
     brawlhallaLanzado := true
 
-    ; Si ya está corriendo, no hacer nada (evita abrir Steam por segunda vez)
-    if (ProcessExist("Brawlhalla.exe")) {
-        AgregarHistorial(Chr(0x2705) " Brawlhalla ya está abierto", "00CC44")
+    if (perfilActivo = 1) {
+        ; ── 🌐 tct → Brawlhalla ──
+        if (ProcessExist("Brawlhalla.exe")) {
+            AgregarHistorial(Chr(0x2705) " Brawlhalla ya está abierto", "00CC44")
+            return
+        }
+        AgregarHistorial(Chr(0x1F504) " Abriendo Brawlhalla por Steam...", "FF8800")
+        try Run("steam://rungameid/291550")
         return
     }
 
-    AgregarHistorial(Chr(0x1F504) " Abriendo Brawlhalla por Steam...", "FF8800")
-    try Run("steam://rungameid/291550")
+    if (perfilActivo = 2) {
+        ; ── 🔒 sp → Roblox ──
+        ; Si ya esta abierto cualquier proceso de Roblox, no relanzar
+        if (ProcessExist("RobloxPlayerBeta.exe") || ProcessExist("Roblox.exe")) {
+            AgregarHistorial(Chr(0x2705) " Roblox ya está abierto", "00CC44")
+            return
+        }
+        AgregarHistorial(Chr(0x1F504) " Abriendo Roblox...", "FF8800")
+        ; Metodo URI scheme (funciona si tienes Roblox instalado normal):
+        try Run("roblox://")
+        ; Si el URI no funciona, descomenta y ajusta el path al exe directo:
+        ; try Run(A_AppData "\..\Local\Roblox\Versions\version-XXXXX\RobloxPlayerBeta.exe")
+        return
+    }
 }
+
+; Alias retrocompatible
+LanzarBrawlhalla() => LanzarJuegoDelPerfil()
 
 Iniciar(*) {
     global activo, ultimoCambio, modoDestruccion, ultimoPasoEjecutado
