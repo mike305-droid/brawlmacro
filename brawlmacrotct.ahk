@@ -7,7 +7,7 @@ CoordMode("Mouse", "Screen")
 configPath := A_ScriptDir "\brawlmacro_config.ini"
 global eggsBackupPath := A_ScriptDir "\brawlmacro_eggs.txt"
 global heartbeatPath := A_ScriptDir "\brawlmacro_heartbeat.txt"
-global VERSION_ACTUAL := "27.9.5"
+global VERSION_ACTUAL := "27.9.6"
 
 ; ===== TEMAS =====
 temas := [
@@ -107,27 +107,27 @@ pasosPrioridad := []
 pasosNormales := []
 
 ; ===== PASOS DE PRIORIDAD =====
-pasosPrioridad.Push({ tipo:"pimg", nombre:"LEAVINGGAME...", color:0xFFFFFF, categoria:1, accion:"Esc", hold:1000, tolerancia:1, delayClick:3000, delayTecla:1000, cooldown:190000, lastUsed:0, x1:1445, y1:65, x2:1448, y2:69, esperarA:"leaving..." })
+pasosPrioridad.Push({ tipo:"pimg", nombre:"LEAVINGGAME...", color:0xFFFFFF, categoria:1, accion:"Esc", hold:1000, tolerancia:1, delayClick:3000, delayTecla:1000, cooldown:190000, tct:true, lastUsed:0, x1:1445, y1:65, x2:1448, y2:69, esperarA:"leaving..." })
 
 ; ===== PIXEL PASOS NORMALES =====
-pasosNormales.Push({ tipo:"pimg", nombre:"play",          color:0xF6F7F8, categoria:2, hold:400, tolerancia:1, delayClick:30,  delayTecla:80, cooldown:200, lastUsed:0, x1:37, y1:271, x2:37, y2:271 })
-pasosNormales.Push({ tipo:"pimg", nombre:"playbob",       color:0xFED511, categoria:2, tolerancia:1, hold:100, delayClick:500, delayTecla:500, cooldown:100, lastUsed:0, x1:36, y1:264, x2:36, y2:264 })
-pasosNormales.Push({ tipo:"pimg", nombre:"playwhite",     color:0xFFFFFF, categoria:2, tolerancia:1, hold:400, delayClick:500, delayTecla:500, cooldown:500, lastUsed:0, x1:34, y1:269, x2:34, y2:269 })
+pasosNormales.Push({ tipo:"pimg", nombre:"play",          color:0xF6F7F8, categoria:2, hold:400, tolerancia:1, delayClick:30,  delayTecla:80, cooldown:200, tct:true, lastUsed:0, x1:37, y1:271, x2:37, y2:271 })
+pasosNormales.Push({ tipo:"pimg", nombre:"playbob",       color:0xFED511, categoria:2, tolerancia:1, hold:100, delayClick:500, delayTecla:500, cooldown:100, tct:true, lastUsed:0, x1:36, y1:264, x2:36, y2:264 })
+pasosNormales.Push({ tipo:"pimg", nombre:"playwhite",     color:0xFFFFFF, categoria:2, tolerancia:1, hold:400, delayClick:500, delayTecla:500, cooldown:500, tct:true, lastUsed:0, x1:34, y1:269, x2:34, y2:269 })
 
 
-pasosNormales.Push({ tipo:"pimg", nombre:"ingame...",     color:0x70C9D3, categoria:4, accion:"c", hold:100, tolerancia:1, delayClick:10, delayTecla:10, cooldown:10, lastUsed:0, x1:32, y1:266, x2:35, y2:268 })
-pasosNormales.Push({ tipo:"pimg", nombre:"glitch1",       color:0x0059A2, categoria:6, tiempoNecesario:4000, tiempoDetectando:0, accion:"Esc", hold:400, tolerancia:1, delayClick:30, delayTecla:250, cooldown:500, lastUsed:0, x1:38, y1:252, x2:53, y2:259 })
-pasosNormales.Push({ tipo:"pimg", nombre:"featured",      color:0x0E2C45, categoria:6, tiempoNecesario:4000, tiempoDetectando:0, accion:"Esc", hold:400, tolerancia:1, delayClick:30, delayTecla:250, cooldown:500, lastUsed:0, x1:166, y1:262, x2:166, y2:269 })
+pasosNormales.Push({ tipo:"pimg", nombre:"ingame...",     color:0x70C9D3, categoria:4, accion:"c", hold:100, tolerancia:1, delayClick:10, delayTecla:10, cooldown:10, tct:true, lastUsed:0, x1:32, y1:266, x2:35, y2:268 })
+pasosNormales.Push({ tipo:"pimg", nombre:"glitch1",       color:0x0059A2, categoria:6, tiempoNecesario:4000, tiempoDetectando:0, accion:"Esc", hold:400, tolerancia:1, delayClick:30, delayTecla:250, cooldown:500, tct:true, lastUsed:0, x1:38, y1:252, x2:53, y2:259 })
+pasosNormales.Push({ tipo:"pimg", nombre:"featured",      color:0x0E2C45, categoria:6, tiempoNecesario:4000, tiempoDetectando:0, accion:"Esc", hold:400, tolerancia:1, delayClick:30, delayTecla:250, cooldown:500, tct:true, lastUsed:0, x1:166, y1:262, x2:166, y2:269 })
 
-pasosNormales.Push({ tipo:"pimg", nombre:"gamedone1",     color:0x000033, categoria:1, accion:"c", hold:400, tolerancia:1, delayClick:30, delayTecla:80, cooldown:500, lastUsed:0, x1:941, y1:40, x2:959, y2:43 })
-pasosNormales.Push({ tipo:"pimg", nombre:"gamedone2",     color:0xF7F9F9, categoria:1, accion:"c", hold:400, tolerancia:1, delayClick:30, delayTecla:80, cooldown:500, lastUsed:0, x1:900, y1:43, x2:900, y2:43 })
-pasosNormales.Push({ tipo:"pimg", nombre:"gamedone3",     color:0xF7F9F9, categoria:1, accion:"c", hold:400, tolerancia:1, delayClick:30, delayTecla:80, cooldown:500, lastUsed:0, x1:876, y1:51, x2:876, y2:51 })
-pasosNormales.Push({ tipo:"pimg", nombre:"INTHEGAME",     color:0x38373E, categoria:3, accion:"c", hold:400, tolerancia:1, delayClick:30, delayTecla:80, cooldown:5000, bloqueoGlobal:170000, lastUsed:0, x1:792, y1:488, x2:794, y2:496 })
+pasosNormales.Push({ tipo:"pimg", nombre:"gamedone1",     color:0x000033, categoria:1, accion:"c", hold:400, tolerancia:1, delayClick:30, delayTecla:80, cooldown:500, tct:true, lastUsed:0, x1:941, y1:40, x2:959, y2:43 })
+pasosNormales.Push({ tipo:"pimg", nombre:"gamedone2",     color:0xF7F9F9, categoria:1, accion:"c", hold:400, tolerancia:1, delayClick:30, delayTecla:80, cooldown:500, tct:true, lastUsed:0, x1:900, y1:43, x2:900, y2:43 })
+pasosNormales.Push({ tipo:"pimg", nombre:"gamedone3",     color:0xF7F9F9, categoria:1, accion:"c", hold:400, tolerancia:1, delayClick:30, delayTecla:80, cooldown:500, tct:true, lastUsed:0, x1:876, y1:51, x2:876, y2:51 })
+pasosNormales.Push({ tipo:"pimg", nombre:"INTHEGAME",     color:0x38373E, categoria:3, accion:"c", hold:400, tolerancia:1, delayClick:30, delayTecla:80, cooldown:5000, bloqueoGlobal:170000, tct:true, lastUsed:0, x1:792, y1:488, x2:794, y2:496 })
 
-pasosNormales.Push({ tipo:"pimg", nombre:"closing...",    color:0xD7D554, categoria:5, hold:400, tolerancia:1, delayClick:30, delayTecla:400, cooldown:300000, lastUsed:0, x1:742, y1:515, x2:743, y2:518 })
-pasosNormales.Push({ tipo:"pimg", nombre:"enteringroom1", color:0xFF89D0, categoria:3, hold:400, tolerancia:1, delayClick:30, delayTecla:80, cooldown:500, lastUsed:0, x1:389, y1:566, x2:393, y2:567 })
-pasosNormales.Push({ tipo:"pimg", nombre:"enteringroom2", color:0x3F7F96, categoria:3, hold:400, tolerancia:1, delayClick:30, delayTecla:80, cooldown:500, lastUsed:0, x1:366, y1:549, x2:366, y2:549 })
-pasosNormales.Push({ tipo:"pimg", nombre:"leaving...",    color:0x30F1DD, categoria:5, hold:400, tolerancia:1, delayClick:30, delayTecla:300, cooldown:500, bloqueoGlobal:3000, lastUsed:0, x1:859, y1:928, x2:863, y2:931 })
+pasosNormales.Push({ tipo:"pimg", nombre:"closing...",    color:0xD7D554, categoria:5, hold:400, tolerancia:1, delayClick:30, delayTecla:400, cooldown:300000, tct:true, lastUsed:0, x1:742, y1:515, x2:743, y2:518 })
+pasosNormales.Push({ tipo:"pimg", nombre:"enteringroom1", color:0xFF89D0, categoria:3, hold:400, tolerancia:1, delayClick:30, delayTecla:80, cooldown:500, tct:true, lastUsed:0, x1:389, y1:566, x2:393, y2:567 })
+pasosNormales.Push({ tipo:"pimg", nombre:"enteringroom2", color:0x3F7F96, categoria:3, hold:400, tolerancia:1, delayClick:30, delayTecla:80, cooldown:500, tct:true, lastUsed:0, x1:366, y1:549, x2:366, y2:549 })
+pasosNormales.Push({ tipo:"pimg", nombre:"leaving...",    color:0x30F1DD, categoria:5, hold:400, tolerancia:1, delayClick:30, delayTecla:300, cooldown:500, bloqueoGlobal:3000, tct:true, lastUsed:0, x1:859, y1:928, x2:863, y2:931 })
 
 ; ===== GLOBALES =====
 global pasosPrioridad, pasosNormales, activo := false
