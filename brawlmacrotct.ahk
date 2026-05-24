@@ -7,7 +7,7 @@ CoordMode("Mouse", "Screen")
 configPath := A_ScriptDir "\brawlmacro_config.ini"
 global eggsBackupPath := A_ScriptDir "\brawlmacro_eggs.txt"
 global heartbeatPath := A_ScriptDir "\brawlmacro_heartbeat.txt"
-global VERSION_ACTUAL := "27.10.0"
+global VERSION_ACTUAL := "27.10.1"
 
 ; ===== TEMAS =====
 temas := [
@@ -1930,10 +1930,10 @@ barra.SetFont("s13 c" colorTextoBarra " Bold", "Segoe UI Semibold")
 barra.OnEvent("Click", ArrastrarVentana)
 barra.OnEvent("DoubleClick", ClickTitulo)
 
-; Botón de perfil VISIBLE — muestra emoji 🌐 (tct/publico) o 🔒 (sp/privado).
-; Click alterna el perfil. F3 hace lo mismo desde teclado.
-btnPerfil := miGui.Add("Text", "x368 y59 w26 h26 +0x201 Center Background" colorBotonNormal " c" colorBtnTexto, EmojiPerfil())
-btnPerfil.SetFont("s11 c" colorBtnTexto " Bold", "Segoe UI Emoji")
+; Boton de perfil — pequeñito al lado izquierdo del reset.
+; Click cicla 🌐 tct → 🔒 sp → ⚔ frt → 🌐 tct... F3 hace lo mismo.
+btnPerfil := miGui.Add("Text", "x290 y36 w14 h14 +0x201 Center Background" colorBotonNormal " c" colorBtnTexto, EmojiPerfil())
+btnPerfil.SetFont("s8 c" colorBtnTexto " Bold", "Segoe UI Emoji")
 btnPerfil.OnEvent("Click", CambiarPerfil)
 
 btnReset    := miGui.Add("Text", "x308 y33 w20 h20 +0x201 Background" colorBotonNormal " c" colorBtnTexto, Chr(8635))
@@ -2029,6 +2029,7 @@ SetTimer(ActualizarParticulas, 50)
 EstablecerTrayIcon("888888")
 SetTimer(ActualizarTrayIcon, 1000)
 SetTimer(VerificarLogros, 5000)
+ActualizarVisibilidadFrt()  ; si arrancamos en frt, ocultar labels AFK/secuencias/destruccion
 SetTimer(ActualizarScrollbar, 150)
 SetTimer(WatchdogAFK, 30000)     ; cada 30 s; si activo && > 90 s sin AFK → Reload()
 SetTimer(EscribirHeartbeat, 5000) ; cada 5 s escribe pid + timestamp en heartbeat.txt para el watchdog externo
@@ -4450,6 +4451,8 @@ CambiarPerfil(*) {
     brawlhallaLanzado := false
     ; Si estamos en macro activo y cambiamos a/desde frt, actualizar los timers de spam
     ActualizarTimersFrt()
+    ; Mostrar u ocultar labels AFK/secuencias/destruccion segun el perfil
+    ActualizarVisibilidadFrt()
 }
 
 ToggleHistorial(*) {
@@ -4910,7 +4913,10 @@ ActualizarCooldowns(*) {
 
 ActualizarAFK(*) {
     global ultimoCambio, afkText, colorAFK, rgbActivo, modoDestruccion
-    global timerLabel, colorTextoPrincipal, afkAlertaFlash
+    global timerLabel, colorTextoPrincipal, afkAlertaFlash, perfilActivo
+    ; En modo frt no hay anti-AFK ni modo destruccion — es spam puro
+    if (perfilActivo = 3)
+        return
     tiempo := A_TickCount - ultimoCambio
     restante := 270000 - tiempo
 
@@ -6033,6 +6039,20 @@ ActualizarTimersFrt() {
     } else {
         SetTimer(FrtClick, 0)
         SetTimer(FrtKeyCycle, 0)
+    }
+}
+
+; Muestra/oculta los labels del historial relacionados con anti-AFK,
+; secuencias, destrucciones y cooldowns segun el perfil activo.
+; En modo frt todo eso es irrelevante — solo clicks y teclas.
+ActualizarVisibilidadFrt() {
+    global perfilActivo, afkText, secuenciasLabel, destruccionesLabel
+    global contadorLabel, cooldownText
+    esFrt := (perfilActivo = 3)
+    for ctrl in [afkText, secuenciasLabel, destruccionesLabel, contadorLabel, cooldownText] {
+        if (IsObject(ctrl)) {
+            try ctrl.Visible := !esFrt
+        }
     }
 }
 
