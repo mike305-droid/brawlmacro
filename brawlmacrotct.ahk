@@ -7,7 +7,7 @@ CoordMode("Mouse", "Screen")
 configPath := A_ScriptDir "\brawlmacro_config.ini"
 global eggsBackupPath := A_ScriptDir "\brawlmacro_eggs.txt"
 global heartbeatPath := A_ScriptDir "\brawlmacro_heartbeat.txt"
-global VERSION_ACTUAL := "27.11.0"
+global VERSION_ACTUAL := "27.11.1"
 
 ; ===== TEMAS =====
 temas := [
@@ -109,7 +109,7 @@ pasosNormales := []
 ; ===== PASOS DE PRIORIDAD =====
 pasosPrioridad.Push({ tipo:"pimg", nombre:"LEAVINGGAME1...", color:0xFFFFFF, categoria:1, accion:"Esc", hold:1000, tolerancia:1, delayClick:3000, delayTecla:1000, cooldown:190000, tct:true, sp:true, lastUsed:0, x1:1445, y1:65, x2:1448, y2:69, esperarA:"leaving1..." })
 
-pasosPrioridad.Push({ tipo:"pimg", nombre:"LEAVINGGAME2...", color:0xFFFFFF, categoria:1, accion:"Esc", hold:1000, tolerancia:1, delayClick:3000, delayTecla:1000, cooldown:300000, tct:true, sp:true, cierraFase:3, lastUsed:0, x1:1624, y1:67, x2:1625, y2:72, esperarA:"leaving2..." })
+pasosPrioridad.Push({ tipo:"pimg", nombre:"LEAVINGGAME2...", color:0xFFFFFF, categoria:1, accion:"Esc", hold:1000, tolerancia:1, delayClick:3000, delayTecla:1000, cooldown:300000, tct:true, sp:true, lastUsed:0, x1:1624, y1:67, x2:1625, y2:72, esperarA:"leaving2..." })
 
 ; ===== PIXEL PASOS NORMALES =====
 ; Categorias (color del log en historial):
@@ -130,7 +130,7 @@ pasosNormales.Push({ tipo:"pimg", nombre:"playwhite",     color:0xFFFFFF, catego
 
 ; ─── FASE 2: NAVEGACION ENTRE PANTALLAS (cat 3) ────────────────────
 pasosNormales.Push({ tipo:"pimg", nombre:"enteringsp1",   color:0x15171A, categoria:3, hold:200, tolerancia:1, delayClick:500, delayTecla:500, cooldown:500, sp:true, lastUsed:0, x1:465, y1:471, x2:466, y2:476 })
-pasosNormales.Push({ tipo:"pimg", nombre:"enteringsp2",   color:0x9EA9BB, categoria:3, hold:200, tolerancia:1, delayClick:500, delayTecla:500, cooldown:500, sp:true, abreFase:3, lastUsed:0, x1:734, y1:427, x2:738, y2:429 })
+pasosNormales.Push({ tipo:"pimg", nombre:"enteringsp2",   color:0x9EA9BB, categoria:3, hold:200, tolerancia:1, delayClick:500, delayTecla:500, cooldown:500, sp:true, lastUsed:0, x1:734, y1:427, x2:738, y2:429 })
 pasosNormales.Push({ tipo:"pimg", nombre:"enteringroom1", color:0xFF89D0, categoria:3, hold:400, tolerancia:1, delayClick:30,  delayTecla:80,  cooldown:500, tct:true, lastUsed:0, x1:389, y1:566, x2:393, y2:567 })
 pasosNormales.Push({ tipo:"pimg", nombre:"enteringroom2", color:0x3F7F96, categoria:3, hold:400, tolerancia:1, delayClick:30,  delayTecla:80,  cooldown:500, tct:true, lastUsed:0, x1:366, y1:549, x2:366, y2:549 })
 
@@ -5047,47 +5047,6 @@ PasoActivoEnPerfil(paso) {
     return false
 }
 
-; ===== SISTEMA DE PUERTAS DE FASE =====
-; Una "fase" puede tener una puerta (gate) que la bloquea. Si la fase tiene
-; gate cerrada → los pasos con esa categoria NO se ejecutan, EXCEPTO el paso
-; que tiene 'abreFase:N' (porque ese mismo paso necesita disparar para abrirla).
-;
-; Uso:
-;   - paso.abreFase:3    → al disparar este paso, abre fase 3
-;   - paso.cierraFase:3  → al disparar, cierra fase 3
-;
-; Estado inicial: fase 3 EMPIEZA cerrada (solo se abre cuando enteringsp2 fires).
-global fasesAbiertas := Map()
-fasesAbiertas[3] := false
-
-PasoBloqueadoPorFase(paso) {
-    global fasesAbiertas
-    if (!paso.HasProp("categoria"))
-        return false
-    cat := paso.categoria
-    if (fasesAbiertas.Has(cat) && !fasesAbiertas[cat]) {
-        ; El paso que abre la fase es inmune al gate (debe poder disparar)
-        if (paso.HasProp("abreFase") && paso.abreFase = cat)
-            return false
-        return true
-    }
-    return false
-}
-
-ActualizarFasesPorPaso(paso) {
-    global fasesAbiertas
-    if (paso.HasProp("abreFase")) {
-        if (!fasesAbiertas.Has(paso.abreFase) || !fasesAbiertas[paso.abreFase])
-            AgregarHistorial(Chr(0x1F511) " Fase " paso.abreFase " ABIERTA (por " paso.nombre ")", "")
-        fasesAbiertas[paso.abreFase] := true
-    }
-    if (paso.HasProp("cierraFase")) {
-        if (!fasesAbiertas.Has(paso.cierraFase) || fasesAbiertas[paso.cierraFase])
-            AgregarHistorial(Chr(0x1F512) " Fase " paso.cierraFase " CERRADA (por " paso.nombre ")", "")
-        fasesAbiertas[paso.cierraFase] := false
-    }
-}
-
 BuscarPixel(paso, &x, &y) {
     global scaleX, scaleY
     x1 := Round(paso.x1 * scaleX)
@@ -5135,13 +5094,10 @@ CheckPrioridad() {
             paso.lastUsed := 0
         if !PasoActivoEnPerfil(paso)
             continue
-        if PasoBloqueadoPorFase(paso)
-            continue
         if paso.HasProp("cooldown") && (A_TickCount - paso.lastUsed < paso.cooldown)
             continue
 
         if BuscarPixel(paso, &x, &y) {
-            ActualizarFasesPorPaso(paso)  ; abrir/cerrar fases si corresponde
             MouseMove(x, y, 5)
             Click
 
@@ -5279,8 +5235,6 @@ EjecutarMacro(*) {
 
         if !PasoActivoEnPerfil(paso)
             continue
-        if PasoBloqueadoPorFase(paso)
-            continue
 
         pasoRevisado += 1
         ; Cada 5 pasos → comprobar prioridad
@@ -5296,7 +5250,6 @@ EjecutarMacro(*) {
 
         encontrado := BuscarPixel(paso, &x, &y)
         if (encontrado) {
-            ActualizarFasesPorPaso(paso)  ; abrir/cerrar fases si corresponde
             if paso.HasProp("tiempoNecesario") {
                 if !paso.HasProp("tiempoDetectando") || paso.tiempoDetectando = 0
                     paso.tiempoDetectando := A_TickCount
