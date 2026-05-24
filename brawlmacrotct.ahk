@@ -7,7 +7,7 @@ CoordMode("Mouse", "Screen")
 configPath := A_ScriptDir "\brawlmacro_config.ini"
 global eggsBackupPath := A_ScriptDir "\brawlmacro_eggs.txt"
 global heartbeatPath := A_ScriptDir "\brawlmacro_heartbeat.txt"
-global VERSION_ACTUAL := "27.11.2"
+global VERSION_ACTUAL := "27.11.3"
 
 ; ===== TEMAS =====
 temas := [
@@ -2236,7 +2236,9 @@ HoverPoll() {
     ; ── Aplicar hover al nuevo botón ─────────────────────────────────────
     if (encontrado != "") {
         info := hoverBotones[encontrado.Hwnd]
-        if (IsObject(info.hoverFn))
+        ; Defensa: si info no tiene hoverFn (entradas antiguas o malformadas)
+        ; usamos el fallback. Asi no se rompe el hover.
+        if (info.HasProp("hoverFn") && IsObject(info.hoverFn))
             hoverBg := info.hoverFn.Call()
         else
             hoverBg := (rgbBotones ? colorRGBActual : colorBotonHover)
