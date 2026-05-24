@@ -7,7 +7,7 @@ CoordMode("Mouse", "Screen")
 configPath := A_ScriptDir "\brawlmacro_config.ini"
 global eggsBackupPath := A_ScriptDir "\brawlmacro_eggs.txt"
 global heartbeatPath := A_ScriptDir "\brawlmacro_heartbeat.txt"
-global VERSION_ACTUAL := "27.9.3"
+global VERSION_ACTUAL := "27.9.4"
 
 ; ===== TEMAS =====
 temas := [
@@ -1911,7 +1911,7 @@ barra.OnEvent("DoubleClick", ClickTitulo)
 ; No interfiere con la barra → sin parpadeo en transiciones.
 ; Mismo color que el fondo → indistinguible visualmente.
 ; Atajo F3 como acceso rápido alternativo (más abajo, en sección hotkeys).
-btnPerfil := miGui.Add("Text", "x5 y220 w14 h14 +0x201 Background" colorFondoPrincipal " c" colorFondoPrincipal, "P" perfilActivo)
+btnPerfil := miGui.Add("Text", "x5 y220 w14 h14 +0x201 Background" colorFondoPrincipal " c" colorFondoPrincipal, NombrePerfil())
 btnPerfil.SetFont("s6 c" colorFondoPrincipal, "Segoe UI")
 btnPerfil.OnEvent("Click", CambiarPerfil)
 
@@ -4392,14 +4392,26 @@ AbrirCodigo(*) {
     Run('notepad.exe "' A_ScriptDir '\brawlmacrotct.ahk"')
 }
 
+; Devuelve el nombre legible del perfil activo (o del pasado por idx).
+; 1 = publico = 🌐 tct
+; 2 = privado = 🔒 sp
+NombrePerfil(idx := 0) {
+    global perfilActivo
+    if (idx = 0)
+        idx := perfilActivo
+    if (idx = 1)
+        return Chr(0x1F310) " tct"   ; 🌐 tct (publico)
+    return Chr(0x1F512) " sp"         ; 🔒 sp (privado)
+}
+
 CambiarPerfil(*) {
     global perfilActivo, btnPerfil, configPath
     perfilActivo := (perfilActivo = 1) ? 2 : 1
-    btnPerfil.Value := "P" perfilActivo
+    btnPerfil.Value := NombrePerfil()
     DllCall("InvalidateRect", "Ptr", btnPerfil.Hwnd, "Ptr", 0, "Int", 1)
     DllCall("UpdateWindow",   "Ptr", btnPerfil.Hwnd)
     IniWrite(perfilActivo, configPath, "UI", "PerfilActivo")
-    AgregarHistorial("Perfil activo: P" perfilActivo, "")
+    AgregarHistorial("Perfil activo: " NombrePerfil(), "")
 }
 
 ToggleHistorial(*) {
