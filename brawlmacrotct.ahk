@@ -7,7 +7,7 @@ CoordMode("Mouse", "Screen")
 configPath := A_ScriptDir "\brawlmacro_config.ini"
 global eggsBackupPath := A_ScriptDir "\brawlmacro_eggs.txt"
 global heartbeatPath := A_ScriptDir "\brawlmacro_heartbeat.txt"
-global VERSION_ACTUAL := "27.9.1"
+global VERSION_ACTUAL := "27.9.2"
 
 ; ===== TEMAS =====
 temas := [
@@ -252,7 +252,8 @@ global GITHUB_SCRIPT_URL  := "https://raw.githubusercontent.com/mike305-droid/br
 global updateGui := "", updateGuiVisible := false
 
 ; ===== GUARDAR STATS =====
-global statsPath := A_ScriptDir "\brawlmacro_stats.ini"
+; (Stats viven dentro del config.ini en seccion [Stats] desde v27.9.2,
+; antes vivian en brawlmacro_stats.ini — se migra automaticamente al cargar.)
 global totalHorasGuardadas := 0.0
 global totalSecuenciasGuardadas := 0
 global totalDestruccionGuardada := 0
@@ -270,14 +271,27 @@ global webhookEventos := Map(
 )
 
 CargarStats() {
-    global statsPath, totalHorasGuardadas, totalSecuenciasGuardadas, totalDestruccionGuardada
-    totalHorasGuardadas := Float(IniRead(statsPath, "Stats", "Horas", "0.0"))
-    totalSecuenciasGuardadas := Integer(IniRead(statsPath, "Stats", "Secuencias", "0"))
-    totalDestruccionGuardada := Integer(IniRead(statsPath, "Stats", "Destruccion", "0"))
+    global configPath, totalHorasGuardadas, totalSecuenciasGuardadas, totalDestruccionGuardada
+    ; Migracion v27.9.2: si todavia existe el viejo brawlmacro_stats.ini, importar y borrar
+    oldStatsPath := A_ScriptDir "\brawlmacro_stats.ini"
+    if (FileExist(oldStatsPath)) {
+        try {
+            h := Float(IniRead(oldStatsPath, "Stats", "Horas", "0.0"))
+            s := Integer(IniRead(oldStatsPath, "Stats", "Secuencias", "0"))
+            d := Integer(IniRead(oldStatsPath, "Stats", "Destruccion", "0"))
+            IniWrite(Round(h, 4), configPath, "Stats", "Horas")
+            IniWrite(s,           configPath, "Stats", "Secuencias")
+            IniWrite(d,           configPath, "Stats", "Destruccion")
+            try FileDelete(oldStatsPath)
+        }
+    }
+    totalHorasGuardadas      := Float(IniRead(configPath, "Stats", "Horas", "0.0"))
+    totalSecuenciasGuardadas := Integer(IniRead(configPath, "Stats", "Secuencias", "0"))
+    totalDestruccionGuardada := Integer(IniRead(configPath, "Stats", "Destruccion", "0"))
 }
 
 GuardarStats() {
-    global statsPath, totalHorasGuardadas, totalSecuenciasGuardadas, totalDestruccionGuardada
+    global configPath, totalHorasGuardadas, totalSecuenciasGuardadas, totalDestruccionGuardada
     global tiempoAcumulado, tiempoInicio, timerActivo, contadorSecuencias
     global contadorDestruccion
     tiempoSesion := tiempoAcumulado
@@ -286,9 +300,9 @@ GuardarStats() {
     horasSesion := tiempoSesion / 3600000.0
     totalGuardar := totalHorasGuardadas + horasSesion
     secGuardar := totalSecuenciasGuardadas + contadorSecuencias
-    IniWrite(Round(totalGuardar, 4), statsPath, "Stats", "Horas")
-    IniWrite(secGuardar, statsPath, "Stats", "Secuencias")
-    IniWrite(totalDestruccionGuardada + contadorDestruccion, statsPath, "Stats", "Destruccion")
+    IniWrite(Round(totalGuardar, 4), configPath, "Stats", "Horas")
+    IniWrite(secGuardar, configPath, "Stats", "Secuencias")
+    IniWrite(totalDestruccionGuardada + contadorDestruccion, configPath, "Stats", "Destruccion")
 }
 
 MostrarEstadisticas(*) {
