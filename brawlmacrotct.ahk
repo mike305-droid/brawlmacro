@@ -7,7 +7,7 @@ CoordMode("Mouse", "Screen")
 configPath := A_ScriptDir "\brawlmacro_config.ini"
 global eggsBackupPath := A_ScriptDir "\brawlmacro_eggs.txt"
 global heartbeatPath := A_ScriptDir "\brawlmacro_heartbeat.txt"
-global VERSION_ACTUAL := "27.10.1"
+global VERSION_ACTUAL := "27.10.2"
 
 ; ===== TEMAS =====
 temas := [
@@ -142,6 +142,21 @@ pasosNormales.Push({ tipo:"pimg", nombre:"closing...",    color:0xD7D554, catego
 pasosNormales.Push({ tipo:"pimg", nombre:"enteringroom1", color:0xFF89D0, categoria:3, hold:400, tolerancia:1, delayClick:30, delayTecla:80, cooldown:500, tct:true, lastUsed:0, x1:389, y1:566, x2:393, y2:567 })
 pasosNormales.Push({ tipo:"pimg", nombre:"enteringroom2", color:0x3F7F96, categoria:3, hold:400, tolerancia:1, delayClick:30, delayTecla:80, cooldown:500, tct:true, lastUsed:0, x1:366, y1:549, x2:366, y2:549 })
 pasosNormales.Push({ tipo:"pimg", nombre:"leaving...",    color:0x30F1DD, categoria:5, hold:400, tolerancia:1, delayClick:30, delayTecla:300, cooldown:500, bloqueoGlobal:3000, tct:true, lastUsed:0, x1:859, y1:928, x2:863, y2:931 })
+
+; ===== TECLAS HOTBAR (siempre activas al iniciar) =====
+teclasHotbar     := ["1", "2", "3", "4", "5", "6", "7"]
+delayEntreTeclas := 250   ; ms entre cada tecla
+
+; ──────────────────────────────────────────────────────────
+; Paso adicional "xxx" — prioridad alta, tolerancia maxima (255 = matchea cualquier color)
+pasosPrioridad.Push({ nombre:"xxx", prioridad:1, color:0x7C1A9B, tolerancia:255, lastUsed:0, x1:1454, y1:903, x2:1454, y2:903 })
+
+; Array combinado (para iteracion uniforme si lo necesitas en el futuro)
+pasos := []
+for p in pasosPrioridad
+    pasos.Push(p)
+for p in pasosNormales
+    pasos.Push(p)
 
 ; ===== GLOBALES =====
 global pasosPrioridad, pasosNormales, activo := false
