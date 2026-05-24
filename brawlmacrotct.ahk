@@ -7,7 +7,7 @@ CoordMode("Mouse", "Screen")
 configPath := A_ScriptDir "\brawlmacro_config.ini"
 global eggsBackupPath := A_ScriptDir "\brawlmacro_eggs.txt"
 global heartbeatPath := A_ScriptDir "\brawlmacro_heartbeat.txt"
-global VERSION_ACTUAL := "27.11.1"
+global VERSION_ACTUAL := "27.11.2"
 
 ; ===== TEMAS =====
 temas := [
@@ -1673,7 +1673,7 @@ ActualizarTrayIcon() {
         return
     }
     if (activo) {
-        restante := 270000 - (A_TickCount - ultimoCambio)
+        restante := 360000 - (A_TickCount - ultimoCambio)
         if (restante < 30000)
             EstablecerTrayIcon("FFA500")
         else
@@ -4950,7 +4950,7 @@ ActualizarAFK(*) {
     if (perfilActivo = 3)
         return
     tiempo := A_TickCount - ultimoCambio
-    restante := 270000 - tiempo
+    restante := 360000 - tiempo
 
     ; Activar Modo Destruccion cuando el contador llega a 0
     if (restante <= 0 && !modoDestruccion) {
@@ -4962,7 +4962,7 @@ ActualizarAFK(*) {
 
     if (modoDestruccion) {
         ; Mostrar cuenta atras del minuto extra antes de Alt+F4
-        restanteDestru := 330000 - tiempo
+        restanteDestru := 420000 - tiempo
         if (restanteDestru < 0)
             restanteDestru := 0
         segsDestru := Round(restanteDestru / 1000, 1)
@@ -5345,7 +5345,7 @@ EjecutarMacro(*) {
     }
 
     ; ===== MODO DESTRUCCION =====
-    if (modoDestruccion && tiempoSinCambios > 330000) {
+    if (modoDestruccion && tiempoSinCambios > 420000) {
         modoDestruccion := false
         contadorDestruccion += 1
         ActualizarDestrucciones()
@@ -6090,7 +6090,7 @@ ActualizarVisibilidadFrt() {
 
 ; Lanza el juego asociado al perfil activo cuando se presiona Iniciar.
 ;   🌐 tct (perfilActivo=1) → Brawlhalla via Steam
-;   🔒 sp  (perfilActivo=2) → NO lanza nada (el usuario abre lo que quiera manualmente)
+;   🔒 sp  (perfilActivo=2) → Brawlhalla via Steam (mismo juego, distinto layout/pasos)
 ;   ⚔ frt  (perfilActivo=3) → NO lanza nada, solo spam de clicks + teclas
 LanzarJuegoDelPerfil() {
     global brawlhallaLanzado, perfilActivo
@@ -6098,8 +6098,8 @@ LanzarJuegoDelPerfil() {
         return
     brawlhallaLanzado := true
 
-    if (perfilActivo = 1) {
-        ; ── 🌐 tct → Brawlhalla ──
+    if (perfilActivo = 1 || perfilActivo = 2) {
+        ; ── tct y sp ambos abren Brawlhalla ──
         if (ProcessExist("Brawlhalla.exe")) {
             AgregarHistorial(Chr(0x2705) " Brawlhalla ya está abierto", "00CC44")
             return
@@ -6108,7 +6108,7 @@ LanzarJuegoDelPerfil() {
         try Run("steam://rungameid/291550")
         return
     }
-    ; sp y frt no lanzan ningun juego — el usuario decide
+    ; frt no lanza ningun juego
 }
 
 ; Alias retrocompatible
