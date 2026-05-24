@@ -7,7 +7,7 @@ CoordMode("Mouse", "Screen")
 configPath := A_ScriptDir "\brawlmacro_config.ini"
 global eggsBackupPath := A_ScriptDir "\brawlmacro_eggs.txt"
 global heartbeatPath := A_ScriptDir "\brawlmacro_heartbeat.txt"
-global VERSION_ACTUAL := "27.11.3"
+global VERSION_ACTUAL := "27.11.4"
 
 ; ===== TEMAS =====
 temas := [
@@ -3175,7 +3175,7 @@ AbrirPanelRGB(*) {
     rgbPreviewCtrl := rgbGui.Add("Text", "x10 y346 w" (pW-20) " h18 Background" colorRGBActual, "")
 
     rgbGui.Show("w" pW " h372 Center")
-    RedondearVentana(rgbGui.Hwnd, 14)
+    try RedondearVentana(rgbGui.Hwnd, 14)
     rgbGuiVisible := true
     ; Asegurar que el timer corre para animar el preview (aunque no haya elementos activos)
     SetTimer(ActualizarRGB, 60)
@@ -4519,10 +4519,17 @@ ToggleHistorial(*) {
 }
 
 RedondearVentana(hwnd, curva := 14) {
+    ; Si la ventana no existe o el hwnd es invalido, salir sin error.
+    ; (Antes este escenario tiraba "Gui has no window" cuando alguien
+    ; llamaba justo despues de un Destroy o si Show fallaba.)
+    if (!hwnd || !WinExist("ahk_id " hwnd))
+        return
     x := y := w := h := 0
-    WinGetPos(&x, &y, &w, &h, "ahk_id " hwnd)
-    rgn := DllCall("CreateRoundRectRgn", "Int", 0, "Int", 0, "Int", w + 1, "Int", h + 1, "Int", curva, "Int", curva, "Ptr")
-    DllCall("SetWindowRgn", "Ptr", hwnd, "Ptr", rgn, "Int", true)
+    try {
+        WinGetPos(&x, &y, &w, &h, "ahk_id " hwnd)
+        rgn := DllCall("CreateRoundRectRgn", "Int", 0, "Int", 0, "Int", w + 1, "Int", h + 1, "Int", curva, "Int", curva, "Ptr")
+        DllCall("SetWindowRgn", "Ptr", hwnd, "Ptr", rgn, "Int", true)
+    }
 }
 
 MostrarAviso(*) {
