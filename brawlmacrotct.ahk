@@ -7,7 +7,7 @@ CoordMode("Mouse", "Screen")
 configPath := A_ScriptDir "\brawlmacro_config.ini"
 global eggsBackupPath := A_ScriptDir "\brawlmacro_eggs.txt"
 global heartbeatPath := A_ScriptDir "\brawlmacro_heartbeat.txt"
-global VERSION_ACTUAL := "27.9.4"
+global VERSION_ACTUAL := "27.9.5"
 
 ; ===== TEMAS =====
 temas := [
@@ -4948,16 +4948,20 @@ ActualizarDestrucciones(*) {
 }
 
 ; Devuelve true si el paso debe ejecutarse en el perfil activo.
-; Convención: si el paso no tiene ni p1 ni p2 marcados, es común y vale para ambos.
+; Convención:
+;   - paso.tct:true → solo perfil público (🌐 tct, perfilActivo=1)
+;   - paso.sp:true  → solo perfil privado (🔒 sp, perfilActivo=2)
+;   - sin tct ni sp → común, vale para ambos perfiles
+; Retrocompat: los nombres viejos p1/p2 todavía funcionan como alias.
 PasoActivoEnPerfil(paso) {
     global perfilActivo
-    tieneP1 := paso.HasProp("p1") && paso.p1
-    tieneP2 := paso.HasProp("p2") && paso.p2
-    if (!tieneP1 && !tieneP2)
+    tieneTct := (paso.HasProp("tct") && paso.tct) || (paso.HasProp("p1") && paso.p1)
+    tieneSp  := (paso.HasProp("sp")  && paso.sp)  || (paso.HasProp("p2") && paso.p2)
+    if (!tieneTct && !tieneSp)
         return true
     if (perfilActivo = 1)
-        return tieneP1
-    return tieneP2
+        return tieneTct
+    return tieneSp
 }
 
 BuscarPixel(paso, &x, &y) {
