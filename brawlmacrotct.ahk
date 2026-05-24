@@ -7,7 +7,7 @@ CoordMode("Mouse", "Screen")
 configPath := A_ScriptDir "\brawlmacro_config.ini"
 global eggsBackupPath := A_ScriptDir "\brawlmacro_eggs.txt"
 global heartbeatPath := A_ScriptDir "\brawlmacro_heartbeat.txt"
-global VERSION_ACTUAL := "27.9.7"
+global VERSION_ACTUAL := "27.10.0"
 
 ; ===== TEMAS =====
 temas := [
@@ -151,7 +151,16 @@ global avisoMostrado := false, avisoGui := "", ultimoCambio := 0
 global ultimoPasoEjecutado := ""
 global modoDestruccion := false
 global historialVisible := true, accionEnCurso := false, contadorEsc := 0
-global perfilActivo := 1  ; 1 o 2 — los pasos sin p1/p2 valen para ambos
+global perfilActivo := 1  ; 1=tct, 2=sp, 3=frt — los pasos sin marcar valen para tct y sp
+
+; ===== MODO FRT (spam clicks + cycle de teclas) =====
+; Coordenadas del pixel a clickear continuamente cuando perfilActivo=3 y activo=true.
+; Configura aqui donde quieres que clicke (en base a resolucion 1920x1080).
+global frtClickX := 960
+global frtClickY := 540
+; Teclas que cicla automaticamente (1,2,3,4,5,6,7) — añade o quita aqui.
+global frtTeclas := ["1", "2", "3", "4", "5", "6", "7"]
+global frtIdxTecla := 1   ; indice de la tecla actual (rota automaticamente)
 global histUltimoTexto := "", histUltimoCount := 0, histUltimoLongLinea := 0
 global separadorHistorial := ""
 global temaTransStep := 0, temaTransTema := "", temaTransGuardar := true, temaEnTransicion := false
@@ -1906,7 +1915,7 @@ if (!historialVisible)
 
 ; Restaurar perfil activo guardado (1 o 2)
 perfilActivo := Integer(IniRead(configPath, "UI", "PerfilActivo", "1"))
-if (perfilActivo != 1 && perfilActivo != 2)
+if (perfilActivo < 1 || perfilActivo > 3)
     perfilActivo := 1
 
 ; Cargar config de partículas
@@ -4409,7 +4418,11 @@ EmojiPerfil(idx := 0) {
     global perfilActivo
     if (idx = 0)
         idx := perfilActivo
-    return (idx = 1) ? Chr(0x1F310) : Chr(0x1F512)  ; 🌐 publico / 🔒 privado
+    if (idx = 1)
+        return Chr(0x1F310)  ; 🌐 publico
+    if (idx = 2)
+        return Chr(0x1F512)  ; 🔒 privado
+    return Chr(0x2694)        ; ⚔ frt (spam mode)
 }
 
 ; Devuelve el nombre legible completo (emoji + nombre) para el historial.
@@ -4419,12 +4432,15 @@ NombrePerfil(idx := 0) {
         idx := perfilActivo
     if (idx = 1)
         return Chr(0x1F310) " tct"   ; 🌐 tct (publico)
-    return Chr(0x1F512) " sp"         ; 🔒 sp (privado)
+    if (idx = 2)
+        return Chr(0x1F512) " sp"     ; 🔒 sp (privado)
+    return Chr(0x2694) " frt"          ; ⚔ frt (spam clicks + 1-7)
 }
 
+; Cicla 1 → 2 → 3 → 1 → ...
 CambiarPerfil(*) {
     global perfilActivo, btnPerfil, configPath, brawlhallaLanzado
-    perfilActivo := (perfilActivo = 1) ? 2 : 1
+    perfilActivo := (perfilActivo >= 3) ? 1 : perfilActivo + 1
     btnPerfil.Value := EmojiPerfil()
     DllCall("InvalidateRect", "Ptr", btnPerfil.Hwnd, "Ptr", 0, "Int", 1)
     DllCall("UpdateWindow",   "Ptr", btnPerfil.Hwnd)
@@ -4432,6 +4448,8 @@ CambiarPerfil(*) {
     AgregarHistorial("Perfil activo: " NombrePerfil(), "")
     ; Resetea la flag para que al pulsar Iniciar en el nuevo perfil se lance SU juego
     brawlhallaLanzado := false
+    ; Si estamos en macro activo y cambiamos a/desde frt, actualizar los timers de spam
+    ActualizarTimersFrt()
 }
 
 ToggleHistorial(*) {
@@ -4969,19 +4987,26 @@ ActualizarDestrucciones(*) {
 
 ; Devuelve true si el paso debe ejecutarse en el perfil activo.
 ; Convención:
-;   - paso.tct:true → solo perfil público (🌐 tct, perfilActivo=1)
-;   - paso.sp:true  → solo perfil privado (🔒 sp, perfilActivo=2)
-;   - sin tct ni sp → común, vale para ambos perfiles
-; Retrocompat: los nombres viejos p1/p2 todavía funcionan como alias.
+;   - paso.tct:true → 🌐 tct (publico, perfilActivo=1)
+;   - paso.sp:true  → 🔒 sp  (privado, perfilActivo=2)
+;   - paso.frt:true → ⚔ frt  (spam mode, perfilActivo=3)
+;   - sin marcar    → comun, vale para tct y sp (NO para frt — frt es modo spam puro)
+; Retrocompat: p1/p2 funcionan como alias de tct/sp.
 PasoActivoEnPerfil(paso) {
     global perfilActivo
     tieneTct := (paso.HasProp("tct") && paso.tct) || (paso.HasProp("p1") && paso.p1)
     tieneSp  := (paso.HasProp("sp")  && paso.sp)  || (paso.HasProp("p2") && paso.p2)
-    if (!tieneTct && !tieneSp)
-        return true
+    tieneFrt := paso.HasProp("frt") && paso.frt
+    ; Paso sin marcar = común a tct/sp pero NO a frt
+    if (!tieneTct && !tieneSp && !tieneFrt)
+        return (perfilActivo = 1 || perfilActivo = 2)
     if (perfilActivo = 1)
         return tieneTct
-    return tieneSp
+    if (perfilActivo = 2)
+        return tieneSp
+    if (perfilActivo = 3)
+        return tieneFrt
+    return false
 }
 
 BuscarPixel(paso, &x, &y) {
@@ -5973,9 +5998,48 @@ TickTypingReveal() {
 ; El flag se resetea automáticamente al reiniciar el script.
 global brawlhallaLanzado := false
 
+; ===== MODO FRT — spam clicks + cycle de teclas =====
+; FrtClick: timer cada 50ms → 20 clicks/seg en (frtClickX, frtClickY)
+FrtClick() {
+    global activo, perfilActivo, frtClickX, frtClickY, scaleX, scaleY
+    if (!activo || perfilActivo != 3)
+        return
+    x := Round(frtClickX * scaleX)
+    y := Round(frtClickY * scaleY)
+    MouseMove(x, y, 0)
+    Click
+}
+
+; FrtKeyCycle: timer cada 150ms → cicla teclas 1,2,3,4,5,6,7
+FrtKeyCycle() {
+    global activo, perfilActivo, frtTeclas, frtIdxTecla
+    if (!activo || perfilActivo != 3)
+        return
+    if (frtIdxTecla < 1 || frtIdxTecla > frtTeclas.Length)
+        frtIdxTecla := 1
+    Send "{" frtTeclas[frtIdxTecla] "}"
+    frtIdxTecla++
+    if (frtIdxTecla > frtTeclas.Length)
+        frtIdxTecla := 1
+}
+
+; Activa o desactiva los timers de frt segun el estado actual.
+ActualizarTimersFrt() {
+    global activo, perfilActivo, frtIdxTecla
+    if (activo && perfilActivo = 3) {
+        frtIdxTecla := 1   ; reset al arrancar
+        SetTimer(FrtClick, 50)       ; 20 clicks/seg
+        SetTimer(FrtKeyCycle, 150)   ; tecla nueva cada 150ms
+    } else {
+        SetTimer(FrtClick, 0)
+        SetTimer(FrtKeyCycle, 0)
+    }
+}
+
 ; Lanza el juego asociado al perfil activo cuando se presiona Iniciar.
 ;   🌐 tct (perfilActivo=1) → Brawlhalla via Steam
 ;   🔒 sp  (perfilActivo=2) → Roblox (configura tu metodo abajo)
+;   ⚔ frt  (perfilActivo=3) → no lanza nada, solo spam de clicks + teclas
 LanzarJuegoDelPerfil() {
     global brawlhallaLanzado, perfilActivo
     if (brawlhallaLanzado)
@@ -6007,6 +6071,12 @@ LanzarJuegoDelPerfil() {
         ; try Run(A_AppData "\..\Local\Roblox\Versions\version-XXXXX\RobloxPlayerBeta.exe")
         return
     }
+
+    if (perfilActivo = 3) {
+        ; ── ⚔ frt → modo spam (clicks + cycle teclas), no lanza nada ──
+        AgregarHistorial(Chr(0x2694) " Modo frt activado: clicks + teclas 1-7", "FF8800")
+        return
+    }
 }
 
 ; Alias retrocompatible
@@ -6032,7 +6102,7 @@ Iniciar(*) {
 
     ; Lanzar Brawlhalla AHORA, antes de los timers que envían teclas (Esc/c)
     ; — si EjecutarMacro corre durante el Win+brawlhalla puede mandar Esc y cerrar el menú
-    LanzarBrawlhalla()
+    LanzarJuegoDelPerfil()
     ultimoCambio := A_TickCount  ; resetea AFK contando desde DESPUÉS del lanzamiento
 
     SetTimer(EjecutarMacro, 50)
@@ -6042,6 +6112,7 @@ Iniciar(*) {
     SetTimer(PulsoLogoActivo, 50)
     SetTimer(() => BarraShimmer(colorBarra), -1)
     IniciarTimer()
+    ActualizarTimersFrt()  ; arranca timers de spam si perfilActivo=3
     EnviarWebhookEvento("iniciado")
 }
 
@@ -6063,6 +6134,7 @@ Parar(*) {
     SetTimer(ActualizarAFK, 0)
     SetTimer(PulsoBarraActivo, 0)
     SetTimer(PulsoLogoActivo, 0)
+    ActualizarTimersFrt()  ; apaga los timers de spam si estaban activos
     ; Restaurar colores del timer AFK
     afkAlertaFlash := false
     afkText.Opt("c" colorAFK)
