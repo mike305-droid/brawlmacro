@@ -6,38 +6,72 @@ CoordMode("Mouse", "Screen")
 ; ===== CONFIGURACION =====
 configPath := A_ScriptDir "\brawlmacro_config.ini"
 global eggsBackupPath := A_ScriptDir "\brawlmacro_eggs.txt"
-global VERSION_ACTUAL := "27.8.0"
+global VERSION_ACTUAL := "27.9.0"
 
 ; ===== TEMAS =====
 temas := [
+    ; ─────────── CLAROS / PASTEL ───────────
+    ; Azules y fríos claros
     { nombre:"Hielo",      fondo:"E8F4FD", texto:"1A5276", barra:"85C1E9", textoBarra:"FFFFFF", historial:"F0F9FF", panel:"D6EAF8", cooldown:"E74C3C", afk:"2980B9", boton:"85C1E9", hover:"AED6F1", logo:"1A5276", luzOn:"2471A3", luzAccion:"2E86C1", luzOff:"1A5276",  btnTexto:"FFFFFF", histColor1:"1A5276", histColor2:"2E86C1", histColor3:"85C1E9" },
+    { nombre:"Polar",      fondo:"F0F8FF", texto:"0B2545", barra:"8ECAE6", textoBarra:"0B2545", historial:"F8FCFF", panel:"D1E5F2", cooldown:"E63946", afk:"219EBC", boton:"8ECAE6", hover:"ADD8E6", logo:"0B2545", luzOn:"219EBC", luzAccion:"95D5B2", luzOff:"5E8AAE",  btnTexto:"0B2545", histColor1:"0B2545", histColor2:"219EBC", histColor3:"95D5B2" },
     { nombre:"Agua",       fondo:"D8F3F0", texto:"064C55", barra:"2E9E9A", textoBarra:"FFFFFF", historial:"ECFBF8", panel:"C7EDE8", cooldown:"D94848", afk:"1769AA", boton:"2E9E9A", hover:"4DB9B5", logo:"003C42", luzOn:"004A47", luzAccion:"00635F", luzOff:"003236",  btnTexto:"FFFFFF", histColor1:"064C55", histColor2:"00635F", histColor3:"2E9E9A" },
+    ; Verdes claros
+    { nombre:"Menta",      fondo:"FAF8F2", texto:"2C4A3E", barra:"A8E6CF", textoBarra:"1B3A2E", historial:"FEFDF8", panel:"D4F1E0", cooldown:"E07A5F", afk:"81B29A", boton:"A8E6CF", hover:"BBEFD9", logo:"2C4A3E", luzOn:"81B29A", luzAccion:"A8E6CF", luzOff:"2C4A3E",  btnTexto:"1B3A2E", histColor1:"2C4A3E", histColor2:"81B29A", histColor3:"A8E6CF" },
+    { nombre:"Verde",      fondo:"F0FFF4", texto:"1B5E20", barra:"66BB6A", textoBarra:"FFFFFF", historial:"E8F5E9", panel:"C8E6C9", cooldown:"E53935", afk:"2E7D32", boton:"66BB6A", hover:"81C784", logo:"1B5E20", luzOn:"388E3C", luzAccion:"66BB6A", luzOff:"1B5E20",  btnTexto:"FFFFFF", histColor1:"1B5E20", histColor2:"388E3C", histColor3:"66BB6A" },
+    ; Pastel mixto / neutros
+    { nombre:"Macaron",    fondo:"FFF0F5", texto:"6A3D70", barra:"AED9E0", textoBarra:"2E4156", historial:"FFF6FA", panel:"F5C2C7", cooldown:"D8567A", afk:"8FB8C7", boton:"AED9E0", hover:"C5E3E8", logo:"6A3D70", luzOn:"95C8A8", luzAccion:"F5B0D6", luzOff:"6A3D70",  btnTexto:"2E4156", histColor1:"6A3D70", histColor2:"95C8A8", histColor3:"F5B0D6" },
+    { nombre:"Nube",       fondo:"FAFAFA", texto:"37474F", barra:"B0BEC5", textoBarra:"FFFFFF", historial:"FCFCFC", panel:"ECEFF1", cooldown:"EF5350", afk:"78909C", boton:"B0BEC5", hover:"CFD8DC", logo:"37474F", luzOn:"78909C", luzAccion:"90A4AE", luzOff:"37474F",  btnTexto:"FFFFFF", histColor1:"37474F", histColor2:"78909C", histColor3:"90A4AE" },
+    ; Morados / lilas claros
+    { nombre:"Lavanda",    fondo:"F8F4FF", texto:"5E3A8C", barra:"C8B6E2", textoBarra:"FFFFFF", historial:"FCFAFF", panel:"E8DEFC", cooldown:"D87093", afk:"9370DB", boton:"C8B6E2", hover:"D4C5E8", logo:"5E3A8C", luzOn:"9370DB", luzAccion:"BA9CDB", luzOff:"5E3A8C",  btnTexto:"FFFFFF", histColor1:"5E3A8C", histColor2:"9370DB", histColor3:"BA9CDB" },
+    { nombre:"Lila",       fondo:"EFE6FF", texto:"4A2C7A", barra:"7B61C9", textoBarra:"FFFFFF", historial:"F7F1FF", panel:"E1D3FF", cooldown:"D94A6A", afk:"3D5AFE", boton:"7B61C9", hover:"9279DC", logo:"271052", luzOn:"3B1D78", luzAccion:"4E279E", luzOff:"271052",  btnTexto:"FFFFFF", histColor1:"4A2C7A", histColor2:"4E279E", histColor3:"7B61C9" },
+    ; Rosas / corales claros
     { nombre:"Sakura",     fondo:"FFF5F8", texto:"8B2252", barra:"F48FB1", textoBarra:"5D0030", historial:"FFF0F5", panel:"FCDDE8", cooldown:"C0392B", afk:"AD1457", boton:"F8BBD9", hover:"F48FB1", logo:"8B2252", luzOn:"C2185B", luzAccion:"E91E8C", luzOff:"8B2252",  btnTexto:"5D0030", histColor1:"8B2252", histColor2:"C2185B", histColor3:"F06292" },
     { nombre:"Rosa",       fondo:"FFE8F0", texto:"7A1040", barra:"E8528A", textoBarra:"FFFFFF", historial:"FFF0F5", panel:"FFDCEA", cooldown:"CC2244", afk:"D42070", boton:"E8528A", hover:"F07AAA", logo:"5A0028", luzOn:"C03060", luzAccion:"E04080", luzOff:"5A0028",  btnTexto:"FFFFFF", histColor1:"7A1040", histColor2:"E04080", histColor3:"CC3366" },
+    { nombre:"Atardecer",  fondo:"FFE5D4", texto:"6B2F4A", barra:"E0735C", textoBarra:"FFF5EE", historial:"FFF2E8", panel:"F8C9A3", cooldown:"B91744", afk:"D4326B", boton:"E0735C", hover:"F08A6F", logo:"6B2F4A", luzOn:"A03A6E", luzAccion:"D4326B", luzOff:"6B2F4A",  btnTexto:"FFF5EE", histColor1:"6B2F4A", histColor2:"D4326B", histColor3:"F08A6F" },
+    ; Naranjas / cálidos claros
+    { nombre:"Melocotón",  fondo:"FFF5EC", texto:"7A2E2E", barra:"FFAB91", textoBarra:"FFFFFF", historial:"FFFAF3", panel:"FFD7BD", cooldown:"E63946", afk:"D86E3C", boton:"FFAB91", hover:"FFBFA8", logo:"7A2E2E", luzOn:"D86E3C", luzAccion:"FFAB91", luzOff:"7A2E2E",  btnTexto:"FFFFFF", histColor1:"7A2E2E", histColor2:"D86E3C", histColor3:"FFAB91" },
     { nombre:"Naranja",    fondo:"FFE7CC", texto:"7A3B00", barra:"F28C28", textoBarra:"FFFFFF", historial:"FFF2E6", panel:"FFD9AD", cooldown:"CC3333", afk:"1D5BD7", boton:"F28C28", hover:"FFAA4D", logo:"4A2100", luzOn:"7A3600", luzAccion:"994700", luzOff:"4A2100",  btnTexto:"FFFFFF", histColor1:"7A3B00", histColor2:"994700", histColor3:"CC6600" },
-    { nombre:"Verde",      fondo:"F0FFF4", texto:"1B5E20", barra:"66BB6A", textoBarra:"FFFFFF", historial:"E8F5E9", panel:"C8E6C9", cooldown:"E53935", afk:"2E7D32", boton:"66BB6A", hover:"81C784", logo:"1B5E20", luzOn:"388E3C", luzAccion:"66BB6A", luzOff:"1B5E20",  btnTexto:"FFFFFF", histColor1:"1B5E20", histColor2:"388E3C", histColor3:"66BB6A" },
-    { nombre:"Lila",       fondo:"EFE6FF", texto:"4A2C7A", barra:"7B61C9", textoBarra:"FFFFFF", historial:"F7F1FF", panel:"E1D3FF", cooldown:"D94A6A", afk:"3D5AFE", boton:"7B61C9", hover:"9279DC", logo:"271052", luzOn:"3B1D78", luzAccion:"4E279E", luzOff:"271052",  btnTexto:"FFFFFF", histColor1:"4A2C7A", histColor2:"4E279E", histColor3:"7B61C9" },
+    { nombre:"Desierto",   fondo:"F5E6CB", texto:"4A2E0E", barra:"D2691E", textoBarra:"FFF8E1", historial:"F9F0DC", panel:"EDD5A8", cooldown:"B22222", afk:"8B4513", boton:"D2691E", hover:"E07E2A", logo:"6B3410", luzOn:"A0522D", luzAccion:"CD853F", luzOff:"6B3410",  btnTexto:"FFF8E1", histColor1:"4A2E0E", histColor2:"A0522D", histColor3:"CD853F" },
+    { nombre:"Vainilla",   fondo:"FFFCF2", texto:"6B5435", barra:"F4E1A6", textoBarra:"4A3A20", historial:"FFFEF7", panel:"F8EDC8", cooldown:"D87333", afk:"B89464", boton:"F4E1A6", hover:"F8E9BD", logo:"6B5435", luzOn:"B89464", luzAccion:"D8B470", luzOff:"6B5435",  btnTexto:"4A3A20", histColor1:"6B5435", histColor2:"B89464", histColor3:"D8B470" },
+    ; ─────────── OSCUROS ───────────
+    ; Grises
     { nombre:"Ceniza",     fondo:"2C2C2C", texto:"BDBDBD", barra:"424242", textoBarra:"EEEEEE", historial:"242424", panel:"333333", cooldown:"EF5350", afk:"90A4AE", boton:"424242", hover:"555555", logo:"EEEEEE", luzOn:"9E9E9E", luzAccion:"BDBDBD", luzOff:"212121",  btnTexto:"EEEEEE", histColor1:"BDBDBD", histColor2:"9E9E9E", histColor3:"EEEEEE" },
     { nombre:"Grafito",    fondo:"26313D", texto:"EAF2FC", barra:"3E78B2", textoBarra:"FFFFFF", historial:"1E2730", panel:"303D4A", cooldown:"FF6B6B", afk:"73A7FF", boton:"3E78B2", hover:"5591CC", logo:"FFFFFF", luzOn:"9DD2FF", luzAccion:"C7E6FF", luzOff:"FFFFFF",  btnTexto:"FFFFFF", histColor1:"EAF2FC", histColor2:"9DD2FF", histColor3:"5591CC" },
-    { nombre:"Bosque",     fondo:"1C1208", texto:"C8A96E", barra:"2D1E0A", textoBarra:"E8C97A", historial:"140E06", panel:"231508", cooldown:"FF5533", afk:"8BC34A", boton:"3B2610", hover:"5A3D18", logo:"8BC34A", luzOn:"6D9B2A", luzAccion:"C8A96E", luzOff:"1C1208",  btnTexto:"E8C97A", histColor1:"C8A96E", histColor2:"8BC34A", histColor3:"D4944A" },
-    { nombre:"Cafe",       fondo:"1A1008", texto:"DEB887", barra:"3D2010", textoBarra:"F5D5A0", historial:"120B04", panel:"251508", cooldown:"FF5533", afk:"C8963C", boton:"3D2010", hover:"5A3018", logo:"F5D5A0", luzOn:"C8963C", luzAccion:"F5D5A0", luzOff:"3D2010",  btnTexto:"F5D5A0", histColor1:"DEB887", histColor2:"C8963C", histColor3:"F5D5A0" },
     { nombre:"Noche",      fondo:"0D0D0D", texto:"E8E8E8", barra:"222222", textoBarra:"FFFFFF", historial:"111111", panel:"1A1A1A", cooldown:"FF5555", afk:"7EB8FF", boton:"1E1E1E", hover:"2E2E2E", logo:"FFFFFF", luzOn:"AAAAAA", luzAccion:"FFFFFF", luzOff:"333333",  btnTexto:"CCCCCC", histColor1:"E8E8E8", histColor2:"AAAAAA", histColor3:"FFFFFF" },
+    ; Azules oscuros
     { nombre:"Profundo",   fondo:"020A12", texto:"4FC3F7", barra:"021825", textoBarra:"81D4FA", historial:"010609", panel:"031020", cooldown:"FF4444", afk:"00BCD4", boton:"021825", hover:"033040", logo:"4FC3F7", luzOn:"00BCD4", luzAccion:"4FC3F7", luzOff:"021825",  btnTexto:"81D4FA", histColor1:"4FC3F7", histColor2:"00BCD4", histColor3:"0288D1" },
+    { nombre:"Océano",     fondo:"0A1929", texto:"9CDCEB", barra:"1B4D6B", textoBarra:"E0F7FF", historial:"050D1A", panel:"0F2438", cooldown:"FF6B6B", afk:"FFB347", boton:"1B4D6B", hover:"2C6E92", logo:"5EE5D6", luzOn:"00B4D8", luzAccion:"90E0EF", luzOff:"03455A",  btnTexto:"E0F7FF", histColor1:"9CDCEB", histColor2:"5EE5D6", histColor3:"00B4D8" },
     { nombre:"Aurora",     fondo:"060A12", texto:"80FFDB", barra:"0A1E30", textoBarra:"80FFDB", historial:"040810", panel:"0C1C28", cooldown:"FF3366", afk:"00FFCC", boton:"0A1E30", hover:"163050", logo:"80FFDB", luzOn:"00FFCC", luzAccion:"AA80FF", luzOff:"0A1E30",  btnTexto:"80FFDB", histColor1:"80FFDB", histColor2:"AA80FF", histColor3:"40C4FF" },
-    { nombre:"Esmeralda",  fondo:"010F08", texto:"A8FFD0", barra:"003320", textoBarra:"C8FFE8", historial:"000A05", panel:"001A0F", cooldown:"FF4444", afk:"00FF88", boton:"002218", hover:"004430", logo:"FFD700", luzOn:"00CC66", luzAccion:"FFD700", luzOff:"010F08",  btnTexto:"C8FFE8", histColor1:"00FF88", histColor2:"FFD700", histColor3:"00CC66" },
+    ; Verdes oscuros
     { nombre:"Cyber",      fondo:"030D06", texto:"00FF88", barra:"001A0D", textoBarra:"00FF88", historial:"020B05", panel:"041208", cooldown:"FF3355", afk:"00FFCC", boton:"002211", hover:"004422", logo:"00FF88", luzOn:"00CC66", luzAccion:"00FF88", luzOff:"001A0D",  btnTexto:"00FF88", histColor1:"00FF88", histColor2:"00CC66", histColor3:"00FFCC" },
     { nombre:"Neon",       fondo:"050F03", texto:"39FF14", barra:"0A1F06", textoBarra:"39FF14", historial:"030A02", panel:"081A04", cooldown:"FF003C", afk:"CCFF00", boton:"0A1F06", hover:"133D0A", logo:"39FF14", luzOn:"39FF14", luzAccion:"CCFF00", luzOff:"0A1F06",  btnTexto:"39FF14", histColor1:"39FF14", histColor2:"CCFF00", histColor3:"00FF66" },
-    { nombre:"Electrico",  fondo:"0A0A1A", texto:"E040FB", barra:"4A148C", textoBarra:"EA80FC", historial:"080812", panel:"0D0D22", cooldown:"FF1744", afk:"7B1FA2", boton:"4A148C", hover:"6A1EB0", logo:"E040FB", luzOn:"AA00FF", luzAccion:"E040FB", luzOff:"1A0030",  btnTexto:"EA80FC", histColor1:"E040FB", histColor2:"AA00FF", histColor3:"CE93D8" },
-    { nombre:"Abismo",     fondo:"0A0010", texto:"D8C8FF", barra:"120020", textoBarra:"E0D0FF", historial:"0D0018", panel:"140025", cooldown:"FF4477", afk:"AA88FF", boton:"1A0030", hover:"280050", logo:"C8A8FF", luzOn:"9966FF", luzAccion:"BB88FF", luzOff:"1A0030",  btnTexto:"D8C8FF", histColor1:"D8C8FF", histColor2:"9966FF", histColor3:"BB88FF" },
+    { nombre:"Esmeralda",  fondo:"010F08", texto:"A8FFD0", barra:"003320", textoBarra:"C8FFE8", historial:"000A05", panel:"001A0F", cooldown:"FF4444", afk:"00FF88", boton:"002218", hover:"004430", logo:"FFD700", luzOn:"00CC66", luzAccion:"FFD700", luzOff:"010F08",  btnTexto:"C8FFE8", histColor1:"00FF88", histColor2:"FFD700", histColor3:"00CC66" },
+    { nombre:"Jungla",     fondo:"0F1E0F", texto:"B4E197", barra:"1F4D2F", textoBarra:"E0FFCB", historial:"081108", panel:"152618", cooldown:"FF7043", afk:"FFB300", boton:"1F4D2F", hover:"2E6B3F", logo:"F4C430", luzOn:"4CAF50", luzAccion:"FFB300", luzOff:"0F1E0F",  btnTexto:"E0FFCB", histColor1:"B4E197", histColor2:"F4C430", histColor3:"4CAF50" },
+    { nombre:"Bosque",     fondo:"1C1208", texto:"C8A96E", barra:"2D1E0A", textoBarra:"E8C97A", historial:"140E06", panel:"231508", cooldown:"FF5533", afk:"8BC34A", boton:"3B2610", hover:"5A3D18", logo:"8BC34A", luzOn:"6D9B2A", luzAccion:"C8A96E", luzOff:"1C1208",  btnTexto:"E8C97A", histColor1:"C8A96E", histColor2:"8BC34A", histColor3:"D4944A" },
+    ; Marrones / cálidos oscuros
+    { nombre:"Cafe",       fondo:"1A1008", texto:"DEB887", barra:"3D2010", textoBarra:"F5D5A0", historial:"120B04", panel:"251508", cooldown:"FF5533", afk:"C8963C", boton:"3D2010", hover:"5A3018", logo:"F5D5A0", luzOn:"C8963C", luzAccion:"F5D5A0", luzOff:"3D2010",  btnTexto:"F5D5A0", histColor1:"DEB887", histColor2:"C8963C", histColor3:"F5D5A0" },
     { nombre:"Dorado",     fondo:"0A0800", texto:"FFD700", barra:"1E0F00", textoBarra:"FFE55C", historial:"070500", panel:"140C00", cooldown:"FF4422", afk:"FFA500", boton:"1A0F00", hover:"2E1A00", logo:"FFD700", luzOn:"CC8800", luzAccion:"FF6600", luzOff:"0A0800",  btnTexto:"FFE55C", histColor1:"FFD700", histColor2:"FF6600", histColor3:"FFA500" },
+    ; Rojos / fuego oscuros
     { nombre:"Magma",      fondo:"0E0400", texto:"FF6B35", barra:"1E0800", textoBarra:"FF9A5C", historial:"080200", panel:"180600", cooldown:"FF1744", afk:"FF6B35", boton:"1E0800", hover:"330D00", logo:"FF9A5C", luzOn:"FF4500", luzAccion:"FF6B35", luzOff:"1E0800",  btnTexto:"FF9A5C", histColor1:"FF6B35", histColor2:"FF4500", histColor3:"FF9A5C" },
     { nombre:"Sangre",     fondo:"0A0000", texto:"F5DDD0", barra:"2A0000", textoBarra:"FFD0C0", historial:"060000", panel:"160000", cooldown:"FF0000", afk:"FF6644", boton:"1A0000", hover:"3A0000", logo:"FF2222", luzOn:"CC0000", luzAccion:"FF3322", luzOff:"0A0000",  btnTexto:"FFD0C0", histColor1:"F5DDD0", histColor2:"CC0000", histColor3:"FF3322" },
-    { nombre:"✦ E C L I P S E ✦", fondo:"050508", texto:"C8A060", barra:"0D0A20", textoBarra:"FFB347", historial:"030306", panel:"0A0818", cooldown:"FF2244", afk:"00FFCC", boton:"14102A", hover:"221840", logo:"FFB347", luzOn:"FF6600", luzAccion:"FFD700", luzOff:"080520",  btnTexto:"FFB347", histColor1:"FFD700", histColor2:"FF6600", histColor3:"00FFCC" },
-    { nombre:"✦ C O S M O S ✦", fondo:"03000F", texto:"E2C9FF", barra:"180040", textoBarra:"FFD700", historial:"020008", panel:"0D001E", cooldown:"FF1493", afk:"00E5FF", boton:"12002E", hover:"1E0050", logo:"FFD700", luzOn:"BF00FF", luzAccion:"FF69B4", luzOff:"080020",  btnTexto:"FFD700", histColor1:"FF69B4", histColor2:"BF00FF", histColor3:"00E5FF" },
-    { nombre:"⚡ V O I D ⚡", fondo:"000000", texto:"FFFFFF", barra:"0A0A0A", textoBarra:"FF0000", historial:"050505", panel:"0D0D0D", cooldown:"FF0000", afk:"FF0000", boton:"111111", hover:"1C1C1C", logo:"FF0000", luzOn:"FF0000", luzAccion:"FFFFFF", luzOff:"000000",  btnTexto:"FF0000", histColor1:"FFFFFF", histColor2:"FF0000", histColor3:"CC0000" },
-    { nombre:"🔥 F E N I X 🔥", fondo:"FFF8EC", texto:"8B3A00", barra:"FF6B00", textoBarra:"FFFFFF", historial:"FFFBF5", panel:"FFE5C0", cooldown:"00C9B7", afk:"00C9B7", boton:"FFB347", hover:"FF8C00", logo:"00C9B7", luzOn:"00C9B7", luzAccion:"FF6B00", luzOff:"FFB347",  btnTexto:"FFFFFF", histColor1:"FFD700", histColor2:"FF6B00", histColor3:"00C9B7" },
-    { nombre:"✦ N I K A ✦", fondo:"FFFFFF", texto:"CC0000", barra:"CC0000", textoBarra:"FFFFFF", historial:"FFFFFF", panel:"FFF2F2", cooldown:"990000", afk:"CC0000", boton:"FFF2F2", hover:"FFE0E0", logo:"CC0000", luzOn:"DD0000", luzAccion:"FF2222", luzOff:"CC0000",  btnTexto:"CC0000", histColor1:"CC0000", histColor2:"DD0000", histColor3:"FF2222" },
-    { nombre:"💎 P R E M I U M 💎", fondo:"050008", texto:"FFFFFF", barra:"0F0020", textoBarra:"FFFFFF", historial:"030005", panel:"0A0015", cooldown:"FF0066", afk:"00FFCC", boton:"15002A", hover:"25004A", logo:"FFFFFF", luzOn:"FF00FF", luzAccion:"FFD700", luzOff:"0A0015",  btnTexto:"FFFFFF", histColor1:"FF00FF", histColor2:"00FFFF", histColor3:"FFFF00" }
+    ; Morados / magenta oscuros
+    { nombre:"Abismo",     fondo:"0A0010", texto:"D8C8FF", barra:"120020", textoBarra:"E0D0FF", historial:"0D0018", panel:"140025", cooldown:"FF4477", afk:"AA88FF", boton:"1A0030", hover:"280050", logo:"C8A8FF", luzOn:"9966FF", luzAccion:"BB88FF", luzOff:"1A0030",  btnTexto:"D8C8FF", histColor1:"D8C8FF", histColor2:"9966FF", histColor3:"BB88FF" },
+    { nombre:"Electrico",  fondo:"0A0A1A", texto:"E040FB", barra:"4A148C", textoBarra:"EA80FC", historial:"080812", panel:"0D0D22", cooldown:"FF1744", afk:"7B1FA2", boton:"4A148C", hover:"6A1EB0", logo:"E040FB", luzOn:"AA00FF", luzAccion:"E040FB", luzOff:"1A0030",  btnTexto:"EA80FC", histColor1:"E040FB", histColor2:"AA00FF", histColor3:"CE93D8" },
+    ; ─────────── SECRETOS — PACK ORIGINAL ───────────
+    { nombre:"✦ E C L I P S E ✦", secreto:true, unlock:"shadow",  fondo:"050508", texto:"C8A060", barra:"0D0A20", textoBarra:"FFB347", historial:"030306", panel:"0A0818", cooldown:"FF2244", afk:"00FFCC", boton:"14102A", hover:"221840", logo:"FFB347", luzOn:"FF6600", luzAccion:"FFD700", luzOff:"080520",  btnTexto:"FFB347", histColor1:"FFD700", histColor2:"FF6600", histColor3:"00FFCC" },
+    { nombre:"✦ C O S M O S ✦",   secreto:true, unlock:"cosmos",  fondo:"03000F", texto:"E2C9FF", barra:"180040", textoBarra:"FFD700", historial:"020008", panel:"0D001E", cooldown:"FF1493", afk:"00E5FF", boton:"12002E", hover:"1E0050", logo:"FFD700", luzOn:"BF00FF", luzAccion:"FF69B4", luzOff:"080020",  btnTexto:"FFD700", histColor1:"FF69B4", histColor2:"BF00FF", histColor3:"00E5FF" },
+    { nombre:"⚡ V O I D ⚡",      secreto:true, unlock:"void",    fondo:"000000", texto:"FFFFFF", barra:"0A0A0A", textoBarra:"FF0000", historial:"050505", panel:"0D0D0D", cooldown:"FF0000", afk:"FF0000", boton:"111111", hover:"1C1C1C", logo:"FF0000", luzOn:"FF0000", luzAccion:"FFFFFF", luzOff:"000000",  btnTexto:"FF0000", histColor1:"FFFFFF", histColor2:"FF0000", histColor3:"CC0000" },
+    { nombre:"🔥 F E N I X 🔥",   secreto:true, unlock:"solar",   fondo:"FFF8EC", texto:"8B3A00", barra:"FF6B00", textoBarra:"FFFFFF", historial:"FFFBF5", panel:"FFE5C0", cooldown:"00C9B7", afk:"00C9B7", boton:"FFB347", hover:"FF8C00", logo:"00C9B7", luzOn:"00C9B7", luzAccion:"FF6B00", luzOff:"FFB347",  btnTexto:"FFFFFF", histColor1:"FFD700", histColor2:"FF6B00", histColor3:"00C9B7" },
+    { nombre:"✦ N I K A ✦",       secreto:true, unlock:"blanco",  fondo:"FFFFFF", texto:"CC0000", barra:"CC0000", textoBarra:"FFFFFF", historial:"FFFFFF", panel:"FFF2F2", cooldown:"990000", afk:"CC0000", boton:"FFF2F2", hover:"FFE0E0", logo:"CC0000", luzOn:"DD0000", luzAccion:"FF2222", luzOff:"CC0000",  btnTexto:"CC0000", histColor1:"CC0000", histColor2:"DD0000", histColor3:"FF2222" },
+    { nombre:"💎 P R E M I U M 💎", secreto:true, unlock:"premium", fondo:"050008", texto:"FFFFFF", barra:"0F0020", textoBarra:"FFFFFF", historial:"030005", panel:"0A0015", cooldown:"FF0066", afk:"00FFCC", boton:"15002A", hover:"25004A", logo:"FFFFFF", luzOn:"FF00FF", luzAccion:"FFD700", luzOff:"0A0015",  btnTexto:"FFFFFF", histColor1:"FF00FF", histColor2:"00FFFF", histColor3:"FFFF00" },
+    ; ─────────── SECRETOS — PACK GAMER ───────────
+    ; (caracteres BMP que renderizan en todas las versiones de Windows)
+    { nombre:"★ B R A W L ★",       secreto:true, unlock:"gamer", fondo:"000000", texto:"FFFFFF", barra:"0050D5", textoBarra:"FFFFFF", historial:"000000", panel:"0A1A30", cooldown:"FF4444", afk:"4FC3F7", boton:"0050D5", hover:"1976D2", logo:"FFFFFF", luzOn:"00B0FF", luzAccion:"FFFFFF", luzOff:"050E1C",  btnTexto:"FFFFFF", histColor1:"FFFFFF", histColor2:"00B0FF", histColor3:"0050D5" },
+    { nombre:"◆ C Y B E R P U N K ◆", secreto:true, unlock:"gamer", fondo:"0D0B1F", texto:"00FFFF", barra:"FF00AA", textoBarra:"FFFF00", historial:"070518", panel:"130E2E", cooldown:"FFFF00", afk:"00FFFF", boton:"FF00AA", hover:"FF33BB", logo:"FFFF00", luzOn:"FF00AA", luzAccion:"00FFFF", luzOff:"1A1240",  btnTexto:"FFFFFF", histColor1:"00FFFF", histColor2:"FF00AA", histColor3:"FFFF00" },
+    { nombre:"☀ R E T R O W A V E ☀", secreto:true, unlock:"gamer", fondo:"1A0833", texto:"FF6EC7", barra:"7A1FA2", textoBarra:"00E5FF", historial:"0F051F", panel:"23104D", cooldown:"FF4081", afk:"FF8A50", boton:"7A1FA2", hover:"9C27B0", logo:"FF8A50", luzOn:"FF6EC7", luzAccion:"00E5FF", luzOff:"1A0833",  btnTexto:"FFFFFF", histColor1:"FF6EC7", histColor2:"00E5FF", histColor3:"FF8A50" },
+    { nombre:"⚔ A K U M A ⚔",       secreto:true, unlock:"gamer", fondo:"0A0000", texto:"FFD700", barra:"8B0000", textoBarra:"FFD700", historial:"050000", panel:"110000", cooldown:"FFFFFF", afk:"FF4444", boton:"8B0000", hover:"B00000", logo:"FFD700", luzOn:"8B0000", luzAccion:"FFD700", luzOff:"0A0000",  btnTexto:"FFD700", histColor1:"FFD700", histColor2:"8B0000", histColor3:"FFFFFF" },
+    { nombre:"☆ S K Y ☆",            secreto:true, unlock:"gamer", fondo:"E1F5FE", texto:"0277BD", barra:"FFFFFF", textoBarra:"0277BD", historial:"F0FAFE", panel:"B3E5FC", cooldown:"F06292", afk:"81D4FA", boton:"FFFFFF", hover:"F5F9FB", logo:"0277BD", luzOn:"81D4FA", luzAccion:"F8BBD9", luzOff:"0277BD",  btnTexto:"0277BD", histColor1:"0277BD", histColor2:"F06292", histColor3:"81D4FA" },
+    { nombre:"▣ M A T R I X ▣",       secreto:true, unlock:"gamer", fondo:"000000", texto:"00FF00", barra:"002200", textoBarra:"00FF00", historial:"000800", panel:"001100", cooldown:"FF0000", afk:"00FF00", boton:"002200", hover:"003800", logo:"00FF00", luzOn:"00FF00", luzAccion:"FFFFFF", luzOff:"001100",  btnTexto:"00FF00", histColor1:"00FF00", histColor2:"00FF88", histColor3:"FFFFFF" }
 ]
 
 temaActual := LeerTemaGuardado()
@@ -102,6 +136,7 @@ global avisoMostrado := false, avisoGui := "", ultimoCambio := 0
 global ultimoPasoEjecutado := ""
 global modoDestruccion := false
 global historialVisible := true, accionEnCurso := false, contadorEsc := 0
+global perfilActivo := 1  ; 1 o 2 — los pasos sin p1/p2 valen para ambos
 global histUltimoTexto := "", histUltimoCount := 0, histUltimoLongLinea := 0
 global separadorHistorial := ""
 global temaTransStep := 0, temaTransTema := "", temaTransGuardar := true, temaEnTransicion := false
@@ -128,9 +163,10 @@ global colorRGBActual := colorBarra
 global rgbPreviewCtrl := ""
 global overlayPixeles := "", overlayVisible := false
 global miGui, barra, barraHistorial, logoMacro, tituloMacro, timerLabel
-global btnIniciar, btnParar, btnCodigo, btnReset, btnHistorial, btnTema, btnMin, btnClose, btnUpdate, btnOverlay, btnRGBBtn, btnStatsBtn, btnWebhook, btnLogros, btnPart
+global btnIniciar, btnParar, btnCodigo, btnReset, btnHistorial, btnTema, btnMin, btnClose, btnUpdate, btnOverlay, btnRGBBtn, btnStatsBtn, btnWebhook, btnLogros, btnPart, btnPerfil
 global hoverAccent := "", hoverAnimStep := 0, hoverAccentTop := "", hoverAccentHist := ""
 global hoverAccentBot := "", hoverAccentRight := "", hoverAccentBotHist := "", hoverAccentRightHist := ""
+global glowTitulo := "", sepEstado := "", sepAccion := ""  ; polish visual estático
 global colorBotonNormal, colorBotonHover, colorFondoPrincipal, colorTextoPrincipal, colorBarra, colorTextoBarra
 global colorVentanaHistorial, colorFondoHistorial, colorCooldown, colorAFK, colorLogoMacro
 global colorLuzActiva, colorLuzAccion, colorLuzApagado
@@ -175,6 +211,7 @@ global eggShadowClicks := 0, eggShadowUltimo := 0
 global luzSeq := [], luzSeqUltimo := 0
 global nikaHistClicks := 0, nikaHistUltimo := 0
 global eggPremiumClicks := 0, eggPremiumUltimo := 0
+global eggGamerClicks := 0, eggGamerUltimo := 0
 global temaPremiumActivo := false
 global temaArcoirisData := Map(), temaArcoirisCbs := []
 global horaInicioSesion := ""
@@ -1714,7 +1751,7 @@ CargarLogros()
 InicializarGdip()
 DllCall("LoadLibrary", "Str", "Msftedit.dll", "Ptr")
 
-miGui := Gui("+AlwaysOnTop -Caption")
+miGui := Gui("+AlwaysOnTop -Caption -Resize")
 miGui.BackColor := colorFondoPrincipal
 miGui.SetFont("s13 c" colorTextoPrincipal, "Segoe UI")
 
@@ -1759,30 +1796,32 @@ contadorLabel.SetFont("s9 c" colorTextoPrincipal, "Segoe UI")
 afkText      := historialGui.Add("Text", "x10 y305 w250 h18 vAfkText c" colorAFK " Background" colorVentanaHistorial)
 secuenciasLabel.SetFont("s10 Bold", "Segoe UI")
 destruccionesLabel.SetFont("s10 Bold", "Segoe UI")
+secuenciasLabel.OnEvent("Click", ClickSecuenciasGamer)  ; egg secreto del pack Gamer
 secuenciasLabel.Value := Chr(0x276E) "  Secuencias: 0  " Chr(0x276F)
 destruccionesLabel.Value := Chr(0x276E) "  Destrucciones: 0  " Chr(0x276F)
 
-btnUpdate := historialGui.Add("Text", "x244 y327 w22 h20 +0x201 Background" colorBotonNormal " c" colorBtnTexto, Chr(8593))
-btnUpdate.SetFont("s8 c" colorBtnTexto, "Segoe UI Symbol")
-btnUpdate.OnEvent("Click", AbrirVentanaActualizacion)
-btnOverlay := historialGui.Add("Text", "x218 y327 w22 h20 +0x201 Background" colorBotonNormal " c" colorBtnTexto, Chr(0x1F441))
-btnOverlay.SetFont("s9 c" colorBtnTexto, "Segoe UI Emoji")
-btnOverlay.OnEvent("Click", ToggleOverlayPixeles)
-btnRGBBtn := historialGui.Add("Text", "x192 y327 w22 h20 +0x201 Background" colorBotonNormal " c" colorBtnTexto, Chr(0x1F3A8))
-btnRGBBtn.SetFont("s9 c" colorBtnTexto, "Segoe UI Emoji")
-btnRGBBtn.OnEvent("Click", AbrirPanelRGB)
-btnStatsBtn := historialGui.Add("Text", "x166 y327 w22 h20 +0x201 Background" colorBotonNormal " c" colorBtnTexto, Chr(0x1F4CA))
+; Grupos: Datos (Stats, Logros) · Sistema (Notas, Overlay, Webhook, Update)
+; Spacing 26 dentro del grupo, 32 entre grupos. Centrado en GUI de 270.
+btnStatsBtn := historialGui.Add("Text", "x56 y327 w22 h20 +0x201 Background" colorBotonNormal " c" colorBtnTexto, Chr(0x1F4CA))
 btnStatsBtn.SetFont("s9 c" colorBtnTexto, "Segoe UI Emoji")
 btnStatsBtn.OnEvent("Click", MostrarEstadisticas)
-btnWebhook := historialGui.Add("Text", "x140 y327 w22 h20 +0x201 Background" colorBotonNormal " c" colorBtnTexto, Chr(0x1F514))
-btnWebhook.SetFont("s9 c" colorBtnTexto, "Segoe UI Emoji")
-btnWebhook.OnEvent("Click", AbrirPanelWebhook)
-btnLogros := historialGui.Add("Text", "x114 y327 w22 h20 +0x201 Background" colorBotonNormal " c" colorBtnTexto, Chr(0x1F3C5))
+btnLogros := historialGui.Add("Text", "x82 y327 w22 h20 +0x201 Background" colorBotonNormal " c" colorBtnTexto, Chr(0x1F3C5))
 btnLogros.SetFont("s9 c" colorBtnTexto, "Segoe UI Emoji")
 btnLogros.OnEvent("Click", AbrirPanelLogros)
-btnPart := historialGui.Add("Text", "x88 y327 w22 h20 +0x201 Background" colorBotonNormal " c" colorBtnTexto, Chr(0x2728))
-btnPart.SetFont("s9 c" colorBtnTexto, "Segoe UI Emoji")
-btnPart.OnEvent("Click", AbrirPanelParticulas)
+btnCodigo := historialGui.Add("Text", "x114 y327 w22 h20 +0x201 Background" colorBotonNormal " c" colorBtnTexto, Chr(9000))
+btnCodigo.SetFont("s10 c" colorBtnTexto " Bold", "Segoe UI Symbol")
+btnCodigo.OnEvent("Click", AbrirCodigo)
+btnOverlay := historialGui.Add("Text", "x140 y327 w22 h20 +0x201 Background" colorBotonNormal " c" colorBtnTexto, Chr(0x1F441))
+btnOverlay.SetFont("s9 c" colorBtnTexto, "Segoe UI Emoji")
+btnOverlay.OnEvent("Click", ToggleOverlayPixeles)
+btnWebhook := historialGui.Add("Text", "x166 y327 w22 h20 +0x201 Background" colorBotonNormal " c" colorBtnTexto, Chr(0x1F514))
+btnWebhook.SetFont("s9 c" colorBtnTexto, "Segoe UI Emoji")
+btnWebhook.OnEvent("Click", AbrirPanelWebhook)
+btnUpdate := historialGui.Add("Text", "x192 y327 w22 h20 +0x201 Background" colorBotonNormal " c" colorBtnTexto, Chr(8593))
+btnUpdate.SetFont("s8 c" colorBtnTexto, "Segoe UI Symbol")
+btnUpdate.OnEvent("Click", AbrirVentanaActualizacion)
+
+; (btnPerfil ahora vive en miGui — se crea más abajo en la sección de miGui)
 ; Acentos hover para botones del historial (viven en historialGui)
 hoverAccentHist      := historialGui.Add("Text", "x-20 y-20 w5 h0  Background" colorBarra, "")
 hoverAccentBotHist   := historialGui.Add("Text", "x-20 y-20 w0 h4  Background" colorBarra, "")
@@ -1802,6 +1841,11 @@ historialVisible := Integer(IniRead(configPath, "UI", "HistorialVisible", "1")) 
 if (!historialVisible)
     historialGui.Hide()
 
+; Restaurar perfil activo guardado (1 o 2)
+perfilActivo := Integer(IniRead(configPath, "UI", "PerfilActivo", "1"))
+if (perfilActivo != 1 && perfilActivo != 2)
+    perfilActivo := 1
+
 ; Cargar config de partículas
 particulasActivas   := Integer(IniRead(configPath, "Particulas", "Activas",    "1")) = 1
 particulasCantidad  := Integer(IniRead(configPath, "Particulas", "Cantidad",   "100"))
@@ -1814,8 +1858,18 @@ barra.SetFont("s13 c" colorTextoBarra " Bold", "Segoe UI Semibold")
 barra.OnEvent("Click", ArrastrarVentana)
 barra.OnEvent("DoubleClick", ClickTitulo)
 
+; P1/P2 chiquitito en la esquina izquierda de la barra del macro
+; Fondo = colorTextoBarra (invertido) → máximo contraste sobre la barra en cualquier tema
+btnPerfil := miGui.Add("Text", "x5 y4 w24 h17 +0x201 Center Background" colorTextoBarra " c" colorBarra, "P" perfilActivo)
+btnPerfil.SetFont("s8 c" colorBarra " Bold", "Segoe UI Semibold")
+btnPerfil.OnEvent("Click", CambiarPerfil)
+; Asegurar z-order por encima de la barra subclasseada
+DllCall("SetWindowPos", "Ptr", btnPerfil.Hwnd, "Ptr", 0, "Int", 0, "Int", 0, "Int", 0, "Int", 0, "UInt", 0x13)
+
+btnReset    := miGui.Add("Text", "x308 y33 w20 h20 +0x201 Background" colorBotonNormal " c" colorBtnTexto, Chr(8635))
 btnMin      := miGui.Add("Text", "x338 y33 w20 h20 +0x201 Background" colorBotonNormal " c" colorBtnTexto, Chr(8722))
 btnClose    := miGui.Add("Text", "x368 y33 w20 h20 +0x201 Background" colorBotonNormal " c" colorBtnTexto, Chr(215))
+btnReset.OnEvent("Click", Reiniciar)
 btnMin.OnEvent("Click", Minimizar)
 btnClose.OnEvent("Click", Cerrar)
 
@@ -1832,31 +1886,38 @@ luzAccion := miGui.Add("Progress", "x70 y130 w20 h20 c" colorBotonNormal " Backg
 luzApagado := miGui.Add("Progress", "x100 y130 w20 h20 c" colorLuzApagado " Background" colorFondoPrincipal, 100)
 OnMessage(0x0201, ManejarClickLuces)
 
+; Barra principal: Apariencia (Temas, RGB, Partículas) · Toggle Historial
+; Posiciones originales: tema(240), RGB y part ocupan los huecos de hist y notas, hist va al hueco que dejó reset
 btnTema      := miGui.Add("Text", "x240 y59 w26 h26 +0x201 Background" colorBotonNormal " c" colorBtnTexto, Chr(9680))
-btnHistorial := miGui.Add("Text", "x272 y59 w26 h26 +0x201 Background" colorBotonNormal " c" colorBtnTexto, Chr(128203))
-btnCodigo    := miGui.Add("Text", "x304 y59 w26 h26 +0x201 Background" colorBotonNormal " c" colorBtnTexto, Chr(9000))
-btnReset     := miGui.Add("Text", "x336 y59 w26 h26 +0x201 Background" colorBotonNormal " c" colorBtnTexto, Chr(8635))
+btnRGBBtn    := miGui.Add("Text", "x272 y59 w26 h26 +0x201 Background" colorBotonNormal " c" colorBtnTexto, Chr(0x1F3A8))
+btnPart      := miGui.Add("Text", "x304 y59 w26 h26 +0x201 Background" colorBotonNormal " c" colorBtnTexto, Chr(0x2728))
+btnHistorial := miGui.Add("Text", "x336 y59 w26 h26 +0x201 Background" colorBotonNormal " c" colorBtnTexto, Chr(128203))
 btnIniciar   := miGui.Add("Text", "x40 y178 w140 h36 +0x201 Background" colorBotonNormal " c" colorBtnTexto, Chr(9654) " Iniciar (F1)")
 btnParar     := miGui.Add("Text", "x220 y178 w140 h36 +0x201 Background" colorBotonNormal " c" colorBtnTexto, Chr(9632) " Parar (F2)")
+; ── Polish visual: línea glow bajo título + separadores de sección ──
+glowTitulo := miGui.Add("Text", "x0 y25 w400 h2 Background" AclararHex(colorBarra, 0.35), "")
+sepEstado  := miGui.Add("Text", "x30 y98 w340 h1 Background" colorBarra, "")
+sepAccion  := miGui.Add("Text", "x30 y170 w340 h1 Background" colorBarra, "")
+
 ; Franjas de acento para hover — 4 lados (izquierda, derecha, arriba, abajo)
 hoverAccent      := miGui.Add("Text", "x-20 y-20 w5 h0 Background" colorBarra, "")
 hoverAccentTop   := miGui.Add("Text", "x-20 y-20 w0 h4 Background" colorBarra, "")
 hoverAccentBot   := miGui.Add("Text", "x-20 y-20 w0 h4 Background" colorBarra, "")
 hoverAccentRight := miGui.Add("Text", "x-20 y-20 w5 h0 Background" colorBarra, "")
 
-for btn in [btnTema, btnHistorial, btnCodigo, btnReset, btnMin, btnClose]
+for btn in [btnTema, btnHistorial, btnReset, btnMin, btnClose]
     btn.SetFont("s11 c" colorBtnTexto " Bold", "Segoe UI Symbol")
+btnRGBBtn.SetFont("s9 c" colorBtnTexto, "Segoe UI Emoji")
+btnPart.SetFont("s9 c" colorBtnTexto, "Segoe UI Emoji")
 for btn in [btnIniciar, btnParar]
     btn.SetFont("s10 c" colorBtnTexto " Bold", "Segoe UI Semibold")
-for btn in [btnTema, btnHistorial, btnCodigo, btnReset, btnMin, btnClose]
-    btn.SetFont("s11 c" colorBtnTexto " Bold", "Segoe UI Symbol")
 
 btnTema.OnEvent("Click", CambiarTema)
 btnHistorial.OnEvent("Click", ToggleHistorial)
 btnIniciar.OnEvent("Click", Iniciar)
 btnParar.OnEvent("Click", Parar)
-btnReset.OnEvent("Click", Reiniciar)
-btnCodigo.OnEvent("Click", AbrirCodigo)
+btnRGBBtn.OnEvent("Click", AbrirPanelRGB)
+btnPart.OnEvent("Click", AbrirPanelParticulas)
 
 ; ── Registro de hover para los botones principales ──
 RegistrarHover(btnIniciar,   () => (activo ? (rgbBotones ? colorRGBActual : colorBotonHover) : (rgbBotones ? colorRGBActual : colorBotonNormal)))
@@ -1865,6 +1926,7 @@ RegistrarHover(btnTema,      () => (rgbBotones ? colorRGBActual : colorBotonNorm
 RegistrarHover(btnHistorial, () => (rgbBotones ? colorRGBActual : colorBotonNormal))
 RegistrarHover(btnCodigo,    () => (rgbBotones ? colorRGBActual : colorBotonNormal))
 RegistrarHover(btnReset,     () => (rgbBotones ? colorRGBActual : colorBotonNormal))
+RegistrarHover(btnPerfil,    () => (rgbBotones ? colorRGBActual : colorTextoBarra), () => (rgbBotones ? colorRGBActual : AclararHex(colorTextoBarra, 0.15)))
 RegistrarHover(btnMin,       () => (rgbBotones ? colorRGBActual : colorBotonNormal))
 RegistrarHover(btnClose,     () => (rgbBotones ? colorRGBActual : colorBotonNormal))
 RegistrarHover(btnUpdate,    () => (rgbBotones ? colorRGBActual : colorBotonNormal))
@@ -2165,7 +2227,7 @@ DesbloquearPremium() {
     global temas, temaActual, eggPremiumDesbloqueado, configPath
 
     eggPremiumDesbloqueado := true
-    temaActual := temas.Length
+    temaActual := BuscarTemaPorUnlock("premium")
     TransicionTema(temas[temaActual])
     GuardarTema()
     IniWrite(1, configPath, "EggPremium", "Desbloqueado")
@@ -2190,7 +2252,7 @@ DesbloquearVoid() {
     global temas, temaActual, eggVoidDesbloqueado, configPath, VERSION_ACTUAL
 
     eggVoidDesbloqueado := true
-    temaActual := temas.Length - 3
+    temaActual := BuscarTemaPorUnlock("void")
     TransicionTema(temas[temaActual])
     GuardarTema()
     IniWrite(1, configPath, "EggVoid", "Desbloqueado")
@@ -2214,7 +2276,7 @@ DesbloquearShadow() {
     global temas, temaActual, eggShadowDesbloqueado, configPath
 
     eggShadowDesbloqueado := true
-    temaActual := temas.Length - 5
+    temaActual := BuscarTemaPorUnlock("shadow")
     TransicionTema(temas[temaActual])
     GuardarTema()
     IniWrite(1, configPath, "EggShadow", "Desbloqueado")
@@ -2272,7 +2334,7 @@ ClickTitulo(*) {
 ; ===== BACKUP ROBUSTO DE EGGS (UTF-8 — inmune a problemas de codificación del .ini) =====
 CargarEggsBackup() {
     global eggDesbloqueado, eggVoidDesbloqueado, eggShadowDesbloqueado
-    global eggSolarDesbloqueado, eggBlancoDesbloqueado, eggPremiumDesbloqueado, eggsBackupPath
+    global eggSolarDesbloqueado, eggBlancoDesbloqueado, eggPremiumDesbloqueado, eggGamerDesbloqueado, eggsBackupPath
     if (!FileExist(eggsBackupPath))
         return
     try {
@@ -2289,12 +2351,14 @@ CargarEggsBackup() {
             eggBlancoDesbloqueado := true
         if (InStr(txt, "premium"))
             eggPremiumDesbloqueado := true
+        if (InStr(txt, "gamer"))
+            eggGamerDesbloqueado := true
     }
 }
 
 GuardarEggsBackup() {
     global eggDesbloqueado, eggVoidDesbloqueado, eggShadowDesbloqueado
-    global eggSolarDesbloqueado, eggBlancoDesbloqueado, eggPremiumDesbloqueado, eggsBackupPath
+    global eggSolarDesbloqueado, eggBlancoDesbloqueado, eggPremiumDesbloqueado, eggGamerDesbloqueado, eggsBackupPath
     txt := ""
     if (eggDesbloqueado)
         txt .= "cosmos`n"
@@ -2308,44 +2372,84 @@ GuardarEggsBackup() {
         txt .= "blanco`n"
     if (eggPremiumDesbloqueado)
         txt .= "premium`n"
+    if (eggGamerDesbloqueado)
+        txt .= "gamer`n"
     try FileDelete(eggsBackupPath)
     try FileAppend(txt, eggsBackupPath, "UTF-8")
 }
 
+; Devuelve true si el usuario puede usar este tema (no-secreto o secreto desbloqueado).
+PuedeUsarTema(t) {
+    global eggDesbloqueado, eggVoidDesbloqueado, eggShadowDesbloqueado
+    global eggSolarDesbloqueado, eggBlancoDesbloqueado, eggPremiumDesbloqueado, eggGamerDesbloqueado
+    if (!t.HasProp("secreto") || !t.secreto)
+        return true
+    if (!t.HasProp("unlock"))
+        return false
+    switch t.unlock {
+        case "shadow":  return eggShadowDesbloqueado
+        case "cosmos":  return eggDesbloqueado
+        case "void":    return eggVoidDesbloqueado
+        case "solar":   return eggSolarDesbloqueado
+        case "blanco":  return eggBlancoDesbloqueado
+        case "premium": return eggPremiumDesbloqueado
+        case "gamer":   return eggGamerDesbloqueado
+    }
+    return false
+}
+
+; Busca el índice del primer tema con el unlock id dado (devuelve 0 si no existe).
+BuscarTemaPorUnlock(unlockId) {
+    global temas
+    for i, t in temas {
+        if (t.HasProp("unlock") && t.unlock = unlockId)
+            return i
+    }
+    return 0
+}
+
 LeerTemaGuardado() {
     global configPath, temas, eggDesbloqueado, eggVoidDesbloqueado, eggShadowDesbloqueado
-    global eggSolarDesbloqueado, eggBlancoDesbloqueado, eggPremiumDesbloqueado, VERSION_ACTUAL
+    global eggSolarDesbloqueado, eggBlancoDesbloqueado, eggPremiumDesbloqueado, eggGamerDesbloqueado, VERSION_ACTUAL
     eggDesbloqueado        := Integer(IniRead(configPath, "Egg",        "Desbloqueado", "0")) = 1
     eggVoidDesbloqueado    := Integer(IniRead(configPath, "EggVoid",    "Desbloqueado", "0")) = 1
     eggShadowDesbloqueado  := Integer(IniRead(configPath, "EggShadow",  "Desbloqueado", "0")) = 1
     eggSolarDesbloqueado   := Integer(IniRead(configPath, "EggSolar",   "Desbloqueado", "0")) = 1
     eggBlancoDesbloqueado  := Integer(IniRead(configPath, "EggBlanco",  "Desbloqueado", "0")) = 1
     eggPremiumDesbloqueado := Integer(IniRead(configPath, "EggPremium", "Desbloqueado", "0")) = 1
+    eggGamerDesbloqueado   := Integer(IniRead(configPath, "EggGamer",   "Desbloqueado", "0")) = 1
     ; Fallback: si el .ini está corrupto o en UTF-16, leer del backup UTF-8
     CargarEggsBackup()
     ; Re-guardar al backup para mantenerlo sincronizado
     GuardarEggsBackup()
-    valor := Integer(IniRead(configPath, "Tema", "Actual", "1"))
+    ; Primero intentamos por NOMBRE (resiliente a reordenes del array)
+    valor := 0
+    nombreGuardado := IniRead(configPath, "Tema", "Nombre", "")
+    if (nombreGuardado != "") {
+        for i, t in temas {
+            if (t.nombre = nombreGuardado) {
+                valor := i
+                break
+            }
+        }
+    }
+    ; Fallback al índice (INIs viejos sin Nombre)
+    if (valor = 0)
+        valor := Integer(IniRead(configPath, "Tema", "Actual", "1"))
     if (valor < 1 || valor > temas.Length)
         valor := 1
-    if (valor = temas.Length     && !eggPremiumDesbloqueado)
-        valor := 1
-    if (valor = temas.Length - 1 && !eggBlancoDesbloqueado)
-        valor := 1
-    if (valor = temas.Length - 2 && !eggSolarDesbloqueado)
-        valor := 1
-    if (valor = temas.Length - 3 && !eggVoidDesbloqueado)
-        valor := 1
-    if (valor = temas.Length - 4 && !eggDesbloqueado)
-        valor := 1
-    if (valor = temas.Length - 5 && !eggShadowDesbloqueado)
+    ; Si el tema guardado es secreto y NO está desbloqueado → caer al tema 1
+    if (!PuedeUsarTema(temas[valor]))
         valor := 1
     return valor
 }
 
 GuardarTema() {
-    global configPath, temaActual
+    global configPath, temaActual, temas
     IniWrite(temaActual, configPath, "Tema", "Actual")
+    ; Guardar también por nombre — sobrevive a reordenes del array
+    if (temaActual >= 1 && temaActual <= temas.Length)
+        IniWrite(temas[temaActual].nombre, configPath, "Tema", "Nombre")
 }
 
 ; ===== WEBHOOK DISCORD =====
@@ -2908,7 +3012,7 @@ AbrirPanelRGB(*) {
 
     ; ── Dirección ────────────────────────────────────────────────────────
     rgbGui.Add("Text", "x10 y168 w200 h14 c" colorTextoPrincipal " BackgroundTrans", "Dirección:").SetFont("s8 Bold", "Segoe UI")
-    dirs := [{lbl:"Normal →", d:1}, {lbl:"← Inverso", d:-1}]
+    dirs := [{lbl:"Normal →", d:-1}, {lbl:"← Inverso", d:1}]
     xd := 10
     for item in dirs {
         bg := (rgbDireccion = item.d) ? colorBarra : colorBotonNormal
@@ -3056,17 +3160,7 @@ AbrirPanelTemas(*) {
 
     temasVisibles := []
     for i, t in temas {
-        if (i = temas.Length     && !eggPremiumDesbloqueado)
-            continue
-        if (i = temas.Length - 1 && !eggBlancoDesbloqueado)
-            continue
-        if (i = temas.Length - 2 && !eggSolarDesbloqueado)
-            continue
-        if (i = temas.Length - 3 && !eggVoidDesbloqueado)
-            continue
-        if (i = temas.Length - 4 && !eggDesbloqueado)
-            continue
-        if (i = temas.Length - 5 && !eggShadowDesbloqueado)
+        if (!PuedeUsarTema(t))
             continue
         temasVisibles.Push({ idx: i, nombre: t.nombre, tema: t })
     }
@@ -3095,7 +3189,7 @@ AbrirPanelTemas(*) {
     for i, entry in temasVisibles {
         yPos := alturaBarra + (i - 1) * alturaItem
         yShow := (yPos >= alturaBarra + alturaVisible) ? -alturaItem - 10 : yPos
-        isSecret := (entry.idx >= temas.Length - 5)
+        isSecret := (entry.tema.HasProp("secreto") && entry.tema.secreto)
         esActivo := (entry.idx = temaActual)
 
         btn := temaGui.Add("Text",
@@ -3258,7 +3352,7 @@ DesbloquearCosmos() {
     global colorFondoPrincipal, colorTextoPrincipal, colorBarra, colorTextoBarra, colorBotonNormal, colorBtnTexto
 
     eggDesbloqueado := true
-    temaActual := temas.Length - 4
+    temaActual := BuscarTemaPorUnlock("cosmos")
     TransicionTema(temas[temaActual])
     GuardarTema()
     IniWrite(1, configPath, "Egg", "Desbloqueado")
@@ -3329,7 +3423,7 @@ DesbloquearSolar() {
     global temas, temaActual, eggSolarDesbloqueado, configPath
 
     eggSolarDesbloqueado := true
-    temaActual := temas.Length - 2
+    temaActual := BuscarTemaPorUnlock("solar")
     TransicionTema(temas[temaActual])
     GuardarTema()
     IniWrite(1, configPath, "EggSolar", "Desbloqueado")
@@ -3353,7 +3447,7 @@ DesbloquearBlanco() {
     global temas, temaActual, eggBlancoDesbloqueado, configPath
 
     eggBlancoDesbloqueado := true
-    temaActual := temas.Length - 1
+    temaActual := BuscarTemaPorUnlock("blanco")
     TransicionTema(temas[temaActual])
     GuardarTema()
     IniWrite(1, configPath, "EggBlanco", "Desbloqueado")
@@ -3371,6 +3465,62 @@ DesbloquearBlanco() {
     popup.Show("w320 h138 Center")
     RedondearVentana(popup.Hwnd, 14)
     SetTimer(() => popup.Destroy(), -4000)
+}
+
+DesbloquearGamer() {
+    global temas, temaActual, eggGamerDesbloqueado, configPath, logros
+
+    eggGamerDesbloqueado := true
+    ; Cambiar al primer tema del pack Gamer (Brawl)
+    temaActual := BuscarTemaPorUnlock("gamer")
+    if (temaActual > 0)
+        TransicionTema(temas[temaActual])
+    GuardarTema()
+    IniWrite(1, configPath, "EggGamer", "Desbloqueado")
+    GuardarEggsBackup()
+
+    ; Marcar el logro como completado (si existe en la lista)
+    for l in logros {
+        if (l.id = "gamerpack" && !l.desbloqueado) {
+            l.desbloqueado := true
+            GuardarLogro("gamerpack")
+            break
+        }
+    }
+
+    popup := Gui("+AlwaysOnTop -Caption +ToolWindow")
+    popup.BackColor := "0D0B1F"
+    popup.SetFont("s13 c00FFFF Bold", "Segoe UI")
+    popup.Add("Text", "x0 y0 w340 h30 Background130E2E Center cFFFF00", "  ★ PACK SECRETO DESBLOQUEADO ★  ")
+    popup.SetFont("s11 cFFFFFF", "Segoe UI")
+    popup.Add("Text", "x10 y40 w320 h20 Center cFF00AA", "★ ─ ◆ ─ ☀ ─ ⚔ ─ ☆ ─ ▣")
+    popup.Add("Text", "x10 y64 w320 h22 Center c00FFFF", "Has desbloqueado el PACK GAMER")
+    popup.Add("Text", "x10 y90 w320 h20 Center cFFFF00", "6 temas nuevos en el selector")
+    popup.Add("Text", "x10 y112 w320 h20 Center cFF00AA", "★ ─ ◆ ─ ☀ ─ ⚔ ─ ☆ ─ ▣")
+    popup.Show("w340 h140 Center")
+    RedondearVentana(popup.Hwnd, 14)
+    SetTimer(() => popup.Destroy(), -4500)
+}
+
+; Trigger GAMER: click ×10 sobre el contador "Secuencias" en 5 segundos
+ClickSecuenciasGamer(*) {
+    global eggGamerClicks, eggGamerUltimo, eggGamerDesbloqueado, secuenciasLabel, colorTextoPrincipal
+    if (eggGamerDesbloqueado)
+        return
+    if (A_TickCount - eggGamerUltimo < 5000)
+        eggGamerClicks += 1
+    else
+        eggGamerClicks := 1
+    eggGamerUltimo := A_TickCount
+    ; Flash visual para confirmar que el click se registra (sin spoilear cuántos llevamos)
+    c := colorTextoPrincipal
+    secuenciasLabel.Opt("cFFE100")
+    DllCall("InvalidateRect", "Ptr", secuenciasLabel.Hwnd, "Ptr", 0, "Int", 1)
+    SetTimer(() => (secuenciasLabel.Opt("c" c), DllCall("InvalidateRect", "Ptr", secuenciasLabel.Hwnd, "Ptr", 0, "Int", 1)), -120)
+    if (eggGamerClicks >= 10) {
+        eggGamerClicks := 0
+        DesbloquearGamer()
+    }
 }
 
 ; ── Arcoíris en botones de temas secretos ──
@@ -3738,7 +3888,7 @@ TransicionPaso() {
     global barra, barraHistorial, colorBarraOverride
     global tituloMacro, timerLabel, cooldownText, afkText, secuenciasLabel, destruccionesLabel, contadorLabel, logoMacro
     global btnIniciar, btnParar, btnCodigo, btnReset, btnHistorial, btnTema, btnMin, btnClose
-    global btnUpdate, btnOverlay, btnRGBBtn, btnStatsBtn, btnWebhook, btnLogros, btnPart
+    global btnUpdate, btnOverlay, btnRGBBtn, btnStatsBtn, btnWebhook, btnLogros, btnPart, btnPerfil
     global colorLogoEnTransicion, colorFondoEnTransicion
     global luzActiva, luzAccion, luzApagado, historialBox, separadorHistorial
     global scrollTrack, scrollThumb
@@ -3777,12 +3927,18 @@ TransicionPaso() {
     DllCall("InvalidateRect", "Ptr", barra.Hwnd, "Ptr", 0, "Int", 0)
     DllCall("InvalidateRect", "Ptr", barraHistorial.Hwnd, "Ptr", 0, "Int", 0)
 
-    ; TODOS los botones
+    ; TODOS los botones (btnPerfil va aparte porque vive en la barra)
     for btn in [btnIniciar, btnParar, btnCodigo, btnReset, btnHistorial, btnTema, btnMin, btnClose, btnUpdate, btnOverlay, btnRGBBtn, btnStatsBtn, btnWebhook, btnLogros, btnPart] {
         if (IsObject(btn)) {
             btn.Opt("Background" cBoton)
             DllCall("InvalidateRect", "Ptr", btn.Hwnd, "Ptr", 0, "Int", 1)
         }
+    }
+    if (IsObject(btnPerfil)) {
+        ; Interpolar también el textoBarra para el bg del badge
+        cTextoBarra := LerpHex(temaTransOrigen.textoBarra, temaTransTema.textoBarra, t2)
+        btnPerfil.Opt("Background" cTextoBarra)
+        DllCall("InvalidateRect", "Ptr", btnPerfil.Hwnd, "Ptr", 0, "Int", 1)
     }
 
     ; Labels con bg sólido
@@ -3805,6 +3961,21 @@ TransicionPaso() {
     if (IsObject(separadorHistorial)) {
         separadorHistorial.Opt("Background" cBarra)
         DllCall("InvalidateRect", "Ptr", separadorHistorial.Hwnd, "Ptr", 0, "Int", 1)
+    }
+
+    ; Polish visual del miGui: glow + separadores siguen el cBarra del frame
+    global glowTitulo, sepEstado, sepAccion
+    if (IsObject(glowTitulo)) {
+        glowTitulo.Opt("Background" AclararHex(cBarra, 0.35))
+        DllCall("InvalidateRect", "Ptr", glowTitulo.Hwnd, "Ptr", 0, "Int", 1)
+    }
+    if (IsObject(sepEstado)) {
+        sepEstado.Opt("Background" cBarra)
+        DllCall("InvalidateRect", "Ptr", sepEstado.Hwnd, "Ptr", 0, "Int", 1)
+    }
+    if (IsObject(sepAccion)) {
+        sepAccion.Opt("Background" cBarra)
+        DllCall("InvalidateRect", "Ptr", sepAccion.Hwnd, "Ptr", 0, "Int", 1)
     }
 
     ; Scrollbar personalizado
@@ -3906,6 +4077,13 @@ AplicarTema(tema, guardar := true, fromTrans := false) {
         hoverAccentBotHist.Opt("Background" colorBarra)
     if (IsObject(hoverAccentRightHist))
         hoverAccentRightHist.Opt("Background" colorBarra)
+    ; Polish visual: glow bajo el título + separadores de sección
+    if (IsObject(glowTitulo))
+        glowTitulo.Opt("Background" AclararHex(colorBarra, 0.35))
+    if (IsObject(sepEstado))
+        sepEstado.Opt("Background" colorBarra)
+    if (IsObject(sepAccion))
+        sepAccion.Opt("Background" colorBarra)
     logoMacro.Opt("c" colorLogoMacro)
     logoMacro.SetFont("s49 c" colorLogoMacro " Bold", "Segoe UI Symbol")
     DllCall("InvalidateRect", "Ptr", logoMacro.Hwnd, "Ptr", 0, "Int", 1)
@@ -3941,6 +4119,12 @@ AplicarTema(tema, guardar := true, fromTrans := false) {
             DllCall("UpdateWindow",   "Ptr", btn.Hwnd)
         }
     }
+    ; btnPerfil va en la barra de título — colores invertidos (bg=textoBarra, fg=barra)
+    btnPerfil.Opt("Background" colorTextoBarra " c" colorBarra)
+    if (!fromTrans) {
+        DllCall("InvalidateRect", "Ptr", btnPerfil.Hwnd, "Ptr", 0, "Int", 1)
+        DllCall("UpdateWindow",   "Ptr", btnPerfil.Hwnd)
+    }
     for btn in [btnIniciar, btnParar]
         btn.SetFont("s10 c" colorBtnTexto " Bold", "Segoe UI Semibold")
     btnUpdate.SetFont("s8 c" colorBtnTexto, "Segoe UI Symbol")
@@ -3950,6 +4134,8 @@ AplicarTema(tema, guardar := true, fromTrans := false) {
     btnWebhook.SetFont("s9 c" colorBtnTexto, "Segoe UI Emoji")
     btnLogros.SetFont("s9 c" colorBtnTexto, "Segoe UI Emoji")
     btnPart.SetFont("s9 c" colorBtnTexto, "Segoe UI Emoji")
+    btnCodigo.SetFont("s10 c" colorBtnTexto " Bold", "Segoe UI Symbol")
+    btnPerfil.SetFont("s8 c" colorBarra " Bold", "Segoe UI Semibold")
     ActualizarEstadoVisual()
     if (fromTrans) {
         ; Reactivar redraws y forzar un único repintado atómico — sin frame en blanco
@@ -4040,6 +4226,19 @@ ActualizarRGB(*) {
         DllCall("InvalidateRect", "Ptr", barra.Hwnd, "Ptr", 0, "Int", 1)
         barraHistorial.Opt("Background" colorRGBActual)
         DllCall("InvalidateRect", "Ptr", barraHistorial.Hwnd, "Ptr", 0, "Int", 1)
+        global glowTitulo, sepEstado, sepAccion
+        if (IsObject(glowTitulo)) {
+            glowTitulo.Opt("Background" AclararHex(colorRGBActual, 0.35))
+            DllCall("InvalidateRect", "Ptr", glowTitulo.Hwnd, "Ptr", 0, "Int", 1)
+        }
+        if (IsObject(sepEstado)) {
+            sepEstado.Opt("Background" colorRGBActual)
+            DllCall("InvalidateRect", "Ptr", sepEstado.Hwnd, "Ptr", 0, "Int", 1)
+        }
+        if (IsObject(sepAccion)) {
+            sepAccion.Opt("Background" colorRGBActual)
+            DllCall("InvalidateRect", "Ptr", sepAccion.Hwnd, "Ptr", 0, "Int", 1)
+        }
     }
     if (rgbLogo) {
         logoMacro.Opt("c" colorRGBActual)
@@ -4149,6 +4348,16 @@ Reiniciar(*) {
 
 AbrirCodigo(*) {
     Run('notepad.exe "' A_ScriptDir '\brawlmacrotct.ahk"')
+}
+
+CambiarPerfil(*) {
+    global perfilActivo, btnPerfil, configPath
+    perfilActivo := (perfilActivo = 1) ? 2 : 1
+    btnPerfil.Value := "P" perfilActivo
+    DllCall("InvalidateRect", "Ptr", btnPerfil.Hwnd, "Ptr", 0, "Int", 1)
+    DllCall("UpdateWindow",   "Ptr", btnPerfil.Hwnd)
+    IniWrite(perfilActivo, configPath, "UI", "PerfilActivo")
+    AgregarHistorial("Perfil activo: P" perfilActivo, "")
 }
 
 ToggleHistorial(*) {
@@ -4580,6 +4789,8 @@ ActualizarCooldowns(*) {
     for paso in pasosPrioridad {
         if !paso.HasProp("lastUsed")
             paso.lastUsed := 0
+        if !PasoActivoEnPerfil(paso)
+            continue
         if paso.HasProp("cooldown") {
             restante := paso.cooldown - (A_TickCount - paso.lastUsed)
             if (restante > 0)
@@ -4590,6 +4801,8 @@ ActualizarCooldowns(*) {
     for paso in pasosNormales {
         if !paso.HasProp("lastUsed")
             paso.lastUsed := 0
+        if !PasoActivoEnPerfil(paso)
+            continue
         if paso.HasProp("cooldown") {
             restante := paso.cooldown - (A_TickCount - paso.lastUsed)
             if (restante > 0)
@@ -4680,6 +4893,19 @@ ActualizarDestrucciones(*) {
     destruccionesLabel.Value := Chr(0x276E) "  Destrucciones: " contadorDestruccion "  " Chr(0x276F)
 }
 
+; Devuelve true si el paso debe ejecutarse en el perfil activo.
+; Convención: si el paso no tiene ni p1 ni p2 marcados, es común y vale para ambos.
+PasoActivoEnPerfil(paso) {
+    global perfilActivo
+    tieneP1 := paso.HasProp("p1") && paso.p1
+    tieneP2 := paso.HasProp("p2") && paso.p2
+    if (!tieneP1 && !tieneP2)
+        return true
+    if (perfilActivo = 1)
+        return tieneP1
+    return tieneP2
+}
+
 BuscarPixel(paso, &x, &y) {
     global scaleX, scaleY
     x1 := Round(paso.x1 * scaleX)
@@ -4725,6 +4951,8 @@ CheckPrioridad() {
     for paso in pasosPrioridad {
         if !paso.HasProp("lastUsed")
             paso.lastUsed := 0
+        if !PasoActivoEnPerfil(paso)
+            continue
         if paso.HasProp("cooldown") && (A_TickCount - paso.lastUsed < paso.cooldown)
             continue
 
@@ -4826,6 +5054,8 @@ EjecutarMacro(*) {
         } else {
             for p in pasosNormales {
                 if (p.nombre = pasoCadena) {
+                    if !PasoActivoEnPerfil(p)
+                        continue
                     encontrado := BuscarPixel(p, &x, &y)
                     if (encontrado) {
                         MouseMove(x, y, 5)
@@ -4861,6 +5091,9 @@ EjecutarMacro(*) {
     for paso in pasosNormales {
         if !paso.HasProp("lastUsed")
             paso.lastUsed := 0
+
+        if !PasoActivoEnPerfil(paso)
+            continue
 
         pasoRevisado += 1
         ; Cada 5 pasos → comprobar prioridad
@@ -5326,7 +5559,8 @@ DefinirLogros() {
         { id: "lucky",        nombre: "Suertudo",             desc: "Tu primer crítico",                icono: Chr(0x2728), desbloqueado: false },
         { id: "luckyMax",     nombre: "Premio mayor",         desc: "50 críticos acumulados",           icono: Chr(0x1F340), desbloqueado: false },
         { id: "coleccionista", nombre: "Coleccionista",       desc: "Desbloquea 3 temas secretos",      icono: Chr(0x1F31F), desbloqueado: false },
-        { id: "godmode",      nombre: "God Mode",             desc: "Desbloquea TODOS los temas",       icono: Chr(0x1F451), desbloqueado: false }
+        { id: "godmode",      nombre: "God Mode",             desc: "Desbloquea TODOS los temas",       icono: Chr(0x1F451), desbloqueado: false },
+        { id: "gamerpack",    nombre: "Pack Gamer",           desc: "??? (algo en el historial responde a clicks insistentes)", icono: Chr(0x1F3AE), desbloqueado: false }
     ]
 }
 
@@ -5346,7 +5580,7 @@ VerificarLogros() {
     global totalSecuenciasGuardadas, contadorSecuencias
     global totalHorasGuardadas, totalDestruccionGuardada, contadorDestruccion
     global streakMax, tiempoAcumulado, tiempoInicio, timerActivo, totalCriticos
-    global eggDesbloqueado, eggVoidDesbloqueado, eggShadowDesbloqueado, eggSolarDesbloqueado, eggBlancoDesbloqueado, eggPremiumDesbloqueado
+    global eggDesbloqueado, eggVoidDesbloqueado, eggShadowDesbloqueado, eggSolarDesbloqueado, eggBlancoDesbloqueado, eggPremiumDesbloqueado, eggGamerDesbloqueado
 
     totalSecs := totalSecuenciasGuardadas + contadorSecuencias
     totalDestru := totalDestruccionGuardada + contadorDestruccion
@@ -5355,6 +5589,7 @@ VerificarLogros() {
         sesionHoras += (A_TickCount - tiempoInicio) / 3600000.0
     eggsCount := (eggDesbloqueado ? 1 : 0) + (eggVoidDesbloqueado ? 1 : 0) + (eggShadowDesbloqueado ? 1 : 0)
                  + (eggSolarDesbloqueado ? 1 : 0) + (eggBlancoDesbloqueado ? 1 : 0) + (eggPremiumDesbloqueado ? 1 : 0)
+                 + (eggGamerDesbloqueado ? 1 : 0)
     cumplidos := Map(
         "primera",      totalSecs >= 1,
         "centurion",    totalSecs >= 100,
@@ -5366,7 +5601,8 @@ VerificarLogros() {
         "lucky",        totalCriticos >= 1,
         "luckyMax",     totalCriticos >= 50,
         "coleccionista", eggsCount >= 3,
-        "godmode",      eggsCount >= 6
+        "godmode",      eggsCount >= 7,
+        "gamerpack",    eggGamerDesbloqueado
     )
     for l in logros {
         if (!l.desbloqueado && cumplidos.Has(l.id) && cumplidos[l.id]) {
@@ -6055,6 +6291,8 @@ DibujarOverlayPixeles() {
     }
 
     for paso in pasosPrioridad {
+        if !PasoActivoEnPerfil(paso)
+            continue
         x1s := Round(paso.x1 * scaleX)
         y1s := Round(paso.y1 * scaleY)
         x2s := Round(paso.x2 * scaleX)
@@ -6064,6 +6302,8 @@ DibujarOverlayPixeles() {
     }
 
     for paso in pasosNormales {
+        if !PasoActivoEnPerfil(paso)
+            continue
         x1s := Round(paso.x1 * scaleX)
         y1s := Round(paso.y1 * scaleY)
         x2s := Round(paso.x2 * scaleX)
@@ -6087,6 +6327,8 @@ OverlayHoverCheck(*) {
 
     encontrado := ""
     for paso in pasosPrioridad {
+        if !PasoActivoEnPerfil(paso)
+            continue
         x1s := Round(paso.x1 * scaleX) - margen
         y1s := Round(paso.y1 * scaleY) - margen
         x2s := Round(paso.x2 * scaleX) + margen
@@ -6098,6 +6340,8 @@ OverlayHoverCheck(*) {
     }
     if (encontrado = "") {
         for paso in pasosNormales {
+            if !PasoActivoEnPerfil(paso)
+                continue
             x1s := Round(paso.x1 * scaleX) - margen
             y1s := Round(paso.y1 * scaleY) - margen
             x2s := Round(paso.x2 * scaleX) + margen
