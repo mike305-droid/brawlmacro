@@ -1,9 +1,10 @@
 # Claude Code session metadata
 .claude/
 
-# Runtime files (heartbeat + watchdog log, no van al repo)
+# Runtime files (heartbeat + watchdog log + watchdog pid, no van al repo)
 brawlmacro_heartbeat.txt
 brawlmacro_watchdog.log
+brawlmacro_watchdog.pid
 
 # Carpetas de mockups generados (pesadas, locales)
 mockups/

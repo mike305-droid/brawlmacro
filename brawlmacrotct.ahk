@@ -1313,6 +1313,25 @@ EscribirHeartbeat() {
     }
 }
 
+; Lanza el watchdog externo si no está ya corriendo. El watchdog escribe su PID
+; en brawlmacro_watchdog.pid al arrancar y lo borra al salir. Comprobamos ambos.
+LanzarWatchdogSiNoEsta() {
+    pidPath := A_ScriptDir "\brawlmacro_watchdog.pid"
+    watchdogPath := A_ScriptDir "\brawlmacro_watchdog.ahk"
+    if (!FileExist(watchdogPath))
+        return  ; no hay archivo del watchdog, no podemos lanzarlo
+    ; ¿Ya está corriendo?
+    if (FileExist(pidPath)) {
+        try {
+            pid := Integer(Trim(FileRead(pidPath, "UTF-8")))
+            if (pid > 0 && ProcessExist(pid))
+                return  ; ya está vivo, no relanzar
+        }
+    }
+    ; No está corriendo → lanzarlo (Hide para que no parpadee la consola de AHK)
+    try Run('"' watchdogPath '"', A_ScriptDir, "Hide")
+}
+
 
 ; Pinta partículas con alpha por píxel (PARGB) sobre la overlay layered y las muestra
 ; vía UpdateLayeredWindow. Así cada partícula se mezcla contra los píxeles reales que
@@ -1979,6 +1998,7 @@ SetTimer(ActualizarScrollbar, 150)
 SetTimer(WatchdogAFK, 30000)     ; cada 30 s; si activo && > 90 s sin AFK → Reload()
 SetTimer(EscribirHeartbeat, 5000) ; cada 5 s escribe pid + timestamp en heartbeat.txt para el watchdog externo
 EscribirHeartbeat()              ; un primer write inmediato
+LanzarWatchdogSiNoEsta()         ; arrancar el watchdog externo en paralelo si no está corriendo
 
 ; Si la instancia anterior se reinició por watchdog, auto-arrancar el macro.
 ; Pequeño delay para que la GUI termine de asentarse antes de Iniciar().
