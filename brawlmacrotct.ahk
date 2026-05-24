@@ -7,7 +7,7 @@ CoordMode("Mouse", "Screen")
 configPath := A_ScriptDir "\brawlmacro_config.ini"
 global eggsBackupPath := A_ScriptDir "\brawlmacro_eggs.txt"
 global heartbeatPath := A_ScriptDir "\brawlmacro_heartbeat.txt"
-global VERSION_ACTUAL := "27.9.2"
+global VERSION_ACTUAL := "27.9.3"
 
 ; ===== TEMAS =====
 temas := [
@@ -1907,13 +1907,13 @@ barra.SetFont("s13 c" colorTextoBarra " Bold", "Segoe UI Semibold")
 barra.OnEvent("Click", ArrastrarVentana)
 barra.OnEvent("DoubleClick", ClickTitulo)
 
-; P1/P2 chiquitito en la esquina izquierda de la barra del macro
-; Fondo = colorTextoBarra (invertido) → máximo contraste sobre la barra en cualquier tema
-btnPerfil := miGui.Add("Text", "x5 y4 w24 h17 +0x201 Center Background" colorTextoBarra " c" colorBarra, "P" perfilActivo)
-btnPerfil.SetFont("s8 c" colorBarra " Bold", "Segoe UI Semibold")
+; P1/P2 zona de click INVISIBLE en la esquina inferior-izquierda del cuerpo.
+; No interfiere con la barra → sin parpadeo en transiciones.
+; Mismo color que el fondo → indistinguible visualmente.
+; Atajo F3 como acceso rápido alternativo (más abajo, en sección hotkeys).
+btnPerfil := miGui.Add("Text", "x5 y220 w14 h14 +0x201 Background" colorFondoPrincipal " c" colorFondoPrincipal, "P" perfilActivo)
+btnPerfil.SetFont("s6 c" colorFondoPrincipal, "Segoe UI")
 btnPerfil.OnEvent("Click", CambiarPerfil)
-; Asegurar z-order por encima de la barra subclasseada
-DllCall("SetWindowPos", "Ptr", btnPerfil.Hwnd, "Ptr", 0, "Int", 0, "Int", 0, "Int", 0, "Int", 0, "UInt", 0x13)
 
 btnReset    := miGui.Add("Text", "x308 y33 w20 h20 +0x201 Background" colorBotonNormal " c" colorBtnTexto, Chr(8635))
 btnMin      := miGui.Add("Text", "x338 y33 w20 h20 +0x201 Background" colorBotonNormal " c" colorBtnTexto, Chr(8722))
@@ -1975,7 +1975,7 @@ RegistrarHover(btnTema,      () => (rgbBotones ? colorRGBActual : colorBotonNorm
 RegistrarHover(btnHistorial, () => (rgbBotones ? colorRGBActual : colorBotonNormal))
 RegistrarHover(btnCodigo,    () => (rgbBotones ? colorRGBActual : colorBotonNormal))
 RegistrarHover(btnReset,     () => (rgbBotones ? colorRGBActual : colorBotonNormal))
-RegistrarHover(btnPerfil,    () => (rgbBotones ? colorRGBActual : colorTextoBarra), () => (rgbBotones ? colorRGBActual : AclararHex(colorTextoBarra, 0.15)))
+; btnPerfil sin hover visible — es zona oculta, no debe revelar nada al pasar el cursor
 RegistrarHover(btnMin,       () => (rgbBotones ? colorRGBActual : colorBotonNormal))
 RegistrarHover(btnClose,     () => (rgbBotones ? colorRGBActual : colorBotonNormal))
 RegistrarHover(btnUpdate,    () => (rgbBotones ? colorRGBActual : colorBotonNormal))
@@ -3987,9 +3987,8 @@ TransicionPaso() {
         }
     }
     if (IsObject(btnPerfil)) {
-        ; Interpolar también el textoBarra para el bg del badge
-        cTextoBarra := LerpHex(temaTransOrigen.textoBarra, temaTransTema.textoBarra, t2)
-        btnPerfil.Opt("Background" cTextoBarra)
+        ; btnPerfil es zona invisible → sigue el fondo (cFondo ya interpolado arriba)
+        btnPerfil.Opt("Background" cFondo)
         DllCall("InvalidateRect", "Ptr", btnPerfil.Hwnd, "Ptr", 0, "Int", 1)
     }
 
@@ -4015,20 +4014,9 @@ TransicionPaso() {
         DllCall("InvalidateRect", "Ptr", separadorHistorial.Hwnd, "Ptr", 0, "Int", 1)
     }
 
-    ; Polish visual del miGui: glow + separadores siguen el cBarra del frame
-    global glowTitulo, sepEstado, sepAccion
-    if (IsObject(glowTitulo)) {
-        glowTitulo.Opt("Background" AclararHex(cBarra, 0.35))
-        DllCall("InvalidateRect", "Ptr", glowTitulo.Hwnd, "Ptr", 0, "Int", 1)
-    }
-    if (IsObject(sepEstado)) {
-        sepEstado.Opt("Background" cBarra)
-        DllCall("InvalidateRect", "Ptr", sepEstado.Hwnd, "Ptr", 0, "Int", 1)
-    }
-    if (IsObject(sepAccion)) {
-        sepAccion.Opt("Background" cBarra)
-        DllCall("InvalidateRect", "Ptr", sepAccion.Hwnd, "Ptr", 0, "Int", 1)
-    }
+    ; Polish visual del miGui: glow + separadores NO se actualizan en cada frame
+    ; de la transicion (causaria parpadeo de demasiados invalidates simultaneos).
+    ; AplicarTema al final del paso de transicion los actualiza una sola vez.
 
     ; Scrollbar personalizado
     if (IsObject(scrollTrack)) {
@@ -4171,8 +4159,8 @@ AplicarTema(tema, guardar := true, fromTrans := false) {
             DllCall("UpdateWindow",   "Ptr", btn.Hwnd)
         }
     }
-    ; btnPerfil va en la barra de título — colores invertidos (bg=textoBarra, fg=barra)
-    btnPerfil.Opt("Background" colorTextoBarra " c" colorBarra)
+    ; btnPerfil = zona invisible (esquina inf-izq) → mismo color que fondo
+    btnPerfil.Opt("Background" colorFondoPrincipal " c" colorFondoPrincipal)
     if (!fromTrans) {
         DllCall("InvalidateRect", "Ptr", btnPerfil.Hwnd, "Ptr", 0, "Int", 1)
         DllCall("UpdateWindow",   "Ptr", btnPerfil.Hwnd)
@@ -4187,7 +4175,7 @@ AplicarTema(tema, guardar := true, fromTrans := false) {
     btnLogros.SetFont("s9 c" colorBtnTexto, "Segoe UI Emoji")
     btnPart.SetFont("s9 c" colorBtnTexto, "Segoe UI Emoji")
     btnCodigo.SetFont("s10 c" colorBtnTexto " Bold", "Segoe UI Symbol")
-    btnPerfil.SetFont("s8 c" colorBarra " Bold", "Segoe UI Semibold")
+    btnPerfil.SetFont("s6 c" colorFondoPrincipal, "Segoe UI")
     ActualizarEstadoVisual()
     if (fromTrans) {
         ; Reactivar redraws y forzar un único repintado atómico — sin frame en blanco
@@ -6431,6 +6419,7 @@ OverlayHoverCheck(*) {
 ^w::AbrirPanelWebhook()
 F1::Iniciar()
 F2::Parar()
+F3::CambiarPerfil()  ; Toggle perfil P1/P2 (zona de click invisible esta en esquina inf-izq)
 ^r::AbrirPanelRGB()
 !h::MostrarEstadisticas()
 
