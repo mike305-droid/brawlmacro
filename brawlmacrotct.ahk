@@ -7,7 +7,7 @@ CoordMode("Mouse", "Screen")
 configPath := A_ScriptDir "\brawlmacro_config.ini"
 global eggsBackupPath := A_ScriptDir "\brawlmacro_eggs.txt"
 global heartbeatPath := A_ScriptDir "\brawlmacro_heartbeat.txt"
-global VERSION_ACTUAL := "27.11.4"
+global VERSION_ACTUAL := "27.11.5"
 
 ; ===== TEMAS =====
 temas := [
@@ -1998,7 +1998,7 @@ btnIniciar   := miGui.Add("Text", "x40 y178 w140 h36 +0x201 Background" colorBot
 btnParar     := miGui.Add("Text", "x220 y178 w140 h36 +0x201 Background" colorBotonNormal " c" colorBtnTexto, Chr(9632) " Parar (F2)")
 ; ── Polish visual: línea glow bajo título + separadores de sección ──
 glowTitulo := miGui.Add("Text", "x0 y25 w400 h2 Background" AclararHex(colorBarra, 0.35), "")
-sepEstado  := miGui.Add("Text", "x30 y98 w340 h1 Background" colorBarra, "")
+sepEstado  := miGui.Add("Text", "x120 y98 w250 h1 Background" colorBarra, "")
 sepAccion  := miGui.Add("Text", "x30 y170 w340 h1 Background" colorBarra, "")
 
 ; Franjas de acento para hover — 4 lados (izquierda, derecha, arriba, abajo)
@@ -3197,32 +3197,36 @@ RGBSetVelocidad(val, *) {
     global rgbVelocidad
     rgbVelocidad := val
     GuardarRGBs()
-    AbrirPanelRGB()
-    AbrirPanelRGB()
+    ; Diferir el refresh del panel — sino el click del boton actual sigue
+    ; en proceso cuando destruimos el boton → 'control is destroyed'
+    SetTimer(() => (AbrirPanelRGB(), AbrirPanelRGB()), -1)
 }
 
 RGBSetDireccion(val, *) {
     global rgbDireccion
     rgbDireccion := val
     GuardarRGBs()
-    AbrirPanelRGB()
-    AbrirPanelRGB()
+    ; Diferir el refresh del panel — sino el click del boton actual sigue
+    ; en proceso cuando destruimos el boton → 'control is destroyed'
+    SetTimer(() => (AbrirPanelRGB(), AbrirPanelRGB()), -1)
 }
 
 RGBSetSaturacion(val, *) {
     global rgbSaturacion
     rgbSaturacion := val
     GuardarRGBs()
-    AbrirPanelRGB()
-    AbrirPanelRGB()
+    ; Diferir el refresh del panel — sino el click del boton actual sigue
+    ; en proceso cuando destruimos el boton → 'control is destroyed'
+    SetTimer(() => (AbrirPanelRGB(), AbrirPanelRGB()), -1)
 }
 
 RGBSetBrillo(val, *) {
     global rgbBrillo
     rgbBrillo := val
     GuardarRGBs()
-    AbrirPanelRGB()
-    AbrirPanelRGB()
+    ; Diferir el refresh del panel — sino el click del boton actual sigue
+    ; en proceso cuando destruimos el boton → 'control is destroyed'
+    SetTimer(() => (AbrirPanelRGB(), AbrirPanelRGB()), -1)
 }
 
 ToggleRGBElemento(elemento, btn) {
