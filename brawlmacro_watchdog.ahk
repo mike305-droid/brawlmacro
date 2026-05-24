@@ -28,10 +28,18 @@ global ultimoArranque := 0  ; timestamp del último restart automático (anti-lo
 ; Escribir nuestro PID para que el macro principal sepa que estamos vivos
 try {
     f := FileOpen(pidPath, "w", "UTF-8")
-    if (f) { f.Write(ProcessExist()); f.Close() }
+    if (f) {
+        f.Write(ProcessExist())
+        f.Close()
+    }
 }
 ; Limpiar al salir
-OnExit((*) => (FileExist(pidPath) ? FileDelete(pidPath) : 0))
+OnExit(LimpiarPidAlSalir)
+LimpiarPidAlSalir(*) {
+    global pidPath
+    if (FileExist(pidPath))
+        try FileDelete(pidPath)
+}
 
 ; ── Tray ─────────────────────────────────────────────
 try TraySetIcon("imageres.dll", -159)  ; engranaje
