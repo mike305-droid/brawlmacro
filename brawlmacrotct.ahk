@@ -7,7 +7,7 @@ CoordMode("Mouse", "Screen")
 configPath := A_ScriptDir "\brawlmacro_config.ini"
 global eggsBackupPath := A_ScriptDir "\brawlmacro_eggs.txt"
 global heartbeatPath := A_ScriptDir "\brawlmacro_heartbeat.txt"
-global VERSION_ACTUAL := "27.11.5"
+global VERSION_ACTUAL := "27.12.0"
 
 ; ===== TEMAS =====
 temas := [
@@ -1957,7 +1957,7 @@ particulasVelocidad := Integer(IniRead(configPath, "Particulas", "Velocidad",  "
 particulasTamano    := Integer(IniRead(configPath, "Particulas", "Tamano",     "100"))
 particulasOpacidad  := Integer(IniRead(configPath, "Particulas", "Opacidad",   "100"))
 
-barra := miGui.Add("Text", "x0 y0 w400 h25 Background" colorBarra " Center", "BrawlMacro V30")
+barra := miGui.Add("Text", "x0 y0 w400 h25 Background" colorBarra " Center", "BrawlMacro V27")
 barra.SetFont("s13 c" colorTextoBarra " Bold", "Segoe UI Semibold")
 barra.OnEvent("Click", ArrastrarVentana)
 barra.OnEvent("DoubleClick", ClickTitulo)
@@ -2710,10 +2710,14 @@ EnviarWebhookEvento(tipo) {
     global contadorSecuencias, contadorDestruccion
     global totalSecuenciasGuardadas, totalDestruccionGuardada
     global tiempoAcumulado, tiempoInicio, timerActivo
-    if (!webhookEnabled || webhookURL = "")
+    if (!webhookEnabled || webhookURL = "") {
+        AgregarHistorial("⚠ Webhook OFF o sin URL — evento '" tipo "' no se envió", "FFA500")
         return
-    if (!webhookEventos.Has(tipo) || !webhookEventos[tipo])
+    }
+    if (!webhookEventos.Has(tipo) || !webhookEventos[tipo]) {
+        AgregarHistorial("⚠ Webhook evento '" tipo "' está desactivado (actívalo en 🔔)", "FFA500")
         return
+    }
 
     tiempoSesion := tiempoAcumulado
     if (timerActivo)
@@ -5726,7 +5730,17 @@ DefinirLogros() {
         { id: "luckyMax",     nombre: "Premio mayor",         desc: "50 críticos acumulados",           icono: Chr(0x1F340), desbloqueado: false },
         { id: "coleccionista", nombre: "Coleccionista",       desc: "Desbloquea 3 temas secretos",      icono: Chr(0x1F31F), desbloqueado: false },
         { id: "godmode",      nombre: "God Mode",             desc: "Desbloquea TODOS los temas",       icono: Chr(0x1F451), desbloqueado: false },
-        { id: "gamerpack",    nombre: "Pack Gamer",           desc: "??? (algo en el historial responde a clicks insistentes)", icono: Chr(0x1F3AE), desbloqueado: false }
+        ; ── Logros por desbloqueo de tema secreto (con pista) ───────────
+        { id: "themeShadow",  nombre: "Eclipse del tiempo",    desc: "??? (el ⏱ timer responde si insistes)",                       icono: Chr(0x2728), desbloqueado: false },
+        { id: "themeCosmos",  nombre: "Viajero estelar",       desc: "??? (gira y gira el ⚙ engranaje)",                            icono: Chr(0x2728), desbloqueado: false },
+        { id: "themeVoid",    nombre: "Abrazo del vacío",      desc: "??? (el título AFK Smart no es tan inocente)",                icono: Chr(0x26A1), desbloqueado: false },
+        { id: "themeSolar",   nombre: "Renacer de las cenizas",desc: "??? (las 3 luces tienen un orden secreto: izq → centro → der)", icono: Chr(0x1F525), desbloqueado: false },
+        { id: "themeBlanco",  nombre: "Pureza absoluta",       desc: "??? (la barra del historial guarda un secreto)",              icono: Chr(0x2728), desbloqueado: false },
+        { id: "themePremium", nombre: "El elegido",            desc: "??? (consigue TODOS los demás secretos primero)",             icono: Chr(0x1F48E), desbloqueado: false },
+        { id: "gamerpack",    nombre: "Pack Gamer",            desc: "??? (algo en el historial responde a clicks insistentes)",     icono: Chr(0x1F3AE), desbloqueado: false },
+        ; ── Logros de cifra ──────────────────────────────────────────
+        { id: "kiko",         nombre: "kiko",                  desc: "Llega a 67 secuencias",            icono: Chr(0x1F60E), desbloqueado: false },
+        { id: "jbs",          nombre: "JBS",                   desc: "Llega a 5000 secuencias",          icono: Chr(0x1F3C6), desbloqueado: false }
     ]
 }
 
@@ -5757,18 +5771,26 @@ VerificarLogros() {
                  + (eggSolarDesbloqueado ? 1 : 0) + (eggBlancoDesbloqueado ? 1 : 0) + (eggPremiumDesbloqueado ? 1 : 0)
                  + (eggGamerDesbloqueado ? 1 : 0)
     cumplidos := Map(
-        "primera",      totalSecs >= 1,
-        "centurion",    totalSecs >= 100,
-        "millennium",   totalSecs >= 1000,
-        "resistencia",  totalHorasGuardadas >= 24,
-        "marathon",     sesionHoras >= 8,
-        "phantom",      streakMax >= 50,
-        "destructor",   totalDestru >= 10,
-        "lucky",        totalCriticos >= 1,
-        "luckyMax",     totalCriticos >= 50,
+        "primera",       totalSecs >= 1,
+        "centurion",     totalSecs >= 100,
+        "millennium",    totalSecs >= 1000,
+        "kiko",          totalSecs >= 67,
+        "jbs",           totalSecs >= 5000,
+        "resistencia",   totalHorasGuardadas >= 24,
+        "marathon",      sesionHoras >= 8,
+        "phantom",       streakMax >= 50,
+        "destructor",    totalDestru >= 10,
+        "lucky",         totalCriticos >= 1,
+        "luckyMax",      totalCriticos >= 50,
         "coleccionista", eggsCount >= 3,
-        "godmode",      eggsCount >= 7,
-        "gamerpack",    eggGamerDesbloqueado
+        "godmode",       eggsCount >= 7,
+        "gamerpack",     eggGamerDesbloqueado,
+        "themeShadow",   eggShadowDesbloqueado,
+        "themeCosmos",   eggDesbloqueado,
+        "themeVoid",     eggVoidDesbloqueado,
+        "themeSolar",    eggSolarDesbloqueado,
+        "themeBlanco",   eggBlancoDesbloqueado,
+        "themePremium",  eggPremiumDesbloqueado
     )
     for l in logros {
         if (!l.desbloqueado && cumplidos.Has(l.id) && cumplidos[l.id]) {
@@ -5790,9 +5812,15 @@ AbrirPanelLogros(*) {
         return
     }
 
-    W := 340
-    rowH := 42
-    H := 36 + logros.Length * rowH + 12
+    ; Layout 2 columnas para evitar que el panel crezca demasiado al añadir logros
+    cols    := 2
+    cellW   := 250
+    cellH   := 50
+    gap     := 6
+    padding := 12
+    W := padding * 2 + cols * cellW + (cols - 1) * gap
+    filas := Ceil(logros.Length / cols)
+    H := 36 + padding + filas * (cellH + gap) - gap + padding
 
     logrosGui := Gui("+AlwaysOnTop -Caption +ToolWindow")
     logrosGui.BackColor := colorFondoPrincipal
@@ -5806,8 +5834,14 @@ AbrirPanelLogros(*) {
     barr.SetFont("s11 c" colorTextoBarra " Bold", "Segoe UI Semibold")
     barr.OnEvent("Click", (*) => (LimpiarHoverGui(logrosGui), logrosGui.Destroy(), logrosGuiVisible := false))
 
-    yPos := 38
-    for l in logros {
+    ; Layout en grid 2×N
+    startY := 32 + padding
+    for i, l in logros {
+        col := Mod(i - 1, cols)
+        row := (i - 1) // cols
+        cx := padding + col * (cellW + gap)
+        cy := startY + row * (cellH + gap)
+
         if (l.desbloqueado) {
             cBg := colorBotonNormal
             cFg := colorBtnTexto
@@ -5817,20 +5851,21 @@ AbrirPanelLogros(*) {
             cFg := "888888"
             iconC := "666666"
         }
+        ; Fondo de la celda (un solo Text como contenedor del color)
+        cell := logrosGui.Add("Text", "x" cx " y" cy " w" cellW " h" cellH " Background" cBg, "")
         ; Icono a la izquierda
-        lblIcon := logrosGui.Add("Text", "x10 y" yPos " w36 h" (rowH - 6) " Center Background" cBg " c" iconC, l.icono)
+        lblIcon := logrosGui.Add("Text", "x" (cx + 6) " y" (cy + 6) " w32 h" (cellH - 12) " Center Background" cBg " c" iconC, l.icono)
         lblIcon.SetFont("s16", "Segoe UI Emoji")
         ; Nombre
-        lblName := logrosGui.Add("Text", "x46 y" (yPos + 2) " w" (W - 56) " h18 Background" cBg " c" cFg, "  " l.nombre)
+        lblName := logrosGui.Add("Text", "x" (cx + 42) " y" (cy + 4) " w" (cellW - 50) " h16 Background" cBg " c" cFg, l.nombre)
         lblName.SetFont("s10 Bold", "Segoe UI Semibold")
         ; Descripción
-        lblDesc := logrosGui.Add("Text", "x46 y" (yPos + 20) " w" (W - 56) " h14 Background" cBg " c" cFg, "  " l.desc)
-        lblDesc.SetFont("s8 Italic", "Segoe UI")
-        yPos += rowH
+        lblDesc := logrosGui.Add("Text", "x" (cx + 42) " y" (cy + 22) " w" (cellW - 50) " h22 Background" cBg " c" cFg, l.desc)
+        lblDesc.SetFont("s7 Italic", "Segoe UI")
     }
 
     logrosGui.Show("w" W " h" H " Center")
-    RedondearVentana(logrosGui.Hwnd, 14)
+    try RedondearVentana(logrosGui.Hwnd, 14)
     logrosGuiVisible := true
     RegistrarAutoCierre(logrosGui, (*) => (LimpiarHoverGui(logrosGui), logrosGui.Destroy(), logrosGuiVisible := false))
 }
