@@ -7,7 +7,7 @@ CoordMode("Mouse", "Screen")
 configPath := A_ScriptDir "\brawlmacro_config.ini"
 global eggsBackupPath := A_ScriptDir "\brawlmacro_eggs.txt"
 global heartbeatPath := A_ScriptDir "\brawlmacro_heartbeat.txt"
-global VERSION_ACTUAL := "27.12.0"
+global VERSION_ACTUAL := "27.12.1"
 
 ; ===== TEMAS =====
 temas := [
@@ -4265,6 +4265,25 @@ ActualizarRGB(*) {
     ; la pena gastar CPU + GDI handles cambiando colores. Crítico en premium mode.
     try if (IsObject(miGui) && DllCall("IsIconic", "Ptr", miGui.Hwnd, "Int"))
         return
+
+    ; THROTTLE: con varias opciones activas, cada tick hace decenas de calls GDI.
+    ; A 60ms eso satura el limite de handles del proceso en minutos → freeze.
+    ; Mas opciones activas → mas espaciado entre updates (degradacion suave).
+    static lastTick := 0
+    activosRGB := (rgbBarra ? 1 : 0) + (rgbBotones ? 1 : 0) + (rgbLogo ? 1 : 0) + (rgbTexto ? 1 : 0)
+    if (temaPremiumActivo)
+        activosRGB := 4
+    ; 1 activo: 60ms (smooth). 2: 80ms. 3: 110ms. 4 o premium: 150ms.
+    intervalo := 60
+    if (activosRGB = 2)
+        intervalo := 80
+    else if (activosRGB = 3)
+        intervalo := 110
+    else if (activosRGB >= 4)
+        intervalo := 150
+    if (A_TickCount - lastTick < intervalo)
+        return
+    lastTick := A_TickCount
 
     ; Todo el cuerpo en try para que un control destruido / hwnd basura no tumbe el timer.
     try {
