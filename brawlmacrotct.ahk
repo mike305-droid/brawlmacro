@@ -2077,6 +2077,7 @@ _savedMainY := IniRead(configPath, "Pos", "MainY", "")
 if (_savedMainX != "" && _savedMainY != "")
     miGui.Move(Integer(_savedMainX), Integer(_savedMainY))
 AplicarTema(temas[temaActual], false)
+global hoverActual := ""
 AplicarPreset(presetRendimiento)
 InstalarSubclassBarras()
 InstalarSubclassParticulas()
@@ -2098,7 +2099,6 @@ if (IniRead(configPath, "Watchdog", "AutoStart", "0") = "1") {
     SetTimer(() => Iniciar(), -1500)
 }
 ; ===== HOVER via polling — efecto respiratorio =====
-global hoverActual := ""
 SetTimer(ActualizarFPS, 1000)
 
 ; Registra un botón para que reciba hover + respiración.
