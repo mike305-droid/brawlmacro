@@ -7,7 +7,7 @@ CoordMode("Mouse", "Screen")
 configPath := A_ScriptDir "\brawlmacro_config.ini"
 global eggsBackupPath := A_ScriptDir "\brawlmacro_eggs.txt"
 global heartbeatPath := A_ScriptDir "\brawlmacro_heartbeat.txt"
-global VERSION_ACTUAL := "27.12.3"
+global VERSION_ACTUAL := "27.12.4"
 
 ; ===== TEMAS =====
 temas := [
@@ -55,6 +55,13 @@ temas := [
     ; Rojos / fuego oscuros
     { nombre:"Magma",      fondo:"0E0400", texto:"FF6B35", barra:"1E0800", textoBarra:"FF9A5C", historial:"080200", panel:"180600", cooldown:"FF1744", afk:"FF6B35", boton:"1E0800", hover:"330D00", logo:"FF9A5C", luzOn:"FF4500", luzAccion:"FF6B35", luzOff:"1E0800",  btnTexto:"FF9A5C", histColor1:"FF6B35", histColor2:"FF4500", histColor3:"FF9A5C" },
     { nombre:"Sangre",     fondo:"0A0000", texto:"F5DDD0", barra:"2A0000", textoBarra:"FFD0C0", historial:"060000", panel:"160000", cooldown:"FF0000", afk:"FF6644", boton:"1A0000", hover:"3A0000", logo:"FF2222", luzOn:"CC0000", luzAccion:"FF3322", luzOff:"0A0000",  btnTexto:"FFD0C0", histColor1:"F5DDD0", histColor2:"CC0000", histColor3:"FF3322" },
+    ; ─────────── SECRETOS — PACK GAMER ───────────
+    { nombre:"★ Brawl",       secreto:true, unlock:"gamer", fondo:"000000", texto:"FFFFFF", barra:"0050D5", textoBarra:"FFFFFF", historial:"000000", panel:"0A1A30", cooldown:"FF4444", afk:"4FC3F7", boton:"0050D5", hover:"1976D2", logo:"FFFFFF", luzOn:"00B0FF", luzAccion:"FFFFFF", luzOff:"050E1C",  btnTexto:"FFFFFF", histColor1:"FFFFFF", histColor2:"00B0FF", histColor3:"0050D5" },
+    { nombre:"◆ Cyberpunk",   secreto:true, unlock:"gamer", fondo:"0D0B1F", texto:"00FFFF", barra:"FF00AA", textoBarra:"FFFF00", historial:"070518", panel:"130E2E", cooldown:"FFFF00", afk:"00FFFF", boton:"FF00AA", hover:"FF33BB", logo:"FFFF00", luzOn:"FF00AA", luzAccion:"00FFFF", luzOff:"1A1240",  btnTexto:"FFFFFF", histColor1:"00FFFF", histColor2:"FF00AA", histColor3:"FFFF00" },
+    { nombre:"☀ Retrowave",   secreto:true, unlock:"gamer", fondo:"1A0833", texto:"FF6EC7", barra:"7A1FA2", textoBarra:"00E5FF", historial:"0F051F", panel:"23104D", cooldown:"FF4081", afk:"FF8A50", boton:"7A1FA2", hover:"9C27B0", logo:"FF8A50", luzOn:"FF6EC7", luzAccion:"00E5FF", luzOff:"1A0833",  btnTexto:"FFFFFF", histColor1:"FF6EC7", histColor2:"00E5FF", histColor3:"FF8A50" },
+    { nombre:"⚔ Akuma",       secreto:true, unlock:"gamer", fondo:"0A0000", texto:"FFD700", barra:"8B0000", textoBarra:"FFD700", historial:"050000", panel:"110000", cooldown:"FFFFFF", afk:"FF4444", boton:"8B0000", hover:"B00000", logo:"FFD700", luzOn:"8B0000", luzAccion:"FFD700", luzOff:"0A0000",  btnTexto:"FFD700", histColor1:"FFD700", histColor2:"8B0000", histColor3:"FFFFFF" },
+    { nombre:"☆ Sky",         secreto:true, unlock:"gamer", fondo:"E1F5FE", texto:"0277BD", barra:"FFFFFF", textoBarra:"0277BD", historial:"F0FAFE", panel:"B3E5FC", cooldown:"F06292", afk:"81D4FA", boton:"FFFFFF", hover:"F5F9FB", logo:"0277BD", luzOn:"81D4FA", luzAccion:"F8BBD9", luzOff:"0277BD",  btnTexto:"0277BD", histColor1:"0277BD", histColor2:"F06292", histColor3:"81D4FA" },
+    { nombre:"▣ Matrix",      secreto:true, unlock:"gamer", fondo:"000000", texto:"00FF00", barra:"002200", textoBarra:"00FF00", historial:"000800", panel:"001100", cooldown:"FF0000", afk:"00FF00", boton:"002200", hover:"003800", logo:"00FF00", luzOn:"00FF00", luzAccion:"FFFFFF", luzOff:"001100",  btnTexto:"00FF00", histColor1:"00FF00", histColor2:"00FF88", histColor3:"FFFFFF" },
     ; Morados / magenta oscuros
     { nombre:"Abismo",     fondo:"0A0010", texto:"D8C8FF", barra:"120020", textoBarra:"E0D0FF", historial:"0D0018", panel:"140025", cooldown:"FF4477", afk:"AA88FF", boton:"1A0030", hover:"280050", logo:"C8A8FF", luzOn:"9966FF", luzAccion:"BB88FF", luzOff:"1A0030",  btnTexto:"D8C8FF", histColor1:"D8C8FF", histColor2:"9966FF", histColor3:"BB88FF" },
     { nombre:"Electrico",  fondo:"0A0A1A", texto:"E040FB", barra:"4A148C", textoBarra:"EA80FC", historial:"080812", panel:"0D0D22", cooldown:"FF1744", afk:"7B1FA2", boton:"4A148C", hover:"6A1EB0", logo:"E040FB", luzOn:"AA00FF", luzAccion:"E040FB", luzOff:"1A0030",  btnTexto:"EA80FC", histColor1:"E040FB", histColor2:"AA00FF", histColor3:"CE93D8" },
@@ -65,14 +72,6 @@ temas := [
     { nombre:"🔥 F E N I X 🔥",   secreto:true, unlock:"solar",   fondo:"FFF8EC", texto:"8B3A00", barra:"FF6B00", textoBarra:"FFFFFF", historial:"FFFBF5", panel:"FFE5C0", cooldown:"00C9B7", afk:"00C9B7", boton:"FFB347", hover:"FF8C00", logo:"00C9B7", luzOn:"00C9B7", luzAccion:"FF6B00", luzOff:"FFB347",  btnTexto:"FFFFFF", histColor1:"FFD700", histColor2:"FF6B00", histColor3:"00C9B7" },
     { nombre:"✦ N I K A ✦",       secreto:true, unlock:"blanco",  fondo:"FFFFFF", texto:"CC0000", barra:"CC0000", textoBarra:"FFFFFF", historial:"FFFFFF", panel:"FFF2F2", cooldown:"990000", afk:"CC0000", boton:"FFF2F2", hover:"FFE0E0", logo:"CC0000", luzOn:"DD0000", luzAccion:"FF2222", luzOff:"CC0000",  btnTexto:"CC0000", histColor1:"CC0000", histColor2:"DD0000", histColor3:"FF2222" },
     { nombre:"💎 P R E M I U M 💎", secreto:true, unlock:"premium", fondo:"050008", texto:"FFFFFF", barra:"0F0020", textoBarra:"FFFFFF", historial:"030005", panel:"0A0015", cooldown:"FF0066", afk:"00FFCC", boton:"15002A", hover:"25004A", logo:"FFFFFF", luzOn:"FF00FF", luzAccion:"FFD700", luzOff:"0A0015",  btnTexto:"FFFFFF", histColor1:"FF00FF", histColor2:"00FFFF", histColor3:"FFFF00" },
-    ; ─────────── SECRETOS — PACK GAMER ───────────
-    ; (caracteres BMP que renderizan en todas las versiones de Windows)
-    { nombre:"★ B R A W L ★",       secreto:true, unlock:"gamer", fondo:"000000", texto:"FFFFFF", barra:"0050D5", textoBarra:"FFFFFF", historial:"000000", panel:"0A1A30", cooldown:"FF4444", afk:"4FC3F7", boton:"0050D5", hover:"1976D2", logo:"FFFFFF", luzOn:"00B0FF", luzAccion:"FFFFFF", luzOff:"050E1C",  btnTexto:"FFFFFF", histColor1:"FFFFFF", histColor2:"00B0FF", histColor3:"0050D5" },
-    { nombre:"◆ C Y B E R P U N K ◆", secreto:true, unlock:"gamer", fondo:"0D0B1F", texto:"00FFFF", barra:"FF00AA", textoBarra:"FFFF00", historial:"070518", panel:"130E2E", cooldown:"FFFF00", afk:"00FFFF", boton:"FF00AA", hover:"FF33BB", logo:"FFFF00", luzOn:"FF00AA", luzAccion:"00FFFF", luzOff:"1A1240",  btnTexto:"FFFFFF", histColor1:"00FFFF", histColor2:"FF00AA", histColor3:"FFFF00" },
-    { nombre:"☀ R E T R O W A V E ☀", secreto:true, unlock:"gamer", fondo:"1A0833", texto:"FF6EC7", barra:"7A1FA2", textoBarra:"00E5FF", historial:"0F051F", panel:"23104D", cooldown:"FF4081", afk:"FF8A50", boton:"7A1FA2", hover:"9C27B0", logo:"FF8A50", luzOn:"FF6EC7", luzAccion:"00E5FF", luzOff:"1A0833",  btnTexto:"FFFFFF", histColor1:"FF6EC7", histColor2:"00E5FF", histColor3:"FF8A50" },
-    { nombre:"⚔ A K U M A ⚔",       secreto:true, unlock:"gamer", fondo:"0A0000", texto:"FFD700", barra:"8B0000", textoBarra:"FFD700", historial:"050000", panel:"110000", cooldown:"FFFFFF", afk:"FF4444", boton:"8B0000", hover:"B00000", logo:"FFD700", luzOn:"8B0000", luzAccion:"FFD700", luzOff:"0A0000",  btnTexto:"FFD700", histColor1:"FFD700", histColor2:"8B0000", histColor3:"FFFFFF" },
-    { nombre:"☆ S K Y ☆",            secreto:true, unlock:"gamer", fondo:"E1F5FE", texto:"0277BD", barra:"FFFFFF", textoBarra:"0277BD", historial:"F0FAFE", panel:"B3E5FC", cooldown:"F06292", afk:"81D4FA", boton:"FFFFFF", hover:"F5F9FB", logo:"0277BD", luzOn:"81D4FA", luzAccion:"F8BBD9", luzOff:"0277BD",  btnTexto:"0277BD", histColor1:"0277BD", histColor2:"F06292", histColor3:"81D4FA" },
-    { nombre:"▣ M A T R I X ▣",       secreto:true, unlock:"gamer", fondo:"000000", texto:"00FF00", barra:"002200", textoBarra:"00FF00", historial:"000800", panel:"001100", cooldown:"FF0000", afk:"00FF00", boton:"002200", hover:"003800", logo:"00FF00", luzOn:"00FF00", luzAccion:"FFFFFF", luzOff:"001100",  btnTexto:"00FF00", histColor1:"00FF00", histColor2:"00FF88", histColor3:"FFFFFF" }
 ]
 
 temaActual := LeerTemaGuardado()
@@ -3307,7 +3306,8 @@ AbrirPanelTemas(*) {
     for i, entry in temasVisibles {
         yPos := alturaBarra + (i - 1) * alturaItem
         yShow := (yPos >= alturaBarra + alturaVisible) ? -alturaItem - 10 : yPos
-        isSecret := (entry.tema.HasProp("secreto") && entry.tema.secreto)
+        isGamer := (entry.tema.HasProp("unlock") && entry.tema.unlock = "gamer")
+        isSecret := (entry.tema.HasProp("secreto") && entry.tema.secreto && !isGamer)
         esActivo := (entry.idx = temaActual)
 
         btn := temaGui.Add("Text",
@@ -3315,7 +3315,6 @@ AbrirPanelTemas(*) {
             " +0x201 Background" entry.tema.fondo, "")
         local capturedEntry := entry
         btn.OnEvent("Click", MakeTemaClosure(capturedEntry))
-        RegistrarHover(btn, MakeColorFn(entry.tema.fondo), MakeColorFn(AclararHex(entry.tema.fondo, 0.12)))
         InstalarSubclassTemaCard(btn, entry, esActivo, isSecret)
         temaBotones.Push(btn)
     }
@@ -3395,9 +3394,7 @@ ActualizarPanelTemas() {
     temaGui.BackColor := colorBarra
     if (IsObject(temaBarraCtrl)) {
         temaBarraCtrl.Opt("Background" colorBarra " c" colorTextoBarra)
-        temaBarraCtrl.SetFont("s11 c" colorTextoBarra " Bold", "Segoe UI Semibold")
         DllCall("InvalidateRect", "Ptr", temaBarraCtrl.Hwnd, "Ptr", 0, "Int", 1)
-        DllCall("UpdateWindow",   "Ptr", temaBarraCtrl.Hwnd)
     }
     ; Marcar la card activa
     for i, btn in temaBotones {
@@ -3405,7 +3402,6 @@ ActualizarPanelTemas() {
         if (temaCardData.Has(btn.Hwnd)) {
             temaCardData[btn.Hwnd].esActivo := (e.idx = temaActual)
             DllCall("InvalidateRect", "Ptr", btn.Hwnd, "Ptr", 0, "Int", 1)
-            DllCall("UpdateWindow",   "Ptr", btn.Hwnd)
         }
     }
 }
@@ -3422,7 +3418,6 @@ ActualizarColoresPanelTemas() {
     temaGui.BackColor := t.barra
     if (IsObject(temaBarraCtrl)) {
         temaBarraCtrl.Opt("Background" t.barra " c" t.textoBarra)
-        temaBarraCtrl.SetFont("s11 c" t.textoBarra " Bold", "Segoe UI Semibold")
         DllCall("InvalidateRect", "Ptr", temaBarraCtrl.Hwnd, "Ptr", 0, "Int", 1)
     }
     DllCall("RedrawWindow", "Ptr", temaGui.Hwnd, "Ptr", 0, "Ptr", 0, "UInt", 0x85)
@@ -3740,7 +3735,8 @@ InstalarSubclassTemaCard(btn, entry, esActivo, esSecreto := false) {
         tema: entry.tema,
         nombre: entry.nombre,
         esActivo: esActivo,
-        esSecreto: esSecreto
+        esSecreto: esSecreto,
+        hovered: false
     }
     cb := CallbackCreate(TemaCardSubclassProc, "F", 6)
     temaCardCbs.Push(cb)
@@ -3749,8 +3745,30 @@ InstalarSubclassTemaCard(btn, entry, esActivo, esSecreto := false) {
 
 TemaCardSubclassProc(hWnd, uMsg, wParam, lParam, idSubclass, refData) {
     static WM_PAINT := 0x000F, WM_ERASEBKGND := 0x0014
+    static WM_MOUSEMOVE := 0x0200, WM_MOUSELEAVE := 0x02A3
     if (uMsg = WM_ERASEBKGND)
         return 1
+    if (uMsg = WM_MOUSEMOVE) {
+        global temaCardData
+        data := temaCardData.Get(hWnd, "")
+        if (IsObject(data) && !data.hovered) {
+            data.hovered := true
+            DllCall("InvalidateRect", "Ptr", hWnd, "Ptr", 0, "Int", 1)
+            tme := Buffer(24, 0)
+            NumPut("UInt", 24, tme, 0)
+            NumPut("UInt", 0x02, tme, 4)
+            NumPut("Ptr", hWnd, tme, 8)
+            DllCall("TrackMouseEvent", "Ptr", tme)
+        }
+    }
+    if (uMsg = WM_MOUSELEAVE) {
+        global temaCardData
+        data := temaCardData.Get(hWnd, "")
+        if (IsObject(data) && data.hovered) {
+            data.hovered := false
+            DllCall("InvalidateRect", "Ptr", hWnd, "Ptr", 0, "Int", 1)
+        }
+    }
     if (uMsg = WM_PAINT) {
         global temaCardData
         ps := Buffer(72, 0)
@@ -3772,13 +3790,16 @@ TemaCardSubclassProc(hWnd, uMsg, wParam, lParam, idSubclass, refData) {
 
 PintarTemaCard(hdc, w, h, data) {
     tema := data.tema
+    fondoHex := tema.fondo
+    if (data.hovered)
+        fondoHex := AclararHex(fondoHex, 0.12)
 
     memDC  := DllCall("CreateCompatibleDC",     "Ptr", hdc, "Ptr")
     hbm    := DllCall("CreateCompatibleBitmap", "Ptr", hdc, "Int", w, "Int", h, "Ptr")
     oldBmp := DllCall("SelectObject",           "Ptr", memDC, "Ptr", hbm, "Ptr")
 
     ; ── 1. Fondo del tema ──
-    bgr := HexToBGR(tema.fondo)
+    bgr := HexToBGR(fondoHex)
     brushBg := DllCall("CreateSolidBrush", "UInt", bgr, "Ptr")
     rc := Buffer(16, 0)
     NumPut("Int", 0, rc, 0)
