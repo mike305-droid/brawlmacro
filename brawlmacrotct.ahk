@@ -5368,19 +5368,10 @@ EjecutarMacro(*) {
 
     accionEnCurso := false
     tiempoSinCambios := A_TickCount - ultimoCambio
-    if (tiempoSinCambios > 400000) {
-        ultimoCambio := A_TickCount
-        Loop 1 {
-            SendInput "{Esc}"
-            Sleep 1500
-        }
-        Loop 2 {
-            SendInput "c"
-            Sleep 1500
-        }
-    }
 
     ; ===== MODO DESTRUCCION =====
+    ; Evaluar ANTES del anti-AFK para que el reset de ultimoCambio a los 400s
+    ; no impida alcanzar los 420s necesarios para el Alt+F4.
     if (modoDestruccion && tiempoSinCambios > 420000) {
         modoDestruccion := false
         contadorDestruccion += 1
@@ -5401,6 +5392,19 @@ EjecutarMacro(*) {
         AgregarHistorial("🔄 Abriendo Brawlhalla por Steam...", "FF8800")
         try Run("steam://rungameid/291550")
         tiempoUltimoLanzamiento := A_TickCount
+    }
+
+    ; ===== ANTI-AFK (solo si NO estamos en modo destruccion) =====
+    if (!modoDestruccion && tiempoSinCambios > 400000) {
+        ultimoCambio := A_TickCount
+        Loop 1 {
+            SendInput "{Esc}"
+            Sleep 1500
+        }
+        Loop 2 {
+            SendInput "c"
+            Sleep 1500
+        }
     }
 
     ; ===== REINTENTO LANZAMIENTO =====
