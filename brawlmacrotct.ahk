@@ -7,7 +7,7 @@ CoordMode("Mouse", "Screen")
 configPath := A_ScriptDir "\brawlmacro_config.ini"
 global eggsBackupPath := A_ScriptDir "\brawlmacro_eggs.txt"
 global heartbeatPath := A_ScriptDir "\brawlmacro_heartbeat.txt"
-global VERSION_ACTUAL := "27.12.1"
+global VERSION_ACTUAL := "27.12.3"
 
 ; ===== TEMAS =====
 temas := [
@@ -2282,8 +2282,10 @@ HoverBreath() {
     bN := Max(0, Min(255, bB + delta))
     c := Format("{:02X}{:02X}{:02X}", rN, gN, bN)
 
-    hoverActual.Opt("Background" c)
-    DllCall("InvalidateRect", "Ptr", hoverActual.Hwnd, "Ptr", 0, "Int", 1)
+    try {
+        hoverActual.Opt("Background" c)
+        DllCall("InvalidateRect", "Ptr", hoverActual.Hwnd, "Ptr", 0, "Int", 1)
+    }
 }
 
 ClickLogo(*) {
@@ -4321,7 +4323,7 @@ ActualizarRGB(*) {
         if (IsObject(destruccionesLabel))
             destruccionesLabel.Opt("c" cTexto)
 
-        for btn in [btnIniciar, btnParar, btnCodigo, btnReset, btnHistorial, btnTema, btnMin, btnClose, btnUpdate, btnOverlay, btnRGBBtn, btnStatsBtn, btnWebhook, btnLogros, btnPart]
+        for btn in [btnIniciar, btnParar, btnCodigo, btnReset, btnHistorial, btnTema, btnMin, btnClose, btnUpdate, btnOverlay, btnRGBBtn, btnStatsBtn, btnWebhook, btnLogros, btnPart, btnPerfil]
             btn.Opt("Background" cBoton " c000000")
 
         ; Actualizar preview RGB si está abierto
@@ -4377,7 +4379,7 @@ ActualizarRGB(*) {
             destruccionesLabel.Opt("c" colorRGBActual)
     }
     if (rgbBotones) {
-        for btn in [btnIniciar, btnParar, btnCodigo, btnReset, btnHistorial, btnTema, btnMin, btnClose, btnUpdate, btnOverlay, btnRGBBtn, btnStatsBtn, btnWebhook, btnLogros, btnPart]
+        for btn in [btnIniciar, btnParar, btnCodigo, btnReset, btnHistorial, btnTema, btnMin, btnClose, btnUpdate, btnOverlay, btnRGBBtn, btnStatsBtn, btnWebhook, btnLogros, btnPart, btnPerfil]
             btn.Opt("Background" colorRGBActual " c000000")
     }
 
@@ -4675,7 +4677,7 @@ PulsoLogoActivo(*) {
     gN := Max(0, Min(255, gL + delta))
     bN := Max(0, Min(255, bL + delta))
     c := Format("{:02X}{:02X}{:02X}", rN, gN, bN)
-    logoMacro.SetFont("s49 c" c " Bold", "Segoe UI Symbol")
+    logoMacro.Opt("c" c)
     DllCall("InvalidateRect", "Ptr", logoMacro.Hwnd, "Ptr", 0, "Int", 1)
 }
 
