@@ -3408,8 +3408,6 @@ AbrirPanelTemas(*) {
     for i, entry in temasVisibles {
         yPos := alturaBarra + (i - 1) * alturaItem
         yShow := (yPos >= alturaBarra + alturaVisible) ? -alturaItem - 10 : yPos
-        isGamer := (entry.tema.HasProp("unlock") && entry.tema.unlock = "gamer")
-        isSecret := (entry.tema.HasProp("secreto") && entry.tema.secreto && !isGamer)
         esActivo := (entry.idx = temaActual)
 
         btn := temaGui.Add("Text",
@@ -3417,7 +3415,7 @@ AbrirPanelTemas(*) {
             " +0x201 Background" entry.tema.fondo, "")
         local capturedEntry := entry
         btn.OnEvent("Click", MakeTemaClosure(capturedEntry))
-        InstalarSubclassTemaCard(btn, entry, esActivo, isSecret)
+        InstalarSubclassTemaCard(btn, entry, esActivo)
         temaBotones.Push(btn)
     }
 
@@ -3831,13 +3829,12 @@ ArcoirisSubclassProc(hWnd, uMsg, wParam, lParam, idSubclass, refData) {
 global temaCardData := Map()       ; hwnd -> { tema, nombre, esActivo, esSecreto }
 global temaCardCbs := []
 
-InstalarSubclassTemaCard(btn, entry, esActivo, esSecreto := false) {
+InstalarSubclassTemaCard(btn, entry, esActivo) {
     global temaCardData, temaCardCbs
     temaCardData[btn.Hwnd] := {
         tema: entry.tema,
         nombre: entry.nombre,
         esActivo: esActivo,
-        esSecreto: esSecreto,
         hovered: false
     }
     cb := CallbackCreate(TemaCardSubclassProc, "F", 6)
@@ -3947,56 +3944,21 @@ PintarTemaCard(hdc, w, h, data) {
             DllCall("gdiplus\GdipSetStringFormatLineAlign", "Ptr", fmt, "Int", 1)  ; centrado vertical
 
             xText := stripeW + 10.0
-            wText := w - xText - 75.0  ; deja espacio para swatches + check
+            wText := w - xText - 75.0
 
-            if (data.esSecreto) {
-                ; Renderizado arcoíris token-a-token para temas secretos
-                palette := [0xFF4040FF, 0xFF0088FF, 0xFF00DDFF, 0xFF44DD44, 0xFFDDDD00, 0xFFFF44DD, 0xFFFF4488]
-                tokens := StrSplit(data.nombre, " ")
-                ; Medir total
-                totalTok := 0.0
-                tokWs := []
-                for j, tok in tokens {
-                    bb := Buffer(16, 0)
-                    rRect := Buffer(16, 0)
-                    NumPut("Float", 0.0, rRect, 0), NumPut("Float", 0.0, rRect, 4)
-                    NumPut("Float", 500.0, rRect, 8), NumPut("Float", 50.0, rRect, 12)
-                    cp := 0, ln := 0
-                    DllCall("gdiplus\GdipMeasureString", "Ptr", g, "WStr", tok, "Int", StrLen(tok), "Ptr", font, "Ptr", rRect, "Ptr", fmt, "Ptr", bb, "Int*", &cp, "Int*", &ln)
-                    tw := NumGet(bb, 8, "Float")
-                    tokWs.Push(tw)
-                    totalTok += tw + 4.0
-                }
-                totalTok -= 4.0
-                xCur := xText
-                for j, tok in tokens {
-                    col := palette[Mod(j - 1, palette.Length) + 1]
-                    brushT := 0
-                    DllCall("gdiplus\GdipCreateSolidFill", "UInt", col, "Ptr*", &brushT)
-                    rTok := Buffer(16, 0)
-                    NumPut("Float", xCur, rTok, 0)
-                    NumPut("Float", 0.0,  rTok, 4)
-                    NumPut("Float", tokWs[j] + 4.0, rTok, 8)
-                    NumPut("Float", h * 1.0, rTok, 12)
-                    DllCall("gdiplus\GdipDrawString", "Ptr", g, "WStr", tok, "Int", StrLen(tok), "Ptr", font, "Ptr", rTok, "Ptr", fmt, "Ptr", brushT)
-                    DllCall("gdiplus\GdipDeleteBrush", "Ptr", brushT)
-                    xCur += tokWs[j] + 4.0
-                }
-            } else {
-                rT := Integer("0x" SubStr(tema.texto, 1, 2))
-                gT := Integer("0x" SubStr(tema.texto, 3, 2))
-                bT := Integer("0x" SubStr(tema.texto, 5, 2))
-                argbT := 0xFF000000 | (rT << 16) | (gT << 8) | bT
-                brushT := 0
-                DllCall("gdiplus\GdipCreateSolidFill", "UInt", argbT, "Ptr*", &brushT)
-                txtRc := Buffer(16, 0)
-                NumPut("Float", xText, txtRc, 0)
-                NumPut("Float", 0.0,   txtRc, 4)
-                NumPut("Float", wText, txtRc, 8)
-                NumPut("Float", h * 1.0, txtRc, 12)
-                DllCall("gdiplus\GdipDrawString", "Ptr", g, "WStr", data.nombre, "Int", StrLen(data.nombre), "Ptr", font, "Ptr", txtRc, "Ptr", fmt, "Ptr", brushT)
-                DllCall("gdiplus\GdipDeleteBrush", "Ptr", brushT)
-            }
+            rT := Integer("0x" SubStr(tema.texto, 1, 2))
+            gT := Integer("0x" SubStr(tema.texto, 3, 2))
+            bT := Integer("0x" SubStr(tema.texto, 5, 2))
+            argbT := 0xFF000000 | (rT << 16) | (gT << 8) | bT
+            brushT := 0
+            DllCall("gdiplus\GdipCreateSolidFill", "UInt", argbT, "Ptr*", &brushT)
+            txtRc := Buffer(16, 0)
+            NumPut("Float", xText, txtRc, 0)
+            NumPut("Float", 0.0,   txtRc, 4)
+            NumPut("Float", wText, txtRc, 8)
+            NumPut("Float", h * 1.0, txtRc, 12)
+            DllCall("gdiplus\GdipDrawString", "Ptr", g, "WStr", data.nombre, "Int", StrLen(data.nombre), "Ptr", font, "Ptr", txtRc, "Ptr", fmt, "Ptr", brushT)
+            DllCall("gdiplus\GdipDeleteBrush", "Ptr", brushT)
 
             DllCall("gdiplus\GdipDeleteStringFormat", "Ptr", fmt)
             DllCall("gdiplus\GdipDeleteFont", "Ptr", font)
