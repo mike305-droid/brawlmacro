@@ -7,7 +7,7 @@ CoordMode("Mouse", "Screen")
 configPath := A_ScriptDir "\brawlmacro_config.ini"
 global eggsBackupPath := A_ScriptDir "\brawlmacro_eggs.txt"
 global heartbeatPath := A_ScriptDir "\brawlmacro_heartbeat.txt"
-global VERSION_ACTUAL := "27.12.4"
+global VERSION_ACTUAL := "27.13.0"
 
 ; ===== TEMAS =====
 temas := [
@@ -292,6 +292,19 @@ global afkAlertaFlash := false
 global typeRevealHwnd := 0, typeRevealTotal := 0, typeRevealPos := 0
 global typeRevealColor := "", typeRevealActivo := false
 global barraOndaOffset := 0.0
+
+; ===== PRESETS DE RENDIMIENTO =====
+global presetRendimiento := 3
+global fpsContador := 0
+global fpsActual := 0
+global fpsLabel := ""
+global presetLabel := ""
+global presetHoverPoll := 16
+global presetHoverBreath := 40
+global presetParticulas := 50
+global presetPulsoBar := 40
+global presetPulsoLogo := 50
+global presetRGB := 60
 
 ; ===== BARRA GRADIENTE / ANILLO COOLDOWN / STATS (GDI+) =====
 global barraGradPhase := 0.0
@@ -1956,6 +1969,11 @@ particulasVelocidad := Integer(IniRead(configPath, "Particulas", "Velocidad",  "
 particulasTamano    := Integer(IniRead(configPath, "Particulas", "Tamano",     "100"))
 particulasOpacidad  := Integer(IniRead(configPath, "Particulas", "Opacidad",   "100"))
 
+; Cargar preset de rendimiento
+presetRendimiento := Integer(IniRead(configPath, "UI", "PresetRendimiento", "3"))
+if (presetRendimiento < 1 || presetRendimiento > 4)
+    presetRendimiento := 3
+
 barra := miGui.Add("Text", "x0 y0 w400 h25 Background" colorBarra " Center", "BrawlMacro V27")
 barra.SetFont("s13 c" colorTextoBarra " Bold", "Segoe UI Semibold")
 barra.OnEvent("Click", ArrastrarVentana)
@@ -1981,6 +1999,12 @@ InstalarSubclassLogo()
 texto := "AFK Smart"
 tituloMacro := miGui.Add("Text", "x120 y70 w110 h20 Background" colorFondoPrincipal " c" colorTextoPrincipal, texto)
 tituloMacro.SetFont("s13 Bold", "Segoe UI Semibold")
+
+presetLabel := miGui.Add("Text", "x125 y155 w80 h14 +0x201 Background" colorFondoPrincipal " c" colorTextoPrincipal, Chr(0x26A1) " " NombrePreset(presetRendimiento))
+presetLabel.SetFont("s8 c" colorTextoPrincipal, "Segoe UI Semibold")
+presetLabel.OnEvent("Click", CiclarPreset)
+fpsLabel := miGui.Add("Text", "x335 y155 w55 h14 +0x201 Background" colorFondoPrincipal " c" colorTextoPrincipal, "-- fps")
+fpsLabel.SetFont("s8 c" colorTextoPrincipal, "Segoe UI")
 
 luzActiva := miGui.Add("Progress", "x40 y130 w20 h20 c" colorBotonNormal " Background" colorFondoPrincipal, 100)
 luzAccion := miGui.Add("Progress", "x70 y130 w20 h20 c" colorBotonNormal " Background" colorFondoPrincipal, 100)
@@ -2053,10 +2077,10 @@ _savedMainY := IniRead(configPath, "Pos", "MainY", "")
 if (_savedMainX != "" && _savedMainY != "")
     miGui.Move(Integer(_savedMainX), Integer(_savedMainY))
 AplicarTema(temas[temaActual], false)
+AplicarPreset(presetRendimiento)
 InstalarSubclassBarras()
 InstalarSubclassParticulas()
 SetTimer(AnimarBarras, 33)
-SetTimer(ActualizarParticulas, 50)
 EstablecerTrayIcon("888888")
 SetTimer(ActualizarTrayIcon, 1000)
 SetTimer(VerificarLogros, 5000)
@@ -2073,13 +2097,9 @@ if (IniRead(configPath, "Watchdog", "AutoStart", "0") = "1") {
     try IniDelete(configPath, "Watchdog", "AutoStart")  ; consumir flag (single-shot)
     SetTimer(() => Iniciar(), -1500)
 }
-if (rgbActivo)
-    SetTimer(ActualizarRGB, 60)
-
 ; ===== HOVER via polling — efecto respiratorio =====
 global hoverActual := ""
-SetTimer(HoverPoll, 16)
-SetTimer(HoverBreath, 40)
+SetTimer(ActualizarFPS, 1000)
 
 ; Registra un botón para que reciba hover + respiración.
 ;   btn      : control AHK
@@ -2195,6 +2215,8 @@ ChequearAutoCierre() {
 HoverPoll() {
     global hoverBotones, hoverActual, hoverBreathT, hoverBreathDir, hoverBreathBase
     global colorBotonHover, colorBtnTexto, rgbBotones, colorRGBActual, temaPremiumActivo
+    global fpsContador
+    fpsContador++
 
     ; ── En modo RGB (o PREMIUM): hover desactivado para evitar parpadeo.
     ;    Los botones ya ciclan colores uniformemente con ActualizarRGB; el hover compite
@@ -2285,6 +2307,86 @@ HoverBreath() {
         hoverActual.Opt("Background" c)
         DllCall("InvalidateRect", "Ptr", hoverActual.Hwnd, "Ptr", 0, "Int", 1)
     }
+}
+
+; ===== PRESETS DE RENDIMIENTO =====
+NombrePreset(p) {
+    switch p {
+        case 1: return "Lite"
+        case 2: return "Ligero"
+        case 3: return "Normal"
+        case 4: return "Ultra"
+        default: return "Normal"
+    }
+}
+
+AplicarPreset(p) {
+    global presetRendimiento, presetHoverPoll, presetHoverBreath
+    global presetParticulas, presetPulsoBar, presetPulsoLogo, presetRGB
+    global presetLabel, fpsLabel, particulasActivas, rgbActivo
+    global activo, colorTextoPrincipal
+
+    presetRendimiento := p
+    switch p {
+        case 1:
+            presetHoverPoll := 50
+            presetHoverBreath := 0
+            presetParticulas := 0
+            presetPulsoBar := 0
+            presetPulsoLogo := 0
+            presetRGB := 200
+        case 2:
+            presetHoverPoll := 32
+            presetHoverBreath := 80
+            presetParticulas := 100
+            presetPulsoBar := 80
+            presetPulsoLogo := 100
+            presetRGB := 120
+        case 3:
+            presetHoverPoll := 16
+            presetHoverBreath := 40
+            presetParticulas := 50
+            presetPulsoBar := 40
+            presetPulsoLogo := 50
+            presetRGB := 60
+        case 4:
+            presetHoverPoll := 8
+            presetHoverBreath := 20
+            presetParticulas := 25
+            presetPulsoBar := 20
+            presetPulsoLogo := 25
+            presetRGB := 30
+    }
+
+    SetTimer(HoverPoll, presetHoverPoll)
+    SetTimer(HoverBreath, presetHoverBreath > 0 ? presetHoverBreath : 0)
+    SetTimer(ActualizarParticulas, presetParticulas > 0 ? presetParticulas : 0)
+    if (rgbActivo)
+        SetTimer(ActualizarRGB, presetRGB)
+    if (activo) {
+        SetTimer(PulsoBarraActivo, presetPulsoBar > 0 ? presetPulsoBar : 0)
+        SetTimer(PulsoLogoActivo, presetPulsoLogo > 0 ? presetPulsoLogo : 0)
+    }
+
+    if (IsObject(presetLabel))
+        try presetLabel.Text := Chr(0x26A1) " " NombrePreset(p)
+    IniWrite(p, configPath, "UI", "PresetRendimiento")
+}
+
+CiclarPreset(*) {
+    global presetRendimiento
+    p := presetRendimiento + 1
+    if (p > 4)
+        p := 1
+    AplicarPreset(p)
+}
+
+ActualizarFPS() {
+    global fpsContador, fpsActual, fpsLabel
+    fpsActual := fpsContador
+    fpsContador := 0
+    if (IsObject(fpsLabel))
+        try fpsLabel.Text := fpsActual " fps"
 }
 
 ClickLogo(*) {
@@ -3183,7 +3285,7 @@ AbrirPanelRGB(*) {
     try RedondearVentana(rgbGui.Hwnd, 14)
     rgbGuiVisible := true
     ; Asegurar que el timer corre para animar el preview (aunque no haya elementos activos)
-    SetTimer(ActualizarRGB, 60)
+    SetTimer(ActualizarRGB, presetRGB)
     rgbGui.OnEvent("Close", CerrarPanelRGB)
     RegistrarAutoCierre(rgbGui, (*) => (IsObject(rgbGui) ? (LimpiarHoverGui(rgbGui), rgbGui.Destroy()) : 0, CerrarPanelRGB()))
 }
@@ -3255,7 +3357,7 @@ ToggleRGBElemento(elemento, btn) {
     GuardarRGBs()
 
     if (rgbActivo)
-        SetTimer(ActualizarRGB, 60)
+        SetTimer(ActualizarRGB, presetRGB)
     else
         SetTimer(ActualizarRGB, 0)
 }
@@ -4149,7 +4251,7 @@ AplicarTema(tema, guardar := true, fromTrans := false) {
     temaPremiumActivo := InStr(tema.nombre, "P R E M I U M") > 0
     if (temaPremiumActivo) {
         rgbActivo := true
-        SetTimer(ActualizarRGB, 60)
+        SetTimer(ActualizarRGB, presetRGB)
     } else {
         ; Al salir de premium, restaurar rgbActivo según los flags reales del usuario
         rgbActivo := rgbBarra || rgbBotones || rgbLogo || rgbTexto
@@ -4218,6 +4320,14 @@ AplicarTema(tema, guardar := true, fromTrans := false) {
     tituloMacro.SetFont("s13 c" colorTextoPrincipal " Bold", "Segoe UI Semibold")
     timerLabel.Opt("Background" colorFondoPrincipal " c" colorTextoPrincipal)
     timerLabel.SetFont("s13 c" colorTextoPrincipal " Bold", "Segoe UI Semibold")
+    if (IsObject(presetLabel)) {
+        presetLabel.Opt("Background" colorFondoPrincipal " c" colorTextoPrincipal)
+        presetLabel.SetFont("s8 c" colorTextoPrincipal, "Segoe UI Semibold")
+    }
+    if (IsObject(fpsLabel)) {
+        fpsLabel.Opt("Background" colorFondoPrincipal " c" colorTextoPrincipal)
+        fpsLabel.SetFont("s8 c" colorTextoPrincipal, "Segoe UI")
+    }
     if (IsObject(contadorLabel))
         contadorLabel.Opt("Background" colorVentanaHistorial " c" colorTextoPrincipal)
     secuenciasLabel.Opt("Background" colorVentanaHistorial " c" colorTextoPrincipal)
@@ -6234,8 +6344,10 @@ Iniciar(*) {
     SetTimer(EjecutarMacro, 50)
     SetTimer(ActualizarCooldowns, 100)
     SetTimer(ActualizarAFK, 200)
-    SetTimer(PulsoBarraActivo, 40)
-    SetTimer(PulsoLogoActivo, 50)
+    if (presetPulsoBar > 0)
+        SetTimer(PulsoBarraActivo, presetPulsoBar)
+    if (presetPulsoLogo > 0)
+        SetTimer(PulsoLogoActivo, presetPulsoLogo)
     SetTimer(() => BarraShimmer(colorBarra), -1)
     IniciarTimer()
     ActualizarTimersFrt()  ; arranca timers de spam si perfilActivo=3
