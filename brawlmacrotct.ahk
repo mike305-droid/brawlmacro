@@ -2712,13 +2712,27 @@ EnviarWebhookSync(titulo, mensaje, colorHex) {
     ;    si Discord o el internet iban lentos. Ahora lanzamos curl.exe en background:
     payloadFile := A_Temp "\brawlmacro_wh_" A_TickCount ".json"
     try FileDelete(payloadFile)
-    try FileAppend(json, payloadFile, "UTF-8")
-    cmd := A_ComSpec ' /c curl.exe -s -m 20 -X POST'
+    try FileAppend(json, payloadFile, "UTF-8-RAW")
+    respFile := A_Temp "\brawlmacro_wh_resp_" A_TickCount ".txt"
+    cmd := A_ComSpec ' /c curl.exe -s -m 20 -o "' respFile '" -w "%{http_code}" -X POST'
          . ' -H "Content-Type: application/json; charset=utf-8"'
          . ' --data-binary "@' payloadFile '"'
          . ' "' webhookURL '"'
-         . ' & del "' payloadFile '"'
+         . ' > "' respFile '.code" & del "' payloadFile '"'
     try Run(cmd, , "Hide")
+    SetTimer(VerificarRespuestaWebhook.Bind(respFile), -3000)
+}
+
+VerificarRespuestaWebhook(respFile) {
+    try {
+        if (!FileExist(respFile))
+            return
+        resp := FileRead(respFile, "UTF-8-RAW")
+        try FileDelete(respFile)
+        try FileDelete(respFile ".code")
+        if (resp != "" && InStr(resp, '"message"'))
+            AgregarHistorial("⚠ Webhook error: " SubStr(resp, 1, 80), "FF5555")
+    }
 }
 
 ; ===== SCREENSHOT A DISCORD (Alt+F4 / destrucción) =====
@@ -2797,7 +2811,7 @@ EnviarWebhookConFotoSync(titulo, mensaje, colorHex) {
 
     payloadFile := A_Temp "\brawlmacro_payload_" A_TickCount ".json"
     try FileDelete(payloadFile)
-    try FileAppend(json, payloadFile, "UTF-8")
+    try FileAppend(json, payloadFile, "UTF-8-RAW")
 
     ; Usa curl.exe (incluido en Windows 10 1803+) para multipart/form-data
     cmd := A_ComSpec ' /c curl.exe -s -X POST'
