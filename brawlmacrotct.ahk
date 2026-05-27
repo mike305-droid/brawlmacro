@@ -4272,11 +4272,13 @@ TransicionPaso() {
     global temaTransOrigen, miGui, historialGui
     global barra, barraHistorial, colorBarraOverride
     global tituloMacro, timerLabel, cooldownText, afkText, secuenciasLabel, destruccionesLabel, contadorLabel, logoMacro
+    global presetLabel, fpsLabel, sparkCtrl
     global btnIniciar, btnParar, btnCodigo, btnReset, btnHistorial, btnTema, btnMin, btnClose
     global btnUpdate, btnOverlay, btnRGBBtn, btnStatsBtn, btnWebhook, btnLogros, btnPart, btnPerfil
     global colorLogoEnTransicion, colorFondoEnTransicion
     global luzActiva, luzAccion, luzApagado, historialBox, separadorHistorial
     global scrollTrack, scrollThumb
+    global glowTitulo, sepEstado, sepAccion
 
     pasos := 22
     temaTransStep += 1
@@ -4284,85 +4286,106 @@ TransicionPaso() {
     t  := Min(temaTransStep / pasos, 1.0)
     t2 := t < 0.5 ? 4*t*t*t : 1 - (-2*t+2)**3/2
 
-    ; Colores interpolados para este frame
-    cFondo     := LerpHex(temaTransOrigen.fondo,      temaTransTema.fondo,      t2)
-    cBarra     := LerpHex(temaTransOrigen.barra,      temaTransTema.barra,      t2)
-    cBoton     := LerpHex(temaTransOrigen.boton,      temaTransTema.boton,      t2)
-    cHover     := LerpHex(temaTransOrigen.hover,      temaTransTema.hover,      t2)
-    cFondoHist := LerpHex(temaTransOrigen.historial,  temaTransTema.historial,  t2)
+    ; ── LERP TODOS los colores para que TODO transicione en sincronia ──
+    cFondo      := LerpHex(temaTransOrigen.fondo,      temaTransTema.fondo,      t2)
+    cTexto      := LerpHex(temaTransOrigen.texto,      temaTransTema.texto,      t2)
+    cBarra      := LerpHex(temaTransOrigen.barra,      temaTransTema.barra,      t2)
+    cTextoBarra := LerpHex(temaTransOrigen.textoBarra, temaTransTema.textoBarra, t2)
+    cBoton      := LerpHex(temaTransOrigen.boton,      temaTransTema.boton,      t2)
+    cHover      := LerpHex(temaTransOrigen.hover,      temaTransTema.hover,      t2)
+    cBtnTexto   := LerpHex(temaTransOrigen.btnTexto,   temaTransTema.btnTexto,   t2)
+    cFondoHist  := LerpHex(temaTransOrigen.historial,  temaTransTema.historial,  t2)
+    cCooldown   := LerpHex(temaTransOrigen.cooldown,   temaTransTema.cooldown,   t2)
+    cAFK        := LerpHex(temaTransOrigen.afk,        temaTransTema.afk,        t2)
+    cLuzOn      := LerpHex(temaTransOrigen.luzOn,      temaTransTema.luzOn,      t2)
+    cLuzAccion  := LerpHex(temaTransOrigen.luzAccion,  temaTransTema.luzAccion,  t2)
+    cLuzOff     := LerpHex(temaTransOrigen.luzOff,     temaTransTema.luzOff,     t2)
     colorLogoEnTransicion  := LerpHex(temaTransOrigen.logo, temaTransTema.logo, t2)
     colorFondoEnTransicion := cFondo
     colorBarraOverride     := cBarra
+    ; Actualizar el global del texto de barra para que DibujarBarraGradiente lerpee
+    global colorTextoBarra
+    colorTextoBarra := cTextoBarra
 
-    ; Dimensiones
-    miGui.GetPos(,, &mw, &mh)
-    historialGui.GetPos(,, &hw, &hh)
-    barra.GetPos(,, , &bh)
-    barraHistorial.GetPos(,, , &hbh)
+    ; ── Aplicar TODOS los cambios via Opt() — sin pintar todavia ──
 
-    ; Repintar fondo de ambas ventanas
-    _PintarRect(miGui.Hwnd,        cFondo,     0, bh,  mw, mh - bh)
-    _PintarRect(historialGui.Hwnd, cFondo,     0, hbh, hw, hh - hbh)
+    ; Fondo de ambas ventanas (AHK nativo, se pinta en el repaint sincronico de abajo)
+    try miGui.BackColor       := cFondo
+    try historialGui.BackColor := cFondo
 
-    ; Bg del RichEdit del historial (interpolado de historial color)
+    ; Fondo del RichEdit del historial
     if (IsObject(historialBox))
         SendMessage(0x0443, 0, HexToBGR(cFondoHist), , "ahk_id " historialBox.Hwnd)
 
-    ; Forzar repaint de las barras subclasseadas
-    DllCall("InvalidateRect", "Ptr", barra.Hwnd, "Ptr", 0, "Int", 0)
-    DllCall("InvalidateRect", "Ptr", barraHistorial.Hwnd, "Ptr", 0, "Int", 0)
-
-    ; TODOS los botones (btnPerfil va aparte porque vive en la barra)
+    ; Botones - fondo + color de texto
     for btn in [btnIniciar, btnParar, btnCodigo, btnReset, btnHistorial, btnTema, btnMin, btnClose, btnUpdate, btnOverlay, btnRGBBtn, btnStatsBtn, btnWebhook, btnLogros, btnPart] {
-        if (IsObject(btn)) {
-            btn.Opt("Background" cBoton)
-            DllCall("InvalidateRect", "Ptr", btn.Hwnd, "Ptr", 0, "Int", 1)
-        }
+        if (IsObject(btn))
+            btn.Opt("Background" cBoton " c" cBtnTexto)
     }
-    if (IsObject(btnPerfil)) {
-        ; btnPerfil ahora es boton visible → sigue cBoton igual que los demas
-        btnPerfil.Opt("Background" cBoton)
-        DllCall("InvalidateRect", "Ptr", btnPerfil.Hwnd, "Ptr", 0, "Int", 1)
+    if (IsObject(btnPerfil))
+        btnPerfil.Opt("Background" cBoton " c" cBtnTexto)
+
+    ; Labels TRANSPARENTES (solo color, sin fondo) - tituloMacro, timerLabel, presetLabel, fpsLabel
+    for ctrl in [tituloMacro, timerLabel, presetLabel, fpsLabel] {
+        if (IsObject(ctrl))
+            ctrl.Opt("c" cTexto)
     }
 
-    ; Labels con bg sólido
-    for ctrl in [tituloMacro, timerLabel, cooldownText, afkText, secuenciasLabel, destruccionesLabel, contadorLabel] {
-        if (IsObject(ctrl)) {
-            ctrl.Opt("Background" cFondo)
-            DllCall("InvalidateRect", "Ptr", ctrl.Hwnd, "Ptr", 0, "Int", 1)
-        }
+    ; Labels con fondo solido en la ventana del historial
+    for ctrl in [secuenciasLabel, destruccionesLabel, contadorLabel] {
+        if (IsObject(ctrl))
+            ctrl.Opt("Background" cFondoHist " c" cTexto)
+    }
+    if (IsObject(cooldownText))
+        cooldownText.Opt("Background" cFondoHist " c" cCooldown)
+    if (IsObject(afkText))
+        afkText.Opt("Background" cFondoHist " c" cAFK)
+
+    ; Sparkline (necesita su fondo para el GDI canvas)
+    if (IsObject(sparkCtrl))
+        sparkCtrl.Opt("Background" cFondo)
+
+    ; Luces - fondo + color de fill segun estado del macro
+    ; (antes solo se actualizaba bg → luces quedaban con color VIEJO durante toda la transicion)
+    global activo
+    if (activo) {
+        if (IsObject(luzActiva))
+            luzActiva.Opt("Background" cFondo " c" cLuzOn)
+        if (IsObject(luzAccion))
+            luzAccion.Opt("Background" cFondo " c" cBoton)
+        if (IsObject(luzApagado))
+            luzApagado.Opt("Background" cFondo " c" cBoton)
+    } else {
+        if (IsObject(luzActiva))
+            luzActiva.Opt("Background" cFondo " c" cBoton)
+        if (IsObject(luzAccion))
+            luzAccion.Opt("Background" cFondo " c" cBoton)
+        if (IsObject(luzApagado))
+            luzApagado.Opt("Background" cFondo " c" cLuzOff)
     }
 
-    ; Luces (bg de los Progress controls)
-    for luz in [luzActiva, luzAccion, luzApagado] {
-        if (IsObject(luz)) {
-            luz.Opt("Background" cFondo)
-            DllCall("InvalidateRect", "Ptr", luz.Hwnd, "Ptr", 0, "Int", 1)
-        }
-    }
-
-    ; Separador del historial (sigue al colorBarra)
-    if (IsObject(separadorHistorial)) {
+    ; Separadores y polish visual
+    if (IsObject(separadorHistorial))
         separadorHistorial.Opt("Background" cBarra)
-        DllCall("InvalidateRect", "Ptr", separadorHistorial.Hwnd, "Ptr", 0, "Int", 1)
-    }
-
-    ; Polish visual del miGui: glow + separadores NO se actualizan en cada frame
-    ; de la transicion (causaria parpadeo de demasiados invalidates simultaneos).
-    ; AplicarTema al final del paso de transicion los actualiza una sola vez.
+    if (IsObject(glowTitulo))
+        glowTitulo.Opt("Background" AclararHex(cBarra, 0.35))
+    if (IsObject(sepEstado))
+        sepEstado.Opt("Background" cBarra)
+    if (IsObject(sepAccion))
+        sepAccion.Opt("Background" cBarra)
 
     ; Scrollbar personalizado
-    if (IsObject(scrollTrack)) {
+    if (IsObject(scrollTrack))
         scrollTrack.Opt("Background" cBoton)
-        DllCall("InvalidateRect", "Ptr", scrollTrack.Hwnd, "Ptr", 0, "Int", 1)
-    }
-    if (IsObject(scrollThumb)) {
+    if (IsObject(scrollThumb))
         scrollThumb.Opt("Background" cHover)
-        DllCall("InvalidateRect", "Ptr", scrollThumb.Hwnd, "Ptr", 0, "Int", 1)
-    }
 
-    if (IsObject(logoMacro))
-        DllCall("InvalidateRect", "Ptr", logoMacro.Hwnd, "Ptr", 0, "Int", 0)
+    ; ── REPAINT SINCRONO de TODO en una sola pasada ──
+    ; RDW_INVALIDATE (0x1) | RDW_ERASE (0x4) | RDW_ALLCHILDREN (0x80) | RDW_UPDATENOW (0x100)
+    ; Esto fuerza a Windows a invalidar, borrar y repintar ventana + TODOS los hijos en UN solo frame.
+    static RDW_FLAGS := 0x0001 | 0x0004 | 0x0080 | 0x0100
+    DllCall("RedrawWindow", "Ptr", miGui.Hwnd,        "Ptr", 0, "Ptr", 0, "UInt", RDW_FLAGS)
+    DllCall("RedrawWindow", "Ptr", historialGui.Hwnd, "Ptr", 0, "Ptr", 0, "UInt", RDW_FLAGS)
 
     if (temaTransStep > pasos) {
         colorBarraOverride := ""
