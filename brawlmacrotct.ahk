@@ -2007,13 +2007,14 @@ texto := "AFK Smart"
 tituloMacro := miGui.Add("Text", "x120 y70 w110 h20 Background" colorFondoPrincipal " c" colorTextoPrincipal, texto)
 tituloMacro.SetFont("s13 Bold", "Segoe UI Semibold")
 
-presetLabel := miGui.Add("Text", "x125 y148 w80 h12 +0x201 Background" colorFondoPrincipal " c" colorTextoPrincipal, Chr(0x26A1) " " NombrePreset(presetRendimiento))
+presetLabel := miGui.Add("Text", "x125 y133 w80 h14 +0x201 Background" colorFondoPrincipal " c" colorTextoPrincipal, Chr(0x26A1) " " NombrePreset(presetRendimiento))
 presetLabel.SetFont("s7 c" colorTextoPrincipal, "Segoe UI Semibold")
 presetLabel.OnEvent("Click", CiclarPreset)
-fpsLabel := miGui.Add("Text", "x345 y148 w45 h12 +0x201 Background" colorFondoPrincipal " c" colorTextoPrincipal, "-- fps")
+fpsLabel := miGui.Add("Text", "x345 y133 w45 h14 +0x201 Background" colorFondoPrincipal " c" colorTextoPrincipal, "-- fps")
 fpsLabel.SetFont("s7 c" colorTextoPrincipal, "Segoe UI")
-sparkCtrl := miGui.Add("Text", "x125 y159 w265 h12 Background" colorFondoPrincipal, "")
+sparkCtrl := miGui.Add("Text", "x125 y148 w265 h22 Background" colorFondoPrincipal, "")
 InstalarSubclassSpark()
+DllCall("InvalidateRect", "Ptr", sparkCtrl.Hwnd, "Ptr", 0, "Int", 1)
 
 luzActiva := miGui.Add("Progress", "x40 y130 w20 h20 c" colorBotonNormal " Background" colorFondoPrincipal, 100)
 luzAccion := miGui.Add("Progress", "x70 y130 w20 h20 c" colorBotonNormal " Background" colorFondoPrincipal, 100)
@@ -2439,8 +2440,34 @@ PintarSpark(hdc, w, h) {
     DllCall("FillRect", "Ptr", memDC, "Ptr", rc, "Ptr", brushBg)
     DllCall("DeleteObject", "Ptr", brushBg)
 
+    ; Linea base siempre visible
+    baseLineColor := AclararHex(colorFondoPrincipal, 0.40)
+    hPenBase := DllCall("CreatePen", "Int", 2, "Int", 1, "UInt", HexToBGR(baseLineColor), "Ptr")
+    oldPenBase := DllCall("SelectObject", "Ptr", memDC, "Ptr", hPenBase, "Ptr")
+    baseY := h - 2
+    Loop Floor(w / 6) {
+        dotX := (A_Index - 1) * 6
+        DllCall("MoveToEx", "Ptr", memDC, "Int", dotX, "Int", baseY, "Ptr", 0)
+        DllCall("LineTo", "Ptr", memDC, "Int", dotX + 3, "Int", baseY)
+    }
+    DllCall("SelectObject", "Ptr", memDC, "Ptr", oldPenBase)
+    DllCall("DeleteObject", "Ptr", hPenBase)
+
     n := sparkData.Length
     if (n < 2) {
+        ; Texto "sin datos" centrado
+        DllCall("SetBkMode", "Ptr", memDC, "Int", 1)
+        DllCall("SetTextColor", "Ptr", memDC, "UInt", HexToBGR(colorBarra))
+        hFont := DllCall("CreateFont", "Int", -10, "Int", 0, "Int", 0, "Int", 0, "Int", 400, "UInt", 0, "UInt", 0, "UInt", 0, "UInt", 0, "UInt", 0, "UInt", 0, "UInt", 0, "UInt", 0, "Str", "Segoe UI", "Ptr")
+        oldFont := DllCall("SelectObject", "Ptr", memDC, "Ptr", hFont, "Ptr")
+        txt := "▬ actividad ▬"
+        rcTxt := Buffer(16, 0)
+        NumPut("Int", 0, rcTxt, 0), NumPut("Int", 0, rcTxt, 4)
+        NumPut("Int", w, rcTxt, 8), NumPut("Int", h, rcTxt, 12)
+        DllCall("DrawText", "Ptr", memDC, "Str", txt, "Int", -1, "Ptr", rcTxt, "UInt", 0x25)
+        DllCall("SelectObject", "Ptr", memDC, "Ptr", oldFont)
+        DllCall("DeleteObject", "Ptr", hFont)
+
         DllCall("BitBlt", "Ptr", hdc, "Int", 0, "Int", 0, "Int", w, "Int", h, "Ptr", memDC, "Int", 0, "Int", 0, "UInt", 0x00CC0020)
         DllCall("SelectObject", "Ptr", memDC, "Ptr", oldBmp)
         DllCall("DeleteObject", "Ptr", hbm)
