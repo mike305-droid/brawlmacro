@@ -6369,6 +6369,9 @@ Parar(*) {
     global tiempoUltimoLanzamiento, barra, barraHistorial, colorBarra, logoMacro, colorLogoMacro
     global logoVelObjetivo
     global afkAlertaFlash, afkText, colorAFK, timerLabel, colorTextoPrincipal
+    global tiempoAcumulado, contadorSecuencias, contadorDestruccion
+    global totalHorasGuardadas, totalSecuenciasGuardadas, totalDestruccionGuardada
+    global colorHist2, colorCooldown
     activo := false
     logoVelObjetivo := 0.0
     accionEnCurso := false
@@ -6395,6 +6398,31 @@ Parar(*) {
     ; Shimmer de apagado y restaurar barra
     SetTimer(() => (BarraShimmer(colorBarra), barra.Opt("Background" colorBarra), barraHistorial.Opt("Background" colorBarra), DllCall("InvalidateRect", "Ptr", barra.Hwnd, "Ptr", 0, "Int", 1)), -1)
     PararTimer()
+
+    ; ===== RESUMEN DE SESION =====
+    tiempoSesion := tiempoAcumulado
+    hSes := Floor(tiempoSesion / 3600000)
+    mSes := Floor((tiempoSesion - hSes * 3600000) / 60000)
+    sSes := Floor((tiempoSesion - hSes * 3600000 - mSes * 60000) / 1000)
+    duracion := ""
+    if (hSes > 0)
+        duracion := hSes "h " mSes "m"
+    else if (mSes > 0)
+        duracion := mSes "m " sSes "s"
+    else
+        duracion := sSes "s"
+
+    totalH := totalHorasGuardadas + (tiempoSesion / 3600000.0)
+    totalS := totalSecuenciasGuardadas + contadorSecuencias
+    totalD := totalDestruccionGuardada + contadorDestruccion
+
+    AgregarHistorial("━━━━ RESUMEN DE SESIÓN ━━━━", colorBarra)
+    AgregarHistorial(Chr(0x23F1) " Duración: " duracion, colorTextoPrincipal)
+    AgregarHistorial(Chr(0x1F504) " Secuencias: " contadorSecuencias " (total: " totalS ")", colorHist2)
+    AgregarHistorial(Chr(0x1F4A5) " Destrucciones: " contadorDestruccion " (total: " totalD ")", colorCooldown)
+    AgregarHistorial(Chr(0x23F0) " Horas totales: " Floor(totalH) "h " Floor(Mod(totalH * 60, 60)) "m", colorTextoPrincipal)
+    AgregarHistorial("━━━━━━━━━━━━━━━━━━━━━━━━━", colorBarra)
+
     EnviarWebhookEvento("parado")
 }
 
