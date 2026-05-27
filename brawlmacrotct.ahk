@@ -5320,6 +5320,21 @@ EjecutarMacro(*) {
         return
     accionEnCurso := true
 
+    ; Si Brawlhalla está minimizado, restaurarlo para que la detección de píxeles funcione
+    static ultimoCheckMin := 0
+    if (perfilActivo != 3 && A_TickCount - ultimoCheckMin > 10000) {
+        ultimoCheckMin := A_TickCount
+        try {
+            if ProcessExist("Brawlhalla.exe") {
+                hwndBH := WinGetID("ahk_exe Brawlhalla.exe")
+                if DllCall("IsIconic", "Ptr", hwndBH, "Int") {
+                    WinRestore("ahk_exe Brawlhalla.exe")
+                    AgregarHistorial("🔄 Brawlhalla estaba minimizado — restaurado", "FF8800")
+                }
+            }
+        }
+    }
+
     if (modoCadena) {
         if (A_TickCount > finCadena) {
             modoCadena := false
