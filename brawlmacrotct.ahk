@@ -5490,14 +5490,28 @@ EjecutarMacro(*) {
 
         AgregarHistorial("💀 Alt+F4 ejecutado - reiniciando Brawlhalla", "FF0000")
         EnviarWebhookEvento("altf4")
-        SendInput "!{F4}"
-        Sleep 7000
+
+        ; Activar la ventana de Brawlhalla antes del Alt+F4
+        ; (sin esto, SendInput manda Alt+F4 a la GUI del macro)
+        if WinExist("ahk_exe Brawlhalla.exe") {
+            WinActivate("ahk_exe Brawlhalla.exe")
+            Sleep 500
+            SendInput "!{F4}"
+        }
+        Sleep 5000
+
+        ; Si sigue vivo, forzar cierre del proceso
+        if ProcessExist("Brawlhalla.exe") {
+            AgregarHistorial("⚠ Alt+F4 no cerró Brawlhalla — forzando cierre", "FF8800")
+            ProcessClose("Brawlhalla.exe")
+        }
 
         ; Esperar a que el proceso muera realmente (hasta 5s extra)
         cierreT0 := A_TickCount
         while (ProcessExist("Brawlhalla.exe") && (A_TickCount - cierreT0) < 5000)
             Sleep 250
 
+        Sleep 2000
         AgregarHistorial("🔄 Abriendo Brawlhalla por Steam...", "FF8800")
         try Run("steam://rungameid/291550")
         tiempoUltimoLanzamiento := A_TickCount
