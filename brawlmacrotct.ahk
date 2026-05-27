@@ -1974,7 +1974,7 @@ presetRendimiento := Integer(IniRead(configPath, "UI", "PresetRendimiento", "3")
 if (presetRendimiento < 1 || presetRendimiento > 4)
     presetRendimiento := 3
 
-barra := miGui.Add("Text", "x0 y0 w400 h25 Background" colorBarra " Center", "BrawlMacro V27")
+barra := miGui.Add("Text", "x0 y0 w400 h25 Background" colorBarra " Center", "BrawlMacro V28")
 barra.SetFont("s13 c" colorTextoBarra " Bold", "Segoe UI Semibold")
 barra.OnEvent("Click", ArrastrarVentana)
 barra.OnEvent("DoubleClick", ClickTitulo)
@@ -5081,7 +5081,9 @@ ActualizarAFK(*) {
     if (perfilActivo = 3)
         return
     tiempo := A_TickCount - ultimoCambio
-    restante := 360000 - tiempo
+    ; tct=4min, sp=6min para modo destruccion
+    limiteDestruccion := (perfilActivo = 2) ? 360000 : 240000
+    restante := limiteDestruccion - tiempo
 
     ; Activar Modo Destruccion cuando el contador llega a 0
     if (restante <= 0 && !modoDestruccion) {
@@ -5092,8 +5094,8 @@ ActualizarAFK(*) {
     }
 
     if (modoDestruccion) {
-        ; Mostrar cuenta atras del minuto extra antes de Alt+F4
-        restanteDestru := 420000 - tiempo
+        ; Mostrar cuenta atras de 30s antes de Alt+F4
+        restanteDestru := (limiteDestruccion + 30000) - tiempo
         if (restanteDestru < 0)
             restanteDestru := 0
         segsDestru := Round(restanteDestru / 1000, 1)
@@ -5465,9 +5467,9 @@ EjecutarMacro(*) {
     tiempoSinCambios := A_TickCount - ultimoCambio
 
     ; ===== MODO DESTRUCCION =====
-    ; Evaluar ANTES del anti-AFK para que el reset de ultimoCambio a los 400s
-    ; no impida alcanzar los 420s necesarios para el Alt+F4.
-    if (modoDestruccion && tiempoSinCambios > 420000) {
+    ; Evaluar ANTES del anti-AFK. tct=270s (4min+30s), sp=390s (6min+30s)
+    limiteAltF4 := (perfilActivo = 2) ? 390000 : 270000
+    if (modoDestruccion && tiempoSinCambios > limiteAltF4) {
         modoDestruccion := false
         contadorDestruccion += 1
         ActualizarDestrucciones()
@@ -5504,7 +5506,9 @@ EjecutarMacro(*) {
     }
 
     ; ===== ANTI-AFK (solo si NO estamos en modo destruccion) =====
-    if (!modoDestruccion && tiempoSinCambios > 400000) {
+    ; tct=4min (240s), sp=6min (360s)
+    limiteAntiAFK := (perfilActivo = 2) ? 360000 : 240000
+    if (!modoDestruccion && tiempoSinCambios > limiteAntiAFK) {
         ultimoCambio := A_TickCount
         Loop 1 {
             SendInput "{Esc}"
@@ -5515,6 +5519,19 @@ EjecutarMacro(*) {
             Sleep 1500
         }
     }
+
+    ; ===== SP: presionar "a" 15s a los 5:30 sin detección =====
+    static spTeclaAEjecutada := false
+    if (perfilActivo = 2 && !modoDestruccion) {
+        if (tiempoSinCambios > 330000 && !spTeclaAEjecutada) {
+            spTeclaAEjecutada := true
+            AgregarHistorial("🅰 SP: presionando 'a' por 15s...", "FF8800")
+            SendInput "{a down}"
+            SetTimer(() => (SendInput("{a up}"), AgregarHistorial("🅰 SP: tecla 'a' liberada", "00CC44")), -15000)
+        }
+    }
+    if (tiempoSinCambios < 5000)
+        spTeclaAEjecutada := false
 
     ; ===== REINTENTO LANZAMIENTO =====
 
