@@ -2004,13 +2004,13 @@ logoMacro.SetFont("s58 c" colorLogoMacro " Bold", "Segoe UI Symbol")
 logoMacro.OnEvent("Click", ClickLogo)
 InstalarSubclassLogo()
 texto := "AFK Smart"
-tituloMacro := miGui.Add("Text", "x120 y70 w110 h20 Background" colorFondoPrincipal " c" colorTextoPrincipal, texto)
+tituloMacro := miGui.Add("Text", "x120 y70 w110 h20 BackgroundTrans c" colorTextoPrincipal, texto)
 tituloMacro.SetFont("s13 Bold", "Segoe UI Semibold")
 
-presetLabel := miGui.Add("Text", "x125 y133 w80 h14 +0x201 Background" colorFondoPrincipal " c" colorTextoPrincipal, Chr(0x26A1) " " NombrePreset(presetRendimiento))
+presetLabel := miGui.Add("Text", "x125 y133 w80 h14 +0x201 BackgroundTrans c" colorTextoPrincipal, Chr(0x26A1) " " NombrePreset(presetRendimiento))
 presetLabel.SetFont("s7 c" colorTextoPrincipal, "Segoe UI Semibold")
 presetLabel.OnEvent("Click", CiclarPreset)
-fpsLabel := miGui.Add("Text", "x345 y133 w45 h14 +0x201 Background" colorFondoPrincipal " c" colorTextoPrincipal, "-- fps")
+fpsLabel := miGui.Add("Text", "x345 y133 w45 h14 +0x201 BackgroundTrans c" colorTextoPrincipal, "-- fps")
 fpsLabel.SetFont("s7 c" colorTextoPrincipal, "Segoe UI")
 sparkCtrl := miGui.Add("Text", "x125 y148 w265 h22 Background" colorFondoPrincipal, "")
 InstalarSubclassSpark()
@@ -2072,7 +2072,7 @@ RegistrarHover(btnWebhook,   () => (rgbBotones ? colorRGBActual : colorBotonNorm
 RegistrarHover(btnLogros,    () => (rgbBotones ? colorRGBActual : colorBotonNormal))
 RegistrarHover(btnPart,      () => (rgbBotones ? colorRGBActual : colorBotonNormal))
 
-timerLabel := miGui.Add("Text", "x220 y130 w140 h25 Center Background" colorFondoPrincipal " c" colorTextoPrincipal, Chr(0x23F0) " 00:00")
+timerLabel := miGui.Add("Text", "x220 y130 w140 h25 Center BackgroundTrans c" colorTextoPrincipal, Chr(0x23F0) " 00:00")
 timerLabel.SetFont("s13 c" colorTextoPrincipal " Bold", "Segoe UI Semibold")
 timerLabel.OnEvent("Click", ClickTimer)
 
@@ -2124,6 +2124,18 @@ RegistrarHover(btn, baseFn, hoverFn := "") {
 ; Helper para capturar un color HEX en una closure (evita el bug de captura por referencia en for-loops)
 MakeColorFn(hex) {
     return () => hex
+}
+
+; Refresca un control BackgroundTrans antes de cambiar su texto (evita ghosting)
+RefrescarCtrlTrans(ctrl) {
+    global miGui
+    try {
+        rc := Buffer(16, 0)
+        DllCall("GetWindowRect", "Ptr", ctrl.Hwnd, "Ptr", rc)
+        DllCall("MapWindowPoints", "Ptr", 0, "Ptr", miGui.Hwnd, "Ptr", rc, "UInt", 2)
+        DllCall("InvalidateRect", "Ptr", miGui.Hwnd, "Ptr", rc, "Int", 1)
+        DllCall("UpdateWindow", "Ptr", miGui.Hwnd)
+    }
 }
 
 ; Aclara un color HEX hacia blanco por un factor 0.0–1.0
@@ -2379,7 +2391,10 @@ AplicarPreset(p) {
     }
 
     if (IsObject(presetLabel))
-        try presetLabel.Text := Chr(0x26A1) " " NombrePreset(p)
+        try {
+            RefrescarCtrlTrans(presetLabel)
+            presetLabel.Text := Chr(0x26A1) " " NombrePreset(p)
+        }
     IniWrite(p, configPath, "UI", "PresetRendimiento")
 }
 
@@ -2396,7 +2411,10 @@ ActualizarFPS() {
     fpsActual := fpsContador
     fpsContador := 0
     if (IsObject(fpsLabel))
-        try fpsLabel.Text := fpsActual " fps"
+        try {
+            RefrescarCtrlTrans(fpsLabel)
+            fpsLabel.Text := fpsActual " fps"
+        }
 }
 
 ; ===== GRAFICA DE ACTIVIDAD (SPARKLINE) =====
@@ -4442,17 +4460,21 @@ AplicarTema(tema, guardar := true, fromTrans := false) {
     logoMacro.Opt("c" colorLogoMacro)
     logoMacro.SetFont("s49 c" colorLogoMacro " Bold", "Segoe UI Symbol")
     DllCall("InvalidateRect", "Ptr", logoMacro.Hwnd, "Ptr", 0, "Int", 1)
-    tituloMacro.Opt("Background" colorFondoPrincipal " c" colorTextoPrincipal)
+    tituloMacro.Opt("c" colorTextoPrincipal)
     tituloMacro.SetFont("s13 c" colorTextoPrincipal " Bold", "Segoe UI Semibold")
-    timerLabel.Opt("Background" colorFondoPrincipal " c" colorTextoPrincipal)
+    DllCall("InvalidateRect", "Ptr", tituloMacro.Hwnd, "Ptr", 0, "Int", 1)
+    timerLabel.Opt("c" colorTextoPrincipal)
     timerLabel.SetFont("s13 c" colorTextoPrincipal " Bold", "Segoe UI Semibold")
+    DllCall("InvalidateRect", "Ptr", timerLabel.Hwnd, "Ptr", 0, "Int", 1)
     if (IsObject(presetLabel)) {
-        presetLabel.Opt("Background" colorFondoPrincipal " c" colorTextoPrincipal)
+        presetLabel.Opt("c" colorTextoPrincipal)
         presetLabel.SetFont("s8 c" colorTextoPrincipal, "Segoe UI Semibold")
+        DllCall("InvalidateRect", "Ptr", presetLabel.Hwnd, "Ptr", 0, "Int", 1)
     }
     if (IsObject(fpsLabel)) {
-        fpsLabel.Opt("Background" colorFondoPrincipal " c" colorTextoPrincipal)
+        fpsLabel.Opt("c" colorTextoPrincipal)
         fpsLabel.SetFont("s8 c" colorTextoPrincipal, "Segoe UI")
+        DllCall("InvalidateRect", "Ptr", fpsLabel.Hwnd, "Ptr", 0, "Int", 1)
     }
     if (IsObject(sparkCtrl)) {
         sparkCtrl.Opt("Background" colorFondoPrincipal)
@@ -5025,6 +5047,7 @@ ActualizarTimer(*) {
         total += (A_TickCount - tiempoInicio)
     minutos := Floor(total / 60000)
     segundos := Floor(total / 1000) - (minutos * 60)
+    RefrescarCtrlTrans(timerLabel)
     timerLabel.Value := Chr(0x23F0) " " Format("{:02}:{:02}", minutos, segundos)
 }
 
@@ -5491,6 +5514,8 @@ EjecutarMacro(*) {
         return
     accionEnCurso := true
 
+    try {
+
     if (modoCadena) {
         if (A_TickCount > finCadena) {
             modoCadena := false
@@ -5507,7 +5532,6 @@ EjecutarMacro(*) {
                             SendInput "{" p.accion "}"
                         p.lastUsed := A_TickCount
                         ActivarBloqueoGlobal(p)
-                        ; Recuperación de modo destrucción si detectamos algo
                         if (modoDestruccion) {
                             modoDestruccion := false
                             AgregarHistorial(Chr(0x2705) " Detección recuperada - saliendo de modo destrucción", "00CC44")
@@ -5540,7 +5564,6 @@ EjecutarMacro(*) {
             continue
 
         pasoRevisado += 1
-        ; Cada 5 pasos → comprobar prioridad
         if (!modoCadena && Mod(pasoRevisado, PASOS_ENTRE_PRIO) = 0) {
             if CheckPrioridad() {
                 accionEnCurso := false
@@ -5608,9 +5631,6 @@ EjecutarMacro(*) {
                 ultimoCambio := A_TickCount
                 ultimoPasoEjecutado := paso.nombre
             }
-            ; Si el macro estaba en modo destrucción y acaba de detectar algo, salir del modo.
-            ; Antes se quedaba pegado en "MODO DESTRUCCION en: Xs" para siempre si
-            ; el juego se recuperaba durante la ventana de 60s antes del Alt+F4.
             if (modoDestruccion) {
                 modoDestruccion := false
                 AgregarHistorial(Chr(0x2705) " Detección recuperada - saliendo de modo destrucción", "00CC44")
@@ -5633,6 +5653,10 @@ EjecutarMacro(*) {
         }
     }
 
+    } catch as e {
+        ; Si algo falla dentro del loop de deteccion, registrar y continuar
+        try AgregarHistorial("⚠ Error detección: " e.Message, "FF0000")
+    }
     accionEnCurso := false
     tiempoSinCambios := A_TickCount - ultimoCambio
 
