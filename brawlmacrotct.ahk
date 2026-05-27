@@ -5320,21 +5320,6 @@ EjecutarMacro(*) {
         return
     accionEnCurso := true
 
-    ; Si Brawlhalla está minimizado, restaurarlo para que la detección de píxeles funcione
-    static ultimoCheckMin := 0
-    if (perfilActivo != 3 && A_TickCount - ultimoCheckMin > 10000) {
-        ultimoCheckMin := A_TickCount
-        try {
-            if ProcessExist("Brawlhalla.exe") {
-                hwndBH := WinGetID("ahk_exe Brawlhalla.exe")
-                if DllCall("IsIconic", "Ptr", hwndBH, "Int") {
-                    WinRestore("ahk_exe Brawlhalla.exe")
-                    AgregarHistorial("🔄 Brawlhalla estaba minimizado — restaurado", "FF8800")
-                }
-            }
-        }
-    }
-
     if (modoCadena) {
         if (A_TickCount > finCadena) {
             modoCadena := false
@@ -6306,6 +6291,21 @@ LanzarJuegoDelPerfil() {
     ; frt no lanza ningun juego
 }
 
+CheckBrawlhallaMinimizado() {
+    global activo, perfilActivo
+    if (!activo || perfilActivo = 3)
+        return
+    try {
+        if !ProcessExist("Brawlhalla.exe")
+            return
+        hwndBH := WinGetID("ahk_exe Brawlhalla.exe")
+        if DllCall("IsIconic", "Ptr", hwndBH, "Int") {
+            WinRestore("ahk_exe Brawlhalla.exe")
+            AgregarHistorial("🔄 Brawlhalla estaba minimizado — restaurado", "FF8800")
+        }
+    }
+}
+
 ; Alias retrocompatible
 LanzarBrawlhalla() => LanzarJuegoDelPerfil()
 
@@ -6335,6 +6335,8 @@ Iniciar(*) {
     SetTimer(EjecutarMacro, 50)
     SetTimer(ActualizarCooldowns, 100)
     SetTimer(ActualizarAFK, 200)
+    if (perfilActivo != 3)
+        SetTimer(CheckBrawlhallaMinimizado, 10000)
     if (presetPulsoBar > 0)
         SetTimer(PulsoBarraActivo, presetPulsoBar)
     if (presetPulsoLogo > 0)
@@ -6363,6 +6365,7 @@ Parar(*) {
     SetTimer(ActualizarAFK, 0)
     SetTimer(PulsoBarraActivo, 0)
     SetTimer(PulsoLogoActivo, 0)
+    SetTimer(CheckBrawlhallaMinimizado, 0)
     ActualizarTimersFrt()  ; apaga los timers de spam si estaban activos
     ; Restaurar colores del timer AFK
     afkAlertaFlash := false
