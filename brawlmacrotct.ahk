@@ -2708,30 +2708,22 @@ EnviarWebhookSync(titulo, mensaje, colorHex) {
     mensaje := EscapeJson(mensaje)
     json := '{"embeds":[{"title":"' titulo '","description":"' mensaje '","color":' colorInt ',"footer":{"text":"AFK Macro"}}]}'
 
-    ; ⚡ NUNCA usar WinHttpRequest síncrono aquí — bloqueaba el macro entero hasta 4 min
-    ;    si Discord o el internet iban lentos. Ahora lanzamos curl.exe en background:
-    payloadFile := A_Temp "\brawlmacro_wh_" A_TickCount ".json"
-    try FileDelete(payloadFile)
-    try FileAppend(json, payloadFile, "UTF-8-RAW")
-    respFile := A_Temp "\brawlmacro_wh_resp_" A_TickCount ".txt"
-    cmd := A_ComSpec ' /c curl.exe -s -m 20 -o "' respFile '" -w "%{http_code}" -X POST'
-         . ' -H "Content-Type: application/json; charset=utf-8"'
-         . ' --data-binary "@' payloadFile '"'
-         . ' "' webhookURL '"'
-         . ' > "' respFile '.code" & del "' payloadFile '"'
-    try Run(cmd, , "Hide")
-    SetTimer(VerificarRespuestaWebhook.Bind(respFile), -3000)
-}
-
-VerificarRespuestaWebhook(respFile) {
+    ; Enviar via ComObject (asíncrono via SetTimer, no bloquea el hilo principal)
     try {
-        if (!FileExist(respFile))
-            return
-        resp := FileRead(respFile, "UTF-8-RAW")
-        try FileDelete(respFile)
-        try FileDelete(respFile ".code")
-        if (resp != "" && InStr(resp, '"message"'))
-            AgregarHistorial("⚠ Webhook error: " SubStr(resp, 1, 80), "FF5555")
+        whr := ComObject("WinHttp.WinHttpRequest.5.1")
+        whr.SetTimeouts(5000, 5000, 10000, 10000)
+        whr.Open("POST", webhookURL, true)
+        whr.SetRequestHeader("Content-Type", "application/json; charset=utf-8")
+        whr.Send(json)
+        whr.WaitForResponse(15)
+        status := whr.Status
+        if (status != 204 && status != 200) {
+            respText := ""
+            try respText := whr.ResponseText
+            AgregarHistorial("⚠ Webhook HTTP " status ": " SubStr(respText, 1, 60), "FF5555")
+        }
+    } catch as e {
+        AgregarHistorial("⚠ Webhook error: " SubStr(e.Message, 1, 60), "FF5555")
     }
 }
 
@@ -2799,7 +2791,6 @@ EnviarWebhookConFotoSync(titulo, mensaje, colorHex) {
     global webhookURL
     rutaFoto := A_Temp "\brawlmacro_shot_" A_TickCount ".png"
     if (!TomarScreenshot(rutaFoto)) {
-        ; Si falla la screenshot, manda solo texto
         EnviarWebhookSync(titulo, mensaje, colorHex)
         return
     }
@@ -2809,13 +2800,12 @@ EnviarWebhookConFotoSync(titulo, mensaje, colorHex) {
     mEsc := EscapeJson(mensaje)
     json := '{"embeds":[{"title":"' tEsc '","description":"' mEsc '","color":' colorInt ',"image":{"url":"attachment://screenshot.png"},"footer":{"text":"AFK Macro"}}]}'
 
+    ; curl necesario para multipart (adjuntar imagen)
     payloadFile := A_Temp "\brawlmacro_payload_" A_TickCount ".json"
     try FileDelete(payloadFile)
     try FileAppend(json, payloadFile, "UTF-8-RAW")
-
-    ; Usa curl.exe (incluido en Windows 10 1803+) para multipart/form-data
-    cmd := A_ComSpec ' /c curl.exe -s -X POST'
-         . ' -F "payload_json=<' payloadFile '"'
+    cmd := A_ComSpec ' /c curl.exe -s -m 30 -X POST'
+         . ' -F "payload_json=<' payloadFile ';type=application/json"'
          . ' -F "file=@' rutaFoto ';filename=screenshot.png"'
          . ' "' webhookURL '"'
          . ' & del "' payloadFile '" & del "' rutaFoto '"'
@@ -2827,14 +2817,10 @@ EnviarWebhookEvento(tipo) {
     global contadorSecuencias, contadorDestruccion
     global totalSecuenciasGuardadas, totalDestruccionGuardada
     global tiempoAcumulado, tiempoInicio, timerActivo
-    if (!webhookEnabled || webhookURL = "") {
-        AgregarHistorial("⚠ Webhook OFF o sin URL — evento '" tipo "' no se envió", "FFA500")
+    if (!webhookEnabled || webhookURL = "")
         return
-    }
-    if (!webhookEventos.Has(tipo) || !webhookEventos[tipo]) {
-        AgregarHistorial("⚠ Webhook evento '" tipo "' está desactivado (actívalo en 🔔)", "FFA500")
+    if (!webhookEventos.Has(tipo) || !webhookEventos[tipo])
         return
-    }
 
     tiempoSesion := tiempoAcumulado
     if (timerActivo)
