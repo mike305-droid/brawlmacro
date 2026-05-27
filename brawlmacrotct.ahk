@@ -6735,11 +6735,22 @@ MostrarResumenSesion() {
 
     ; Animar la barra de cuenta atras + cerrar a los 7s
     inicio := A_TickCount
-    actualizarBarra := () => (
-        try (progBarra.Value := Max(0, 100 - Round((A_TickCount - inicio) / 70)))
-    )
+    actualizarBarra := ActualizarBarraResumen.Bind(progBarra, inicio)
     SetTimer(actualizarBarra, 50)
-    SetTimer(() => (try SetTimer(actualizarBarra, 0), try rGui.Destroy()), -7000)
+    cerrarResumen := CerrarResumenSesion.Bind(rGui, actualizarBarra)
+    SetTimer(cerrarResumen, -7000)
+}
+
+ActualizarBarraResumen(progBarra, inicio) {
+    try {
+        pct := Max(0, 100 - Round((A_TickCount - inicio) / 70))
+        progBarra.Value := pct
+    }
+}
+
+CerrarResumenSesion(rGui, actualizarBarra) {
+    try SetTimer(actualizarBarra, 0)
+    try rGui.Destroy()
 }
 
 ; ===== ACTUALIZADOR =====
