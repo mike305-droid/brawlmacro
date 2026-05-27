@@ -293,6 +293,13 @@ global typeRevealHwnd := 0, typeRevealTotal := 0, typeRevealPos := 0
 global typeRevealColor := "", typeRevealActivo := false
 global barraOndaOffset := 0.0
 
+; ===== GRAFICA DE ACTIVIDAD =====
+global sparkData := []
+global sparkMax := 30
+global sparkDetecciones := 0
+global sparkCtrl := ""
+global sparkSubclassCb := 0
+
 ; ===== PRESETS DE RENDIMIENTO =====
 global presetRendimiento := 3
 global fpsContador := 0
@@ -2000,11 +2007,13 @@ texto := "AFK Smart"
 tituloMacro := miGui.Add("Text", "x120 y70 w110 h20 Background" colorFondoPrincipal " c" colorTextoPrincipal, texto)
 tituloMacro.SetFont("s13 Bold", "Segoe UI Semibold")
 
-presetLabel := miGui.Add("Text", "x125 y155 w80 h14 +0x201 Background" colorFondoPrincipal " c" colorTextoPrincipal, Chr(0x26A1) " " NombrePreset(presetRendimiento))
-presetLabel.SetFont("s8 c" colorTextoPrincipal, "Segoe UI Semibold")
+presetLabel := miGui.Add("Text", "x125 y148 w80 h12 +0x201 Background" colorFondoPrincipal " c" colorTextoPrincipal, Chr(0x26A1) " " NombrePreset(presetRendimiento))
+presetLabel.SetFont("s7 c" colorTextoPrincipal, "Segoe UI Semibold")
 presetLabel.OnEvent("Click", CiclarPreset)
-fpsLabel := miGui.Add("Text", "x335 y155 w55 h14 +0x201 Background" colorFondoPrincipal " c" colorTextoPrincipal, "-- fps")
-fpsLabel.SetFont("s8 c" colorTextoPrincipal, "Segoe UI")
+fpsLabel := miGui.Add("Text", "x345 y148 w45 h12 +0x201 Background" colorFondoPrincipal " c" colorTextoPrincipal, "-- fps")
+fpsLabel.SetFont("s7 c" colorTextoPrincipal, "Segoe UI")
+sparkCtrl := miGui.Add("Text", "x125 y159 w265 h12 Background" colorFondoPrincipal, "")
+InstalarSubclassSpark()
 
 luzActiva := miGui.Add("Progress", "x40 y130 w20 h20 c" colorBotonNormal " Background" colorFondoPrincipal, 100)
 luzAccion := miGui.Add("Progress", "x70 y130 w20 h20 c" colorBotonNormal " Background" colorFondoPrincipal, 100)
@@ -2387,6 +2396,134 @@ ActualizarFPS() {
     fpsContador := 0
     if (IsObject(fpsLabel))
         try fpsLabel.Text := fpsActual " fps"
+}
+
+; ===== GRAFICA DE ACTIVIDAD (SPARKLINE) =====
+InstalarSubclassSpark() {
+    global sparkCtrl, sparkSubclassCb
+    sparkSubclassCb := CallbackCreate(SparkSubclassProc, "F", 6)
+    DllCall("Comctl32.dll\SetWindowSubclass", "Ptr", sparkCtrl.Hwnd, "Ptr", sparkSubclassCb, "Ptr", 15, "Ptr", 0)
+}
+
+SparkSubclassProc(hWnd, uMsg, wParam, lParam, idSubclass, refData) {
+    static WM_PAINT := 0x000F, WM_ERASEBKGND := 0x0014
+    if (uMsg = WM_ERASEBKGND)
+        return 1
+    if (uMsg = WM_PAINT) {
+        ps := Buffer(72, 0)
+        hdc := DllCall("BeginPaint", "Ptr", hWnd, "Ptr", ps, "Ptr")
+        rc := Buffer(16, 0)
+        DllCall("GetClientRect", "Ptr", hWnd, "Ptr", rc)
+        w := NumGet(rc, 8, "Int")
+        h := NumGet(rc, 12, "Int")
+        PintarSpark(hdc, w, h)
+        DllCall("EndPaint", "Ptr", hWnd, "Ptr", ps)
+        return 0
+    }
+    return DllCall("Comctl32.dll\DefSubclassProc", "Ptr", hWnd, "UInt", uMsg, "Ptr", wParam, "Ptr", lParam, "Ptr")
+}
+
+PintarSpark(hdc, w, h) {
+    global sparkData, sparkMax, colorFondoPrincipal, colorBarra, colorLuzActiva, activo, modoDestruccion
+
+    memDC := DllCall("CreateCompatibleDC", "Ptr", hdc, "Ptr")
+    hbm := DllCall("CreateCompatibleBitmap", "Ptr", hdc, "Int", w, "Int", h, "Ptr")
+    oldBmp := DllCall("SelectObject", "Ptr", memDC, "Ptr", hbm, "Ptr")
+
+    ; Fondo
+    bgr := HexToBGR(colorFondoPrincipal)
+    brushBg := DllCall("CreateSolidBrush", "UInt", bgr, "Ptr")
+    rc := Buffer(16, 0)
+    NumPut("Int", 0, rc, 0), NumPut("Int", 0, rc, 4)
+    NumPut("Int", w, rc, 8), NumPut("Int", h, rc, 12)
+    DllCall("FillRect", "Ptr", memDC, "Ptr", rc, "Ptr", brushBg)
+    DllCall("DeleteObject", "Ptr", brushBg)
+
+    n := sparkData.Length
+    if (n < 2) {
+        DllCall("BitBlt", "Ptr", hdc, "Int", 0, "Int", 0, "Int", w, "Int", h, "Ptr", memDC, "Int", 0, "Int", 0, "UInt", 0x00CC0020)
+        DllCall("SelectObject", "Ptr", memDC, "Ptr", oldBmp)
+        DllCall("DeleteObject", "Ptr", hbm)
+        DllCall("DeleteDC", "Ptr", memDC)
+        return
+    }
+
+    ; Encontrar max para escalar
+    maxVal := 1
+    for v in sparkData {
+        if (v > maxVal)
+            maxVal := v
+    }
+
+    ; Color de la linea segun estado
+    lineColor := activo ? (modoDestruccion ? "FF4444" : colorLuzActiva) : colorBarra
+    hPen := DllCall("CreatePen", "Int", 0, "Int", 2, "UInt", HexToBGR(lineColor), "Ptr")
+    oldPen := DllCall("SelectObject", "Ptr", memDC, "Ptr", hPen, "Ptr")
+
+    ; Dibujar sparkline
+    stepX := (n > 1) ? (w - 4) / (n - 1) : 0
+    padding := 2
+    usableH := h - padding * 2
+    Loop n {
+        px := Round(2 + (A_Index - 1) * stepX)
+        val := sparkData[A_Index]
+        py := padding + usableH - Round((val / maxVal) * usableH)
+        if (A_Index = 1)
+            DllCall("MoveToEx", "Ptr", memDC, "Int", px, "Int", py, "Ptr", 0)
+        else
+            DllCall("LineTo", "Ptr", memDC, "Int", px, "Int", py)
+    }
+
+    DllCall("SelectObject", "Ptr", memDC, "Ptr", oldPen)
+    DllCall("DeleteObject", "Ptr", hPen)
+
+    ; Relleno semitransparente debajo de la linea (efecto area)
+    fillColor := activo ? (modoDestruccion ? "FF4444" : colorLuzActiva) : colorBarra
+    rF := Integer("0x" SubStr(fillColor, 1, 2))
+    gF := Integer("0x" SubStr(fillColor, 3, 2))
+    bF := Integer("0x" SubStr(fillColor, 5, 2))
+    ; Mezclar con fondo al 25%
+    rB := Integer("0x" SubStr(colorFondoPrincipal, 1, 2))
+    gB := Integer("0x" SubStr(colorFondoPrincipal, 3, 2))
+    bB := Integer("0x" SubStr(colorFondoPrincipal, 5, 2))
+    rM := Round(rB * 0.75 + rF * 0.25)
+    gM := Round(gB * 0.75 + gF * 0.25)
+    bM := Round(bB * 0.75 + bF * 0.25)
+    fillBGR := (bM << 16) | (gM << 8) | rM
+    brushFill := DllCall("CreateSolidBrush", "UInt", fillBGR, "Ptr")
+
+    Loop n {
+        px := Round(2 + (A_Index - 1) * stepX)
+        val := sparkData[A_Index]
+        py := padding + usableH - Round((val / maxVal) * usableH)
+        barRc := Buffer(16, 0)
+        NumPut("Int", Max(0, px - 1), barRc, 0)
+        NumPut("Int", py, barRc, 4)
+        NumPut("Int", Min(w, px + 2), barRc, 8)
+        NumPut("Int", h, barRc, 12)
+        DllCall("FillRect", "Ptr", memDC, "Ptr", barRc, "Ptr", brushFill)
+    }
+    DllCall("DeleteObject", "Ptr", brushFill)
+
+    DllCall("BitBlt", "Ptr", hdc, "Int", 0, "Int", 0, "Int", w, "Int", h, "Ptr", memDC, "Int", 0, "Int", 0, "UInt", 0x00CC0020)
+    DllCall("SelectObject", "Ptr", memDC, "Ptr", oldBmp)
+    DllCall("DeleteObject", "Ptr", hbm)
+    DllCall("DeleteDC", "Ptr", memDC)
+}
+
+ActualizarSpark() {
+    global sparkData, sparkMax, sparkDetecciones, sparkCtrl
+    sparkData.Push(sparkDetecciones)
+    sparkDetecciones := 0
+    if (sparkData.Length > sparkMax)
+        sparkData.RemoveAt(1)
+    if (IsObject(sparkCtrl))
+        DllCall("InvalidateRect", "Ptr", sparkCtrl.Hwnd, "Ptr", 0, "Int", 1)
+}
+
+RegistrarDeteccionSpark() {
+    global sparkDetecciones
+    sparkDetecciones++
 }
 
 ClickLogo(*) {
@@ -4290,6 +4427,10 @@ AplicarTema(tema, guardar := true, fromTrans := false) {
         fpsLabel.Opt("Background" colorFondoPrincipal " c" colorTextoPrincipal)
         fpsLabel.SetFont("s8 c" colorTextoPrincipal, "Segoe UI")
     }
+    if (IsObject(sparkCtrl)) {
+        sparkCtrl.Opt("Background" colorFondoPrincipal)
+        DllCall("InvalidateRect", "Ptr", sparkCtrl.Hwnd, "Ptr", 0, "Int", 1)
+    }
     if (IsObject(contadorLabel))
         contadorLabel.Opt("Background" colorVentanaHistorial " c" colorTextoPrincipal)
     secuenciasLabel.Opt("Background" colorVentanaHistorial " c" colorTextoPrincipal)
@@ -5295,6 +5436,7 @@ CheckPrioridad() {
                 paso.lastUsed := A_TickCount
                 ActivarBloqueoGlobal(paso)
                 ultimoCambio := A_TickCount
+                RegistrarDeteccionSpark()
                 LuzAccionFlash()
                 return true
             }
@@ -5344,6 +5486,7 @@ EjecutarMacro(*) {
                             AgregarHistorial(Chr(0x2705) " Detección recuperada - saliendo de modo destrucción", "00CC44")
                         }
                         AgregarHistorial(p.nombre " (chain)", p.HasProp("CH") ? p.CH : "")
+                        RegistrarDeteccionSpark()
                         LuzAccionFlash()
                         if p.HasProp("siguiente") {
                             pasoCadena := p.siguiente
@@ -5682,6 +5825,7 @@ ResetStreak() {
 
 DespuesDeAccion(esSecuencia := false) {
     global contadorSecuencias, totalCriticos
+    RegistrarDeteccionSpark()
     TriggerSpeedLines()
     IncrementarStreak()
 
@@ -6354,6 +6498,7 @@ Iniciar(*) {
     SetTimer(ActualizarAFK, 200)
     if (perfilActivo != 3)
         SetTimer(CheckBrawlhallaMinimizado, 10000)
+    SetTimer(ActualizarSpark, 10000)
     if (presetPulsoBar > 0)
         SetTimer(PulsoBarraActivo, presetPulsoBar)
     if (presetPulsoLogo > 0)
@@ -6386,6 +6531,7 @@ Parar(*) {
     SetTimer(PulsoBarraActivo, 0)
     SetTimer(PulsoLogoActivo, 0)
     SetTimer(CheckBrawlhallaMinimizado, 0)
+    SetTimer(ActualizarSpark, 0)
     ActualizarTimersFrt()  ; apaga los timers de spam si estaban activos
     ; Restaurar colores del timer AFK
     afkAlertaFlash := false
