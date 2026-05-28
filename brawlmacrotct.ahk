@@ -7,7 +7,7 @@ CoordMode("Mouse", "Screen")
 configPath := A_ScriptDir "\brawlmacro_config.ini"
 global eggsBackupPath := A_ScriptDir "\brawlmacro_eggs.txt"
 global heartbeatPath := A_ScriptDir "\brawlmacro_heartbeat.txt"
-global VERSION_ACTUAL := "28.4.2"
+global VERSION_ACTUAL := "28.3.1"
 
 ; ===== TEMAS =====
 temas := [
@@ -142,7 +142,7 @@ pasosNormales.Push({ tipo:"pimg", nombre:"botbot",        color:0xFFFFFF, catego
 ; ─── FASE 4: ESTADO IN-GAME (cat 4) ────────────────────────────────
 pasosNormales.Push({ tipo:"pimg", nombre:"ingame...",     color:0x70C9D3, categoria:4, accion:"c", hold:100, tolerancia:1, delayClick:10, delayTecla:10, cooldown:10,   tct:true, lastUsed:0, x1:32,  y1:266, x2:35,  y2:268 })
 pasosNormales.Push({ tipo:"pimg", nombre:"INTHEGAME1",    color:0x38373E, categoria:4, accion:"c", hold:400, tolerancia:1, delayClick:30, delayTecla:80, cooldown:5000, bloqueoGlobal:170000, tct:true, lastUsed:0, x1:792, y1:488, x2:794, y2:496 })
-pasosNormales.Push({ tipo:"pimg", nombre:"INTHEGAME2",    color:0x38373E, categoria:4, accion:"c", hold:400, tolerancia:1, delayClick:30, delayTecla:80, cooldown:5000, bloqueoGlobal:300000, sp:true, lastUsed:0, x1:792, y1:488, x2:794, y2:496 })
+pasosNormales.Push({ tipo:"pimg", nombre:"INTHEGAME2",    color:0x38373E, categoria:4, accion:"c", hold:400, tolerancia:1, delayClick:30, delayTecla:80, cooldown:5000, bloqueoGlobal:170000, sp:true, lastUsed:0, x1:792, y1:488, x2:794, y2:496 })
 pasosNormales.Push({ tipo:"pimg", nombre:"creatingmap",   color:0x918D2D, categoria:4, tolerancia:2, hold:100, delayClick:500, delayTecla:500, cooldown:500, sp:true, lastUsed:0, x1:607, y1:243, x2:617, y2:254 })
 
 ; ─── FASE 5: PARTIDA TERMINADA (cat 1) ─────────────────────────────
@@ -194,7 +194,7 @@ global frtTeclas := ["1", "2", "3", "4", "5", "6", "7"]
 global frtIdxTecla := 1   ; indice de la tecla actual (rota automaticamente)
 global histUltimoTexto := "", histUltimoCount := 0, histUltimoLongLinea := 0
 global separadorHistorial := ""
-global temaTransStep := 0, temaTransTema := "", temaTransGuardar := true, temaEnTransicion := false
+global temaTransTema := "", temaTransGuardar := true, temaEnTransicion := false
 global temaGuiVisible := false, temaGui := ""
 global temaBotones := [], temaScrollOffset := 0, temasVisiblesGlobal := []
 global temaAlturaItem := 32, temaAlturaBarra := 22, temaAlturaVisible := 0, temaAnchoPnl := 180
@@ -1974,7 +1974,7 @@ presetRendimiento := Integer(IniRead(configPath, "UI", "PresetRendimiento", "3")
 if (presetRendimiento < 1 || presetRendimiento > 4)
     presetRendimiento := 3
 
-barra := miGui.Add("Text", "x0 y0 w400 h25 Background" colorBarra " Center", "BrawlMacro V28")
+barra := miGui.Add("Text", "x0 y0 w400 h25 Background" colorBarra " Center", "BrawlMacro V27")
 barra.SetFont("s13 c" colorTextoBarra " Bold", "Segoe UI Semibold")
 barra.OnEvent("Click", ArrastrarVentana)
 barra.OnEvent("DoubleClick", ClickTitulo)
@@ -2000,11 +2000,12 @@ texto := "AFK Smart"
 tituloMacro := miGui.Add("Text", "x120 y70 w110 h20 Background" colorFondoPrincipal " c" colorTextoPrincipal, texto)
 tituloMacro.SetFont("s13 Bold", "Segoe UI Semibold")
 
-presetLabel := miGui.Add("Text", "x125 y133 w80 h14 +0x201 Background" colorFondoPrincipal " c" colorTextoPrincipal, Chr(0x26A1) " " NombrePreset(presetRendimiento))
-presetLabel.SetFont("s7 c" colorTextoPrincipal, "Segoe UI Semibold")
+presetLabel := miGui.Add("Text", "x125 y155 w80 h14 +0x201 Background" colorFondoPrincipal " c" colorTextoPrincipal, Chr(0x26A1) " " NombrePreset(presetRendimiento))
+presetLabel.SetFont("s8 c" colorTextoPrincipal, "Segoe UI Semibold")
 presetLabel.OnEvent("Click", CiclarPreset)
-fpsLabel := miGui.Add("Text", "x345 y133 w45 h14 +0x201 Background" colorFondoPrincipal " c" colorTextoPrincipal, "-- fps")
-fpsLabel.SetFont("s7 c" colorTextoPrincipal, "Segoe UI")
+fpsLabel := miGui.Add("Text", "x335 y155 w55 h14 +0x201 Background" colorFondoPrincipal " c" colorTextoPrincipal, "-- fps")
+fpsLabel.SetFont("s8 c" colorTextoPrincipal, "Segoe UI")
+
 luzActiva := miGui.Add("Progress", "x40 y130 w20 h20 c" colorBotonNormal " Background" colorFondoPrincipal, 100)
 luzAccion := miGui.Add("Progress", "x70 y130 w20 h20 c" colorBotonNormal " Background" colorFondoPrincipal, 100)
 luzApagado := miGui.Add("Progress", "x100 y130 w20 h20 c" colorLuzApagado " Background" colorFondoPrincipal, 100)
@@ -2707,17 +2708,22 @@ EnviarWebhookSync(titulo, mensaje, colorHex) {
     mensaje := EscapeJson(mensaje)
     json := '{"embeds":[{"title":"' titulo '","description":"' mensaje '","color":' colorInt ',"footer":{"text":"AFK Macro"}}]}'
 
-    ; CRITICO: NO usar WinHttpRequest.WaitForResponse() — bloquea el thread principal
-    ; hasta 15s y el watchdog mata el macro pensando que esta congelado.
-    ; En su lugar, escribir el JSON a archivo temporal y lanzar curl.exe en background
-    ; (Run + Hide). Totalmente async, no bloquea NADA.
-    payloadFile := A_Temp "\brawlmacro_wh_" A_TickCount "_" Random(1000,9999) ".json"
+    ; Enviar via ComObject (asíncrono via SetTimer, no bloquea el hilo principal)
     try {
-        FileAppend(json, payloadFile, "UTF-8-RAW")
-        ; curl manda, espera respuesta en su propio proceso, luego borra el archivo.
-        ; Si curl falla o el webhook es invalido, el macro NO se entera (y no se cuelga).
-        cmd := A_ComSpec ' /c curl.exe -s -X POST -H "Content-Type: application/json" --data-binary @"' payloadFile '" "' webhookURL '" >nul 2>&1 & del "' payloadFile '"'
-        Run(cmd, , "Hide")
+        whr := ComObject("WinHttp.WinHttpRequest.5.1")
+        whr.SetTimeouts(5000, 5000, 10000, 10000)
+        whr.Open("POST", webhookURL, true)
+        whr.SetRequestHeader("Content-Type", "application/json; charset=utf-8")
+        whr.Send(json)
+        whr.WaitForResponse(15)
+        status := whr.Status
+        if (status != 204 && status != 200) {
+            respText := ""
+            try respText := whr.ResponseText
+            AgregarHistorial("⚠ Webhook HTTP " status ": " SubStr(respText, 1, 60), "FF5555")
+        }
+    } catch as e {
+        AgregarHistorial("⚠ Webhook error: " SubStr(e.Message, 1, 60), "FF5555")
     }
 }
 
@@ -3589,7 +3595,7 @@ ManejarClickLuces(wParam, lParam, msg, hwnd) {
         ClickLuzSecuencia(3)
 }
 
-; Trigger LIGHT: clic izq→centro→der una sola vez (3 clics en orden)
+; Trigger LIGHT: (3 clics en orden)
 ClickLuzSecuencia(n) {
     global luzSeq, luzSeqUltimo, eggSolarDesbloqueado
     if (eggSolarDesbloqueado)
@@ -4022,8 +4028,17 @@ PintarTemaCard(hdc, w, h, data) {
 global temaTransOrigen := ""
 global temaOverlayM := "", temaOverlayH := ""
 
+; ===== TRANSICION DE TEMA SUAVE =====
+; Patron: WM_SETREDRAW disable → set props → WM_SETREDRAW enable → 1 RedrawWindow sync.
+; - Lerp basado en tiempo real (A_TickCount) — si frames se pierden, no se nota.
+; - Duracion fija 400ms con easing cubic in/out.
+; - Todos los colores interpolan en paralelo, todos los controles repintan en el mismo frame.
+
+global temaTransInicio := 0
+global TRANSICION_MS   := 400
+
 TransicionTema(tema, guardar := true) {
-    global temaTransStep, temaTransTema, temaTransGuardar, temaEnTransicion
+    global temaTransInicio, temaTransTema, temaTransGuardar, temaEnTransicion
     global temaTransOrigen
     global colorFondoPrincipal, colorTextoPrincipal, colorBarra, colorTextoBarra
     global colorBotonNormal, colorBotonHover, colorLogoMacro, colorBtnTexto
@@ -4055,50 +4070,35 @@ TransicionTema(tema, guardar := true) {
     }
 
     temaEnTransicion := true
-    temaTransStep    := 0
+    temaTransInicio  := A_TickCount
     temaTransTema    := tema
     temaTransGuardar := guardar
-    SetTimer(TransicionPaso, 16)
-}
-
-; Pinta un rectángulo de color sobre el HDC de una ventana
-_PintarRect(hwnd, hexColor, x, y, w, h) {
-    hDC := DllCall("GetDC", "Ptr", hwnd, "Ptr")
-    r   := "0x" SubStr(hexColor,1,2)
-    g   := "0x" SubStr(hexColor,3,2)
-    b   := "0x" SubStr(hexColor,5,2)
-    colorRef := (b << 16) | (g << 8) | r
-    hBrush := DllCall("CreateSolidBrush", "UInt", colorRef, "Ptr")
-    rc := Buffer(16,0)
-    NumPut("Int", x,   rc,  0)
-    NumPut("Int", y,   rc,  4)
-    NumPut("Int", x+w, rc,  8)
-    NumPut("Int", y+h, rc, 12)
-    DllCall("FillRect", "Ptr", hDC, "Ptr", rc, "Ptr", hBrush)
-    DllCall("DeleteObject", "Ptr", hBrush)
-    DllCall("ReleaseDC", "Ptr", hwnd, "Ptr", hDC)
+    SetTimer(TransicionPaso, 25)  ; ~40fps, mas estable que 60fps
 }
 
 TransicionPaso() {
-    global temaTransStep, temaTransTema, temaTransGuardar, temaEnTransicion
-    global temaTransOrigen, miGui, historialGui
+    global temaTransInicio, temaTransTema, temaTransGuardar, temaEnTransicion
+    global temaTransOrigen, miGui, historialGui, TRANSICION_MS
     global barra, barraHistorial, colorBarraOverride
     global tituloMacro, timerLabel, cooldownText, afkText, secuenciasLabel, destruccionesLabel, contadorLabel, logoMacro
     global presetLabel, fpsLabel
     global btnIniciar, btnParar, btnCodigo, btnReset, btnHistorial, btnTema, btnMin, btnClose
     global btnUpdate, btnOverlay, btnRGBBtn, btnStatsBtn, btnWebhook, btnLogros, btnPart, btnPerfil
-    global colorLogoEnTransicion, colorFondoEnTransicion
+    global colorLogoEnTransicion, colorFondoEnTransicion, colorTextoBarra
     global luzActiva, luzAccion, luzApagado, historialBox, separadorHistorial
     global scrollTrack, scrollThumb
-    global glowTitulo, sepEstado, sepAccion
+    global glowTitulo, sepEstado, sepAccion, activo
 
-    pasos := 22
-    temaTransStep += 1
+    static WM_SETREDRAW := 0x000B
+    static RDW_FLAGS    := 0x0001 | 0x0080 | 0x0100   ; INVALIDATE | ALLCHILDREN | UPDATENOW
 
-    t  := Min(temaTransStep / pasos, 1.0)
+    ; t basado en tiempo real (asi frames perdidos no rompen la animacion)
+    elapsed := A_TickCount - temaTransInicio
+    t  := Min(elapsed / TRANSICION_MS, 1.0)
+    ; Easing cubic in/out — empieza/termina suave, acelera en medio
     t2 := t < 0.5 ? 4*t*t*t : 1 - (-2*t+2)**3/2
 
-    ; ── LERP TODOS los colores para que TODO transicione en sincronia ──
+    ; LERP de TODOS los colores
     cFondo      := LerpHex(temaTransOrigen.fondo,      temaTransTema.fondo,      t2)
     cTexto      := LerpHex(temaTransOrigen.texto,      temaTransTema.texto,      t2)
     cBarra      := LerpHex(temaTransOrigen.barra,      temaTransTema.barra,      t2)
@@ -4110,18 +4110,17 @@ TransicionPaso() {
     cCooldown   := LerpHex(temaTransOrigen.cooldown,   temaTransTema.cooldown,   t2)
     cAFK        := LerpHex(temaTransOrigen.afk,        temaTransTema.afk,        t2)
     cLuzOn      := LerpHex(temaTransOrigen.luzOn,      temaTransTema.luzOn,      t2)
-    cLuzAccion  := LerpHex(temaTransOrigen.luzAccion,  temaTransTema.luzAccion,  t2)
     cLuzOff     := LerpHex(temaTransOrigen.luzOff,     temaTransTema.luzOff,     t2)
     colorLogoEnTransicion  := LerpHex(temaTransOrigen.logo, temaTransTema.logo, t2)
     colorFondoEnTransicion := cFondo
     colorBarraOverride     := cBarra
-    ; Actualizar el global del texto de barra para que DibujarBarraGradiente lerpee
-    global colorTextoBarra
-    colorTextoBarra := cTextoBarra
+    colorTextoBarra        := cTextoBarra  ; para que el titulo de la barra lerpee
 
-    ; ── Aplicar TODOS los cambios via Opt() — sin pintar todavia ──
+    ; ── PASO 1: deshabilitar repaints en ambas ventanas ──
+    SendMessage(WM_SETREDRAW, 0, 0, , "ahk_id " miGui.Hwnd)
+    SendMessage(WM_SETREDRAW, 0, 0, , "ahk_id " historialGui.Hwnd)
 
-    ; Fondo de ambas ventanas (AHK nativo, se pinta en el repaint sincronico de abajo)
+    ; ── PASO 2: aplicar TODOS los cambios via Opt() / BackColor (sin pintar) ──
     try miGui.BackColor       := cFondo
     try historialGui.BackColor := cFondo
 
@@ -4129,7 +4128,7 @@ TransicionPaso() {
     if (IsObject(historialBox))
         SendMessage(0x0443, 0, HexToBGR(cFondoHist), , "ahk_id " historialBox.Hwnd)
 
-    ; Botones - fondo + color de texto
+    ; Botones — fondo + texto
     for btn in [btnIniciar, btnParar, btnCodigo, btnReset, btnHistorial, btnTema, btnMin, btnClose, btnUpdate, btnOverlay, btnRGBBtn, btnStatsBtn, btnWebhook, btnLogros, btnPart] {
         if (IsObject(btn))
             btn.Opt("Background" cBoton " c" cBtnTexto)
@@ -4137,13 +4136,13 @@ TransicionPaso() {
     if (IsObject(btnPerfil))
         btnPerfil.Opt("Background" cBoton " c" cBtnTexto)
 
-    ; Labels con fondo solido en la ventana principal (miGui)
+    ; Labels con bg sólido en miGui — fondo + texto
     for ctrl in [tituloMacro, timerLabel, presetLabel, fpsLabel] {
         if (IsObject(ctrl))
             ctrl.Opt("Background" cFondo " c" cTexto)
     }
 
-    ; Labels con fondo solido en la ventana del historial
+    ; Labels con bg en la ventana del historial
     for ctrl in [secuenciasLabel, destruccionesLabel, contadorLabel] {
         if (IsObject(ctrl))
             ctrl.Opt("Background" cFondoHist " c" cTexto)
@@ -4153,49 +4152,36 @@ TransicionPaso() {
     if (IsObject(afkText))
         afkText.Opt("Background" cFondoHist " c" cAFK)
 
-    ; Luces - fondo + color de fill segun estado del macro
-    ; (antes solo se actualizaba bg → luces quedaban con color VIEJO durante toda la transicion)
-    global activo
+    ; Luces — fondo + color de fill segun estado activo
     if (activo) {
-        if (IsObject(luzActiva))
-            luzActiva.Opt("Background" cFondo " c" cLuzOn)
-        if (IsObject(luzAccion))
-            luzAccion.Opt("Background" cFondo " c" cBoton)
-        if (IsObject(luzApagado))
-            luzApagado.Opt("Background" cFondo " c" cBoton)
+        if (IsObject(luzActiva))   luzActiva.Opt("Background"   cFondo " c" cLuzOn)
+        if (IsObject(luzAccion))   luzAccion.Opt("Background"   cFondo " c" cBoton)
+        if (IsObject(luzApagado))  luzApagado.Opt("Background"  cFondo " c" cBoton)
     } else {
-        if (IsObject(luzActiva))
-            luzActiva.Opt("Background" cFondo " c" cBoton)
-        if (IsObject(luzAccion))
-            luzAccion.Opt("Background" cFondo " c" cBoton)
-        if (IsObject(luzApagado))
-            luzApagado.Opt("Background" cFondo " c" cLuzOff)
+        if (IsObject(luzActiva))   luzActiva.Opt("Background"   cFondo " c" cBoton)
+        if (IsObject(luzAccion))   luzAccion.Opt("Background"   cFondo " c" cBoton)
+        if (IsObject(luzApagado))  luzApagado.Opt("Background"  cFondo " c" cLuzOff)
     }
 
-    ; Separadores y polish visual
-    if (IsObject(separadorHistorial))
-        separadorHistorial.Opt("Background" cBarra)
-    if (IsObject(glowTitulo))
-        glowTitulo.Opt("Background" AclararHex(cBarra, 0.35))
-    if (IsObject(sepEstado))
-        sepEstado.Opt("Background" cBarra)
-    if (IsObject(sepAccion))
-        sepAccion.Opt("Background" cBarra)
+    ; Separadores + polish visual (no parpadea porque va dentro del WM_SETREDRAW)
+    if (IsObject(separadorHistorial))  separadorHistorial.Opt("Background" cBarra)
+    if (IsObject(glowTitulo))          glowTitulo.Opt("Background" AclararHex(cBarra, 0.35))
+    if (IsObject(sepEstado))           sepEstado.Opt("Background" cBarra)
+    if (IsObject(sepAccion))           sepAccion.Opt("Background" cBarra)
 
     ; Scrollbar personalizado
-    if (IsObject(scrollTrack))
-        scrollTrack.Opt("Background" cBoton)
-    if (IsObject(scrollThumb))
-        scrollThumb.Opt("Background" cHover)
+    if (IsObject(scrollTrack))  scrollTrack.Opt("Background" cBoton)
+    if (IsObject(scrollThumb))  scrollThumb.Opt("Background" cHover)
 
-    ; ── REPAINT SINCRONO de TODO en una sola pasada ──
-    ; RDW_INVALIDATE (0x1) | RDW_ERASE (0x4) | RDW_ALLCHILDREN (0x80) | RDW_UPDATENOW (0x100)
-    ; Esto fuerza a Windows a invalidar, borrar y repintar ventana + TODOS los hijos en UN solo frame.
-    static RDW_FLAGS := 0x0001 | 0x0004 | 0x0080 | 0x0100
+    ; ── PASO 3: re-habilitar repaints ──
+    SendMessage(WM_SETREDRAW, 1, 0, , "ahk_id " miGui.Hwnd)
+    SendMessage(WM_SETREDRAW, 1, 0, , "ahk_id " historialGui.Hwnd)
+
+    ; ── PASO 4: UN solo repaint sincronico de TODO (ventana + hijos) ──
     DllCall("RedrawWindow", "Ptr", miGui.Hwnd,        "Ptr", 0, "Ptr", 0, "UInt", RDW_FLAGS)
     DllCall("RedrawWindow", "Ptr", historialGui.Hwnd, "Ptr", 0, "Ptr", 0, "UInt", RDW_FLAGS)
 
-    if (temaTransStep > pasos) {
+    if (t >= 1.0) {
         colorBarraOverride := ""
         AplicarTema(temaTransTema, temaTransGuardar, true)
         SetTimer(TransicionPaso, 0)
@@ -4297,11 +4283,11 @@ AplicarTema(tema, guardar := true, fromTrans := false) {
     timerLabel.SetFont("s13 c" colorTextoPrincipal " Bold", "Segoe UI Semibold")
     if (IsObject(presetLabel)) {
         presetLabel.Opt("Background" colorFondoPrincipal " c" colorTextoPrincipal)
-        presetLabel.SetFont("s7 c" colorTextoPrincipal, "Segoe UI Semibold")
+        presetLabel.SetFont("s8 c" colorTextoPrincipal, "Segoe UI Semibold")
     }
     if (IsObject(fpsLabel)) {
         fpsLabel.Opt("Background" colorFondoPrincipal " c" colorTextoPrincipal)
-        fpsLabel.SetFont("s7 c" colorTextoPrincipal, "Segoe UI")
+        fpsLabel.SetFont("s8 c" colorTextoPrincipal, "Segoe UI")
     }
     if (IsObject(contadorLabel))
         contadorLabel.Opt("Background" colorVentanaHistorial " c" colorTextoPrincipal)
@@ -5094,9 +5080,7 @@ ActualizarAFK(*) {
     if (perfilActivo = 3)
         return
     tiempo := A_TickCount - ultimoCambio
-    ; tct=4min, sp=6min para modo destruccion
-    limiteDestruccion := (perfilActivo = 2) ? 360000 : 240000
-    restante := limiteDestruccion - tiempo
+    restante := 360000 - tiempo
 
     ; Activar Modo Destruccion cuando el contador llega a 0
     if (restante <= 0 && !modoDestruccion) {
@@ -5107,8 +5091,8 @@ ActualizarAFK(*) {
     }
 
     if (modoDestruccion) {
-        ; Mostrar cuenta atras de 30s antes de Alt+F4
-        restanteDestru := (limiteDestruccion + 30000) - tiempo
+        ; Mostrar cuenta atras del minuto extra antes de Alt+F4
+        restanteDestru := 420000 - tiempo
         if (restanteDestru < 0)
             restanteDestru := 0
         segsDestru := Round(restanteDestru / 1000, 1)
@@ -5335,8 +5319,6 @@ EjecutarMacro(*) {
         return
     accionEnCurso := true
 
-    try {
-
     if (modoCadena) {
         if (A_TickCount > finCadena) {
             modoCadena := false
@@ -5353,6 +5335,7 @@ EjecutarMacro(*) {
                             SendInput "{" p.accion "}"
                         p.lastUsed := A_TickCount
                         ActivarBloqueoGlobal(p)
+                        ; Recuperación de modo destrucción si detectamos algo
                         if (modoDestruccion) {
                             modoDestruccion := false
                             AgregarHistorial(Chr(0x2705) " Detección recuperada - saliendo de modo destrucción", "00CC44")
@@ -5384,6 +5367,7 @@ EjecutarMacro(*) {
             continue
 
         pasoRevisado += 1
+        ; Cada 5 pasos → comprobar prioridad
         if (!modoCadena && Mod(pasoRevisado, PASOS_ENTRE_PRIO) = 0) {
             if CheckPrioridad() {
                 accionEnCurso := false
@@ -5451,6 +5435,9 @@ EjecutarMacro(*) {
                 ultimoCambio := A_TickCount
                 ultimoPasoEjecutado := paso.nombre
             }
+            ; Si el macro estaba en modo destrucción y acaba de detectar algo, salir del modo.
+            ; Antes se quedaba pegado en "MODO DESTRUCCION en: Xs" para siempre si
+            ; el juego se recuperaba durante la ventana de 60s antes del Alt+F4.
             if (modoDestruccion) {
                 modoDestruccion := false
                 AgregarHistorial(Chr(0x2705) " Detección recuperada - saliendo de modo destrucción", "00CC44")
@@ -5473,17 +5460,13 @@ EjecutarMacro(*) {
         }
     }
 
-    } catch as e {
-        ; Si algo falla dentro del loop de deteccion, registrar y continuar
-        try AgregarHistorial("⚠ Error detección: " e.Message, "FF0000")
-    }
     accionEnCurso := false
     tiempoSinCambios := A_TickCount - ultimoCambio
 
     ; ===== MODO DESTRUCCION =====
-    ; Evaluar ANTES del anti-AFK. tct=270s (4min+30s), sp=390s (6min+30s)
-    limiteAltF4 := (perfilActivo = 2) ? 390000 : 270000
-    if (modoDestruccion && tiempoSinCambios > limiteAltF4) {
+    ; Evaluar ANTES del anti-AFK para que el reset de ultimoCambio a los 400s
+    ; no impida alcanzar los 420s necesarios para el Alt+F4.
+    if (modoDestruccion && tiempoSinCambios > 420000) {
         modoDestruccion := false
         contadorDestruccion += 1
         ActualizarDestrucciones()
@@ -5520,9 +5503,7 @@ EjecutarMacro(*) {
     }
 
     ; ===== ANTI-AFK (solo si NO estamos en modo destruccion) =====
-    ; tct=4min (240s), sp=6min (360s)
-    limiteAntiAFK := (perfilActivo = 2) ? 360000 : 240000
-    if (!modoDestruccion && tiempoSinCambios > limiteAntiAFK) {
+    if (!modoDestruccion && tiempoSinCambios > 400000) {
         ultimoCambio := A_TickCount
         Loop 1 {
             SendInput "{Esc}"
@@ -5533,19 +5514,6 @@ EjecutarMacro(*) {
             Sleep 1500
         }
     }
-
-    ; ===== SP: presionar "a" 15s a los 5:30 sin detección =====
-    static spTeclaAEjecutada := false
-    if (perfilActivo = 2 && !modoDestruccion) {
-        if (tiempoSinCambios > 330000 && !spTeclaAEjecutada) {
-            spTeclaAEjecutada := true
-            AgregarHistorial("🅰 SP: presionando 'a' por 15s...", "FF8800")
-            SendInput "{a down}"
-            SetTimer(() => (SendInput("{a up}"), AgregarHistorial("🅰 SP: tecla 'a' liberada", "00CC44")), -15000)
-        }
-    }
-    if (tiempoSinCambios < 5000)
-        spTeclaAEjecutada := false
 
     ; ===== REINTENTO LANZAMIENTO =====
 
@@ -5895,12 +5863,12 @@ DefinirLogros() {
         { id: "godmode",      nombre: "God Mode",             desc: "Desbloquea TODOS los temas",       icono: Chr(0x1F451), desbloqueado: false },
         ; ── Logros por desbloqueo de tema secreto (con pista) ───────────
         { id: "themeShadow",  nombre: "Eclipse del tiempo",    desc: "??? (el ⏱ timer responde si insistes)",                       icono: Chr(0x2728), desbloqueado: false },
-        { id: "themeCosmos",  nombre: "Viajero estelar",       desc: "??? (gira y gira el ⚙ engranaje)",                            icono: Chr(0x2728), desbloqueado: false },
-        { id: "themeVoid",    nombre: "Abrazo del vacío",      desc: "??? (el título AFK Smart no es tan inocente)",                icono: Chr(0x26A1), desbloqueado: false },
+        { id: "themeCosmos",  nombre: "Viajero estelar",       desc: "??? (gira y gira )",                            icono: Chr(0x2728), desbloqueado: false },
+        { id: "themeVoid",    nombre: "Abrazo del vacío",      desc: "??? (Tal vez algo AFK )",                icono: Chr(0x26A1), desbloqueado: false },
         { id: "themeSolar",   nombre: "Renacer de las cenizas",desc: "??? (las 3 luces tienen un orden secreto: izq → centro → der)", icono: Chr(0x1F525), desbloqueado: false },
-        { id: "themeBlanco",  nombre: "Pureza absoluta",       desc: "??? (la barra del historial guarda un secreto)",              icono: Chr(0x2728), desbloqueado: false },
+        { id: "themeBlanco",  nombre: "Pureza absoluta",       desc: "??? (el historial guarda un secreto AFK)",              icono: Chr(0x2728), desbloqueado: false },
         { id: "themePremium", nombre: "El elegido",            desc: "??? (consigue TODOS los demás secretos primero)",             icono: Chr(0x1F48E), desbloqueado: false },
-        { id: "gamerpack",    nombre: "Pack Gamer",            desc: "??? (algo en el historial responde a clicks insistentes)",     icono: Chr(0x1F3AE), desbloqueado: false },
+        { id: "gamerpack",    nombre: "Pack Gamer",            desc: "??? (Las SECUENCIAS son el camino)",     icono: Chr(0x1F3AE), desbloqueado: false },
         ; ── Logros de cifra ──────────────────────────────────────────
         { id: "kiko",         nombre: "kiko",                  desc: "Llega a 67 secuencias",            icono: Chr(0x1F60E), desbloqueado: false },
         { id: "jbs",          nombre: "JBS",                   desc: "Llega a 5000 secuencias",          icono: Chr(0x1F3C6), desbloqueado: false }
@@ -6383,9 +6351,6 @@ Parar(*) {
     global tiempoUltimoLanzamiento, barra, barraHistorial, colorBarra, logoMacro, colorLogoMacro
     global logoVelObjetivo
     global afkAlertaFlash, afkText, colorAFK, timerLabel, colorTextoPrincipal
-    global tiempoAcumulado, contadorSecuencias, contadorDestruccion
-    global totalHorasGuardadas, totalSecuenciasGuardadas, totalDestruccionGuardada
-    global colorHist2, colorCooldown
     activo := false
     logoVelObjetivo := 0.0
     accionEnCurso := false
@@ -6412,107 +6377,7 @@ Parar(*) {
     ; Shimmer de apagado y restaurar barra
     SetTimer(() => (BarraShimmer(colorBarra), barra.Opt("Background" colorBarra), barraHistorial.Opt("Background" colorBarra), DllCall("InvalidateRect", "Ptr", barra.Hwnd, "Ptr", 0, "Int", 1)), -1)
     PararTimer()
-
-    ; ===== RESUMEN DE SESION (popup window 7s) =====
-    MostrarResumenSesion()
-
     EnviarWebhookEvento("parado")
-}
-
-; Popup flotante con el resumen de la sesion. Se cierra solo a los 7s.
-MostrarResumenSesion() {
-    global tiempoAcumulado, contadorSecuencias, contadorDestruccion
-    global totalHorasGuardadas, totalSecuenciasGuardadas, totalDestruccionGuardada
-    global colorFondoPrincipal, colorTextoPrincipal, colorBarra, colorTextoBarra
-    global colorHist2, colorCooldown, colorLuzActiva, miGui
-
-    tiempoSesion := tiempoAcumulado
-    hSes := Floor(tiempoSesion / 3600000)
-    mSes := Floor((tiempoSesion - hSes * 3600000) / 60000)
-    sSes := Floor((tiempoSesion - hSes * 3600000 - mSes * 60000) / 1000)
-    duracion := ""
-    if (hSes > 0)
-        duracion := hSes "h " mSes "m"
-    else if (mSes > 0)
-        duracion := mSes "m " sSes "s"
-    else
-        duracion := sSes "s"
-
-    totalH := totalHorasGuardadas + (tiempoSesion / 3600000.0)
-    totalS := totalSecuenciasGuardadas + contadorSecuencias
-    totalD := totalDestruccionGuardada + contadorDestruccion
-    totalHFmt := Floor(totalH) "h " Floor(Mod(totalH * 60, 60)) "m"
-
-    W := 340, H := 220
-    rGui := Gui("+AlwaysOnTop -Caption +ToolWindow")
-    rGui.BackColor := colorFondoPrincipal
-    rGui.MarginX := 0
-    rGui.MarginY := 0
-
-    ; Barra superior
-    barr := rGui.Add("Text", "x0 y0 w" W " h32 Background" colorBarra " Center +0x200", "  " Chr(0x1F4CA) "  Resumen de sesión")
-    barr.SetFont("s11 c" colorTextoBarra " Bold", "Segoe UI Semibold")
-
-    ; Duracion (grande, centrada)
-    lblDurT := rGui.Add("Text", "x0 y42 w" W " h16 Background" colorFondoPrincipal " Center c" colorTextoPrincipal, "DURACIÓN")
-    lblDurT.SetFont("s7 c" AclararHex(colorTextoPrincipal, 0.30), "Segoe UI Semibold")
-    lblDur := rGui.Add("Text", "x0 y58 w" W " h28 Background" colorFondoPrincipal " Center c" colorLuzActiva, duracion)
-    lblDur.SetFont("s18 c" colorLuzActiva " Bold", "Segoe UI Semibold")
-
-    ; Stats en 2 columnas
-    rGui.Add("Text", "x20 y96 w140 h16 Background" colorFondoPrincipal " c" AclararHex(colorTextoPrincipal, 0.30), Chr(0x1F504) " Secuencias").SetFont("s8", "Segoe UI")
-    lblSec := rGui.Add("Text", "x20 y112 w140 h22 Background" colorFondoPrincipal " c" colorHist2, contadorSecuencias)
-    lblSec.SetFont("s14 c" colorHist2 " Bold", "Segoe UI Semibold")
-
-    rGui.Add("Text", "x180 y96 w140 h16 Background" colorFondoPrincipal " c" AclararHex(colorTextoPrincipal, 0.30), Chr(0x1F4A5) " Destrucciones").SetFont("s8", "Segoe UI")
-    lblDes := rGui.Add("Text", "x180 y112 w140 h22 Background" colorFondoPrincipal " c" colorCooldown, contadorDestruccion)
-    lblDes.SetFont("s14 c" colorCooldown " Bold", "Segoe UI Semibold")
-
-    ; Separador
-    rGui.Add("Text", "x20 y142 w" (W-40) " h1 Background" colorBarra, "")
-
-    ; Totales acumulados
-    rGui.Add("Text", "x20 y150 w" (W-40) " h14 Background" colorFondoPrincipal " c" AclararHex(colorTextoPrincipal, 0.30) " Center", "ACUMULADO HISTÓRICO").SetFont("s7 Bold", "Segoe UI Semibold")
-
-    rGui.Add("Text", "x20 y168 w100 h14 Background" colorFondoPrincipal " c" colorTextoPrincipal, Chr(0x23F0) " " totalHFmt).SetFont("s8", "Segoe UI")
-    rGui.Add("Text", "x130 y168 w100 h14 Background" colorFondoPrincipal " c" colorTextoPrincipal " Center", Chr(0x1F504) " " totalS).SetFont("s8", "Segoe UI")
-    rGui.Add("Text", "x240 y168 w80 h14 Background" colorFondoPrincipal " c" colorTextoPrincipal, Chr(0x1F4A5) " " totalD).SetFont("s8", "Segoe UI")
-
-    ; Barra de progreso "cuenta atras" hasta cierre (7s)
-    progBarra := rGui.Add("Progress", "x0 y" (H-4) " w" W " h4 Background" colorFondoPrincipal " c" colorBarra, 100)
-
-    ; Posicionar arriba del miGui
-    try {
-        miGui.GetPos(&mx, &my, &mw,)
-        rx := mx + (mw - W) // 2
-        ry := my - H - 10
-        if (ry < 0)
-            ry := 50
-    } catch {
-        rx := (A_ScreenWidth - W) // 2
-        ry := 100
-    }
-    rGui.Show("x" rx " y" ry " w" W " h" H " NoActivate")
-    RedondearVentana(rGui.Hwnd, 14)
-
-    ; Animar la barra de cuenta atras + cerrar a los 7s
-    inicio := A_TickCount
-    actualizarBarra := ActualizarBarraResumen.Bind(progBarra, inicio)
-    SetTimer(actualizarBarra, 50)
-    cerrarResumen := CerrarResumenSesion.Bind(rGui, actualizarBarra)
-    SetTimer(cerrarResumen, -7000)
-}
-
-ActualizarBarraResumen(progBarra, inicio) {
-    try {
-        pct := Max(0, 100 - Round((A_TickCount - inicio) / 70))
-        progBarra.Value := pct
-    }
-}
-
-CerrarResumenSesion(rGui, actualizarBarra) {
-    try SetTimer(actualizarBarra, 0)
-    try rGui.Destroy()
 }
 
 ; ===== ACTUALIZADOR =====
