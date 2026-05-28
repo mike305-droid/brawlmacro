@@ -4154,24 +4154,48 @@ TransicionPaso() {
 
     ; Luces — fondo + color de fill segun estado activo
     if (activo) {
-        if (IsObject(luzActiva))   luzActiva.Opt("Background"   cFondo " c" cLuzOn)
-        if (IsObject(luzAccion))   luzAccion.Opt("Background"   cFondo " c" cBoton)
-        if (IsObject(luzApagado))  luzApagado.Opt("Background"  cFondo " c" cBoton)
+        if (IsObject(luzActiva)) {
+            luzActiva.Opt("Background" cFondo " c" cLuzOn)
+        }
+        if (IsObject(luzAccion)) {
+            luzAccion.Opt("Background" cFondo " c" cBoton)
+        }
+        if (IsObject(luzApagado)) {
+            luzApagado.Opt("Background" cFondo " c" cBoton)
+        }
     } else {
-        if (IsObject(luzActiva))   luzActiva.Opt("Background"   cFondo " c" cBoton)
-        if (IsObject(luzAccion))   luzAccion.Opt("Background"   cFondo " c" cBoton)
-        if (IsObject(luzApagado))  luzApagado.Opt("Background"  cFondo " c" cLuzOff)
+        if (IsObject(luzActiva)) {
+            luzActiva.Opt("Background" cFondo " c" cBoton)
+        }
+        if (IsObject(luzAccion)) {
+            luzAccion.Opt("Background" cFondo " c" cBoton)
+        }
+        if (IsObject(luzApagado)) {
+            luzApagado.Opt("Background" cFondo " c" cLuzOff)
+        }
     }
 
     ; Separadores + polish visual (no parpadea porque va dentro del WM_SETREDRAW)
-    if (IsObject(separadorHistorial))  separadorHistorial.Opt("Background" cBarra)
-    if (IsObject(glowTitulo))          glowTitulo.Opt("Background" AclararHex(cBarra, 0.35))
-    if (IsObject(sepEstado))           sepEstado.Opt("Background" cBarra)
-    if (IsObject(sepAccion))           sepAccion.Opt("Background" cBarra)
+    if (IsObject(separadorHistorial)) {
+        separadorHistorial.Opt("Background" cBarra)
+    }
+    if (IsObject(glowTitulo)) {
+        glowTitulo.Opt("Background" AclararHex(cBarra, 0.35))
+    }
+    if (IsObject(sepEstado)) {
+        sepEstado.Opt("Background" cBarra)
+    }
+    if (IsObject(sepAccion)) {
+        sepAccion.Opt("Background" cBarra)
+    }
 
     ; Scrollbar personalizado
-    if (IsObject(scrollTrack))  scrollTrack.Opt("Background" cBoton)
-    if (IsObject(scrollThumb))  scrollThumb.Opt("Background" cHover)
+    if (IsObject(scrollTrack)) {
+        scrollTrack.Opt("Background" cBoton)
+    }
+    if (IsObject(scrollThumb)) {
+        scrollThumb.Opt("Background" cHover)
+    }
 
     ; ── PASO 3: re-habilitar repaints ──
     SendMessage(WM_SETREDRAW, 1, 0, , "ahk_id " miGui.Hwnd)
