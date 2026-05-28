@@ -4117,16 +4117,19 @@ TransicionPaso() {
     colorTextoBarra        := cTextoBarra  ; para que el titulo de la barra lerpee
 
     ; ── PASO 1: deshabilitar repaints en ambas ventanas ──
-    SendMessage(WM_SETREDRAW, 0, 0, , "ahk_id " miGui.Hwnd)
-    SendMessage(WM_SETREDRAW, 0, 0, , "ahk_id " historialGui.Hwnd)
+    ; Usamos DllCall directo (no SendMessage de AHK) porque AHK resuelve el
+    ; WinTitle cada vez y con redraws deshabilitados puede fallar el lookup.
+    DllCall("SendMessageW", "Ptr", miGui.Hwnd,        "UInt", WM_SETREDRAW, "Ptr", 0, "Ptr", 0)
+    DllCall("SendMessageW", "Ptr", historialGui.Hwnd, "UInt", WM_SETREDRAW, "Ptr", 0, "Ptr", 0)
 
     ; ── PASO 2: aplicar TODOS los cambios via Opt() / BackColor (sin pintar) ──
     try miGui.BackColor       := cFondo
     try historialGui.BackColor := cFondo
 
-    ; Fondo del RichEdit del historial
-    if (IsObject(historialBox))
-        SendMessage(0x0443, 0, HexToBGR(cFondoHist), , "ahk_id " historialBox.Hwnd)
+    ; Fondo del RichEdit del historial (EM_SETBKGNDCOLOR)
+    if (IsObject(historialBox)) {
+        DllCall("SendMessageW", "Ptr", historialBox.Hwnd, "UInt", 0x0443, "Ptr", 0, "Ptr", HexToBGR(cFondoHist))
+    }
 
     ; Botones — fondo + texto
     for btn in [btnIniciar, btnParar, btnCodigo, btnReset, btnHistorial, btnTema, btnMin, btnClose, btnUpdate, btnOverlay, btnRGBBtn, btnStatsBtn, btnWebhook, btnLogros, btnPart] {
@@ -4198,8 +4201,8 @@ TransicionPaso() {
     }
 
     ; ── PASO 3: re-habilitar repaints ──
-    SendMessage(WM_SETREDRAW, 1, 0, , "ahk_id " miGui.Hwnd)
-    SendMessage(WM_SETREDRAW, 1, 0, , "ahk_id " historialGui.Hwnd)
+    DllCall("SendMessageW", "Ptr", miGui.Hwnd,        "UInt", WM_SETREDRAW, "Ptr", 1, "Ptr", 0)
+    DllCall("SendMessageW", "Ptr", historialGui.Hwnd, "UInt", WM_SETREDRAW, "Ptr", 1, "Ptr", 0)
 
     ; ── PASO 4: UN solo repaint sincronico de TODO (ventana + hijos) ──
     DllCall("RedrawWindow", "Ptr", miGui.Hwnd,        "Ptr", 0, "Ptr", 0, "UInt", RDW_FLAGS)
