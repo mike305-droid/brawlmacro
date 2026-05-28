@@ -4035,7 +4035,11 @@ global temaOverlayM := "", temaOverlayH := ""
 ; - Todos los colores interpolan en paralelo, todos los controles repintan en el mismo frame.
 
 global temaTransInicio := 0
-global TRANSICION_MS   := 400
+global TRANSICION_MS   := 1200    ; duracion total transicion (ms)
+; WS_EX_COMPOSITED (0x02000000) hace double-buffering automatico a nivel OS:
+; todos los hijos pintan a un buffer comun y se presentan como UN frame.
+; Lo activamos solo durante la transicion para evitar overhead en steady state.
+global WS_EX_COMPOSITED := 0x02000000
 
 TransicionTema(tema, guardar := true) {
     global temaTransInicio, temaTransTema, temaTransGuardar, temaEnTransicion
@@ -4073,7 +4077,13 @@ TransicionTema(tema, guardar := true) {
     temaTransInicio  := A_TickCount
     temaTransTema    := tema
     temaTransGuardar := guardar
-    SetTimer(TransicionPaso, 25)  ; ~40fps, mas estable que 60fps
+
+    ; Activar double-buffering OS-level durante la transicion: garantiza que TODOS
+    ; los hijos (fondo + labels + luces + barra + logo) aparezcan en el MISMO frame.
+    try miGui.Opt("+E" WS_EX_COMPOSITED)
+    try historialGui.Opt("+E" WS_EX_COMPOSITED)
+
+    SetTimer(TransicionPaso, 33)  ; ~30fps, suficiente para 1.2s = 36 frames
 }
 
 TransicionPaso() {
@@ -4090,7 +4100,7 @@ TransicionPaso() {
     global glowTitulo, sepEstado, sepAccion, activo
 
     static WM_SETREDRAW := 0x000B
-    static RDW_FLAGS    := 0x0001 | 0x0080 | 0x0100   ; INVALIDATE | ALLCHILDREN | UPDATENOW
+    static RDW_FLAGS    := 0x0001 | 0x0004 | 0x0080 | 0x0100   ; INVALIDATE | ERASE | ALLCHILDREN | UPDATENOW
 
     ; t basado en tiempo real (asi frames perdidos no rompen la animacion)
     elapsed := A_TickCount - temaTransInicio
@@ -4213,6 +4223,10 @@ TransicionPaso() {
         AplicarTema(temaTransTema, temaTransGuardar, true)
         SetTimer(TransicionPaso, 0)
         temaEnTransicion := false
+        ; Desactivar el double-buffering (causa overhead y puede afectar
+        ; subclasseados controles si se deja activo permanente).
+        try miGui.Opt("-E" WS_EX_COMPOSITED)
+        try historialGui.Opt("-E" WS_EX_COMPOSITED)
     }
 }
 
