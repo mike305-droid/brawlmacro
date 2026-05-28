@@ -2925,22 +2925,17 @@ EnviarWebhookSync(titulo, mensaje, colorHex) {
     mensaje := EscapeJson(mensaje)
     json := '{"embeds":[{"title":"' titulo '","description":"' mensaje '","color":' colorInt ',"footer":{"text":"AFK Macro"}}]}'
 
-    ; Enviar via ComObject (asíncrono via SetTimer, no bloquea el hilo principal)
+    ; CRITICO: NO usar WinHttpRequest.WaitForResponse() — bloquea el thread principal
+    ; hasta 15s y el watchdog mata el macro pensando que esta congelado.
+    ; En su lugar, escribir el JSON a archivo temporal y lanzar curl.exe en background
+    ; (Run + Hide). Totalmente async, no bloquea NADA.
+    payloadFile := A_Temp "\brawlmacro_wh_" A_TickCount "_" Random(1000,9999) ".json"
     try {
-        whr := ComObject("WinHttp.WinHttpRequest.5.1")
-        whr.SetTimeouts(5000, 5000, 10000, 10000)
-        whr.Open("POST", webhookURL, true)
-        whr.SetRequestHeader("Content-Type", "application/json; charset=utf-8")
-        whr.Send(json)
-        whr.WaitForResponse(15)
-        status := whr.Status
-        if (status != 204 && status != 200) {
-            respText := ""
-            try respText := whr.ResponseText
-            AgregarHistorial("⚠ Webhook HTTP " status ": " SubStr(respText, 1, 60), "FF5555")
-        }
-    } catch as e {
-        AgregarHistorial("⚠ Webhook error: " SubStr(e.Message, 1, 60), "FF5555")
+        FileAppend(json, payloadFile, "UTF-8-RAW")
+        ; curl manda, espera respuesta en su propio proceso, luego borra el archivo.
+        ; Si curl falla o el webhook es invalido, el macro NO se entera (y no se cuelga).
+        cmd := A_ComSpec ' /c curl.exe -s -X POST -H "Content-Type: application/json" --data-binary @"' payloadFile '" "' webhookURL '" >nul 2>&1 & del "' payloadFile '"'
+        Run(cmd, , "Hide")
     }
 }
 
