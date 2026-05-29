@@ -8,7 +8,7 @@ configPath := A_ScriptDir "\brawlmacro_config.ini"
 global eggsBackupPath := A_ScriptDir "\brawlmacro_eggs.txt"
 global heartbeatPath := A_ScriptDir "\brawlmacro_heartbeat.txt"
 global historialLogPath := A_ScriptDir "\brawlmacro_historial.log"
-global VERSION_ACTUAL := "28.4.3"
+global VERSION_ACTUAL := "28.4.4"
 
 ; ===== TEMAS =====
 temas := [
@@ -5572,8 +5572,7 @@ EjecutarMacro(*) {
             Sleep 200
 
         Sleep 1500  ; dar tiempo al sistema antes de relanzar
-        AgregarHistorial("🔄 Abriendo Brawlhalla por Steam...", "FF8800")
-        try Run("steam://rungameid/291550")
+        LanzarBrawlhallaConFoco()
         tiempoUltimoLanzamiento := A_TickCount
     }
 
@@ -5595,27 +5594,8 @@ EjecutarMacro(*) {
     if (tiempoUltimoLanzamiento > 0 && (A_TickCount - tiempoUltimoLanzamiento) > 60000) {
         tiempoUltimoLanzamiento := A_TickCount
         ultimoCambio := A_TickCount
-        if (ProcessExist("Brawlhalla.exe")) {
-            ; Si el proceso existe pero el macro no detecta nada, normalmente es porque
-            ; la ventana perdio el foco o se minimizo. Restaurarla y activarla.
-            try {
-                if WinExist("ahk_exe Brawlhalla.exe") {
-                    hwndBH := WinGetID("ahk_exe Brawlhalla.exe")
-                    if DllCall("IsIconic", "Ptr", hwndBH, "Int") {
-                        WinRestore("ahk_exe Brawlhalla.exe")
-                        AgregarHistorial("⚠️ Sin detección tras 2 min - Brawlhalla minimizado → restaurado", "FF8800")
-                    } else {
-                        WinActivate("ahk_exe Brawlhalla.exe")
-                        AgregarHistorial("⚠️ Sin detección tras 2 min - reenfocando ventana de Brawlhalla", "FF8800")
-                    }
-                } else {
-                    AgregarHistorial("⚠️ Sin detección tras 2 min - Brawlhalla corre sin ventana visible", "FF8800")
-                }
-            }
-        } else {
-            AgregarHistorial("⚠️ Sin detección tras 2 min - reintentando lanzamiento por Steam...", "FF8800")
-            try Run("steam://rungameid/291550")
-        }
+        AgregarHistorial("⚠️ Sin detección tras 2 min - relanzando secuencia Steam + Win + 'brawlhalla'", "FF8800")
+        LanzarBrawlhallaConFoco()
     }
 
     MouseMove(1, 0, 0, "R")
@@ -6368,30 +6348,35 @@ LanzarJuegoDelPerfil() {
 
     if (perfilActivo = 1 || perfilActivo = 2) {
         ; ── tct y sp ambos abren Brawlhalla ──
-        if (ProcessExist("Brawlhalla.exe")) {
-            ; Ya esta abierto pero puede estar en background o minimizado.
-            ; Activar/restaurar la ventana en vez de fingir relanzarlo.
-            try {
-                if WinExist("ahk_exe Brawlhalla.exe") {
-                    hwndBH := WinGetID("ahk_exe Brawlhalla.exe")
-                    if DllCall("IsIconic", "Ptr", hwndBH, "Int") {
-                        WinRestore("ahk_exe Brawlhalla.exe")
-                        AgregarHistorial(Chr(0x1F504) " Brawlhalla estaba minimizado → restaurado", "00CC44")
-                    } else {
-                        WinActivate("ahk_exe Brawlhalla.exe")
-                        AgregarHistorial(Chr(0x2705) " Brawlhalla ya abierto → enfocando ventana", "00CC44")
-                    }
-                } else {
-                    AgregarHistorial(Chr(0x2705) " Brawlhalla ya está abierto", "00CC44")
-                }
-            }
-            return
-        }
-        AgregarHistorial(Chr(0x1F504) " Abriendo Brawlhalla por Steam...", "FF8800")
-        try Run("steam://rungameid/291550")
+        ; Sin detectar si esta abierto: SIEMPRE ejecutar la secuencia Steam + Win + typing
+        LanzarBrawlhallaConFoco()
         return
     }
     ; frt no lanza ningun juego
+}
+
+; Secuencia robusta de lanzamiento:
+; 1. Run steam://rungameid/291550 → Steam abre Brawlhalla (o lo trae al frente si ya esta)
+; 2. Espera 30s para que Brawlhalla cargue
+; 3. Pulsa tecla Windows → abre menu Inicio
+; 4. Espera 5s para que el menu este listo
+; 5. Escribe "brawlhalla" → Windows search la encuentra y la enfoca
+; Todo en timers encadenados (no bloquea el thread principal — heartbeat sigue vivo).
+LanzarBrawlhallaConFoco() {
+    AgregarHistorial(Chr(0x1F504) " Abriendo Brawlhalla por Steam...", "FF8800")
+    try Run("steam://rungameid/291550")
+    SetTimer(LanzarBrawlhalla_PressWin, -30000)  ; 30s despues
+}
+
+LanzarBrawlhalla_PressWin() {
+    AgregarHistorial(Chr(0x2328) " Pulsando tecla Windows...", "FF8800")
+    try Send "{LWin}"
+    SetTimer(LanzarBrawlhalla_TypeName, -5000)  ; 5s despues
+}
+
+LanzarBrawlhalla_TypeName() {
+    AgregarHistorial(Chr(0x2328) " Escribiendo 'brawlhalla'...", "FF8800")
+    try SendInput "brawlhalla"
 }
 
 CheckBrawlhallaMinimizado() {
