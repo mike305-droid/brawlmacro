@@ -8,7 +8,7 @@ configPath := A_ScriptDir "\brawlmacro_config.ini"
 global eggsBackupPath := A_ScriptDir "\brawlmacro_eggs.txt"
 global heartbeatPath := A_ScriptDir "\brawlmacro_heartbeat.txt"
 global historialLogPath := A_ScriptDir "\brawlmacro_historial.log"
-global VERSION_ACTUAL := "28.4.7"
+global VERSION_ACTUAL := "28.4.8"
 
 ; ===== TEMAS =====
 temas := [
@@ -73,22 +73,22 @@ temas := [
     { nombre:"🔥 F E N I X 🔥",   secreto:true, unlock:"solar",   fondo:"FFF8EC", texto:"8B3A00", barra:"FF6B00", textoBarra:"FFFFFF", historial:"FFFBF5", panel:"FFE5C0", cooldown:"00C9B7", afk:"00C9B7", boton:"FFB347", hover:"FF8C00", logo:"00C9B7", luzOn:"00C9B7", luzAccion:"FF6B00", luzOff:"FFB347",  btnTexto:"FFFFFF", histColor1:"FFD700", histColor2:"FF6B00", histColor3:"00C9B7" },
     { nombre:"✦ N I K A ✦",       secreto:true, unlock:"blanco",  fondo:"FFFFFF", texto:"CC0000", barra:"CC0000", textoBarra:"FFFFFF", historial:"FFFFFF", panel:"FFF2F2", cooldown:"990000", afk:"CC0000", boton:"FFF2F2", hover:"FFE0E0", logo:"CC0000", luzOn:"DD0000", luzAccion:"FF2222", luzOff:"CC0000",  btnTexto:"CC0000", histColor1:"CC0000", histColor2:"DD0000", histColor3:"FF2222" },
     { nombre:"💎 P R E M I U M 💎", secreto:true, unlock:"premium", fondo:"050008", texto:"FFFFFF", barra:"0F0020", textoBarra:"FFFFFF", historial:"030005", panel:"0A0015", cooldown:"FF0066", afk:"00FFCC", boton:"15002A", hover:"25004A", logo:"FFFFFF", luzOn:"FF00FF", luzAccion:"FFD700", luzOff:"0A0015",  btnTexto:"FFFFFF", histColor1:"FF00FF", histColor2:"00FFFF", histColor3:"FFFF00" },
-    ; ── GOJO: el más fuerte. Six Eyes + Limitless + Hollow Purple ──
-    ; Logo: ∞ (Limitless infinito). Cielo nocturno + cian Six Eyes + morado Hollow Purple.
+    ; ── GOJO: el más fuerte. Uniforme negro + pelo blanco + Limitless beige + Six Eyes azul + Hollow Purple ──
+    ; Logo: ∞ (Limitless). Negro azulado del uniforme, blanco del pelo, beige del Infinito, azul cielo, morado Hollow Purple.
     { nombre:"♾ G O J O ♾", secreto:true, unlock:"gojo", logoChar:Chr(0x221E),
-      fondo:"02071F", texto:"00DDFF", barra:"6A0DAD", textoBarra:"FFFFFF",
-      historial:"01030F", panel:"050B25", cooldown:"FF1493", afk:"00BFFF",
-      boton:"0A0F35", hover:"1A1A55", logo:"8A2BE2",
-      luzOn:"00FFFF", luzAccion:"BF00FF", luzOff:"02071F",
-      btnTexto:"00DDFF", histColor1:"00FFFF", histColor2:"8A2BE2", histColor3:"FFFFFF" },
-    ; ── SUKUNA: Rey de las Maldiciones. Malevolent Shrine + Fuga + marcas doradas ──
-    ; Logo: ⛩ (puerta torii = Malevolent Shrine). Negro sangre + dorado imperial + fuego.
+      fondo:"0A0E1F", texto:"E8DEC4", barra:"5B2A8C", textoBarra:"FFFFFF",
+      historial:"070B18", panel:"131A30", cooldown:"D4C8A8", afk:"4FC3F7",
+      boton:"1A1F35", hover:"3D1F66", logo:"FFFFFF",
+      luzOn:"4FC3F7", luzAccion:"8A2BE2", luzOff:"0A0E1F",
+      btnTexto:"E8DEC4", histColor1:"E8DEC4", histColor2:"4FC3F7", histColor3:"8A2BE2" },
+    ; ── SUKUNA: Rey de las Maldiciones. Sangre + carne maldita + Cleave ──
+    ; Logo: ⛩ (Malevolent Shrine). Negro sangre seca + rojo brillante + rojo oscuro + gris rojizo de carne maldita.
     { nombre:"⛩ S U K U N A ⛩", secreto:true, unlock:"sukuna", logoChar:Chr(0x26E9),
-      fondo:"0A0000", texto:"FFB000", barra:"5C0000", textoBarra:"FFD700",
-      historial:"050000", panel:"1A0000", cooldown:"FF4500", afk:"DC143C",
-      boton:"2B0000", hover:"400000", logo:"FFD700",
-      luzOn:"8B0000", luzAccion:"FF4500", luzOff:"0A0000",
-      btnTexto:"FFD700", histColor1:"FFD700", histColor2:"8B0000", histColor3:"FF4500" },
+      fondo:"0A0303", texto:"D63A3A", barra:"5C0A0A", textoBarra:"FFAAAA",
+      historial:"050000", panel:"2A0F0F", cooldown:"FF2A2A", afk:"B22222",
+      boton:"1F0808", hover:"4D0E0E", logo:"CC0000",
+      luzOn:"8B0000", luzAccion:"FF2A2A", luzOff:"0A0303",
+      btnTexto:"FFAAAA", histColor1:"FF4444", histColor2:"8B0000", histColor3:"6E3838" },
 ]
 
 temaActual := LeerTemaGuardado()
@@ -1933,8 +1933,7 @@ contadorLabel.SetFont("s9 c" colorTextoPrincipal, "Segoe UI")
 afkText      := historialGui.Add("Text", "x10 y305 w250 h18 vAfkText c" colorAFK " Background" colorVentanaHistorial)
 secuenciasLabel.SetFont("s10 Bold", "Segoe UI")
 destruccionesLabel.SetFont("s10 Bold", "Segoe UI")
-; egg pack Gamer + egg Gojo (Six Eyes / 6 clicks) coexisten en el mismo label
-secuenciasLabel.OnEvent("Click", (*) => (ClickSecuenciasGamer(), ClickSecuenciasGojo()))
+secuenciasLabel.OnEvent("Click", ClickSecuenciasGamer)  ; egg secreto del pack Gamer
 secuenciasLabel.Value := Chr(0x276E) "  Secuencias: 0  " Chr(0x276F)
 destruccionesLabel.Value := Chr(0x276E) "  Destrucciones: 0  " Chr(0x276F)
 ; egg Sukuna (4 brazos / 4 clicks) en destruccionesLabel
@@ -2112,6 +2111,9 @@ SetTimer(VerificarLogros, 5000)
 ActualizarVisibilidadFrt()  ; si arrancamos en frt, ocultar labels AFK/secuencias/destruccion
 SetTimer(ActualizarScrollbar, 150)
 SetTimer(WatchdogAFK, 30000)     ; cada 30 s; si activo && > 90 s sin AFK → Reload()
+; Pulso Hollow Purple del timer cada 4s (solo activo si el tema actual es GOJO)
+SetTimer(GojoPulsoHollowPurple, 4000)
+
 SetTimer(EscribirHeartbeat, 5000) ; cada 5 s escribe pid + timestamp en heartbeat.txt para el watchdog externo
 EscribirHeartbeat()              ; un primer write inmediato
 LanzarWatchdogSiNoEsta()         ; arrancar el watchdog externo en paralelo si no está corriendo
@@ -2422,6 +2424,33 @@ ClickLogo(*) {
     global eggClicks, eggUltimo, eggDesbloqueado, logoMacro, colorLogoMacro
     global eggVoidDesbloqueado, eggShadowDesbloqueado, eggSolarDesbloqueado, eggBlancoDesbloqueado
     global eggPremiumDesbloqueado, eggPremiumClicks, eggPremiumUltimo
+    global eggGojoClicks, eggGojoUltimo, eggGojoDesbloqueado
+
+    ; ═════════════════════════════════════════════════════════════════
+    ; EGG GOJO: SHIFT + 6 clicks en el logo. Cada click "abre" uno de
+    ; los Six Eyes con un color distinto del paleta de Gojo. Al sexto
+    ; (los 6 ojos abiertos) → desbloquea Limitless.
+    ; ═════════════════════════════════════════════════════════════════
+    if (!eggGojoDesbloqueado && GetKeyState("Shift", "P")) {
+        if (A_TickCount - eggGojoUltimo < 2500)
+            eggGojoClicks += 1
+        else
+            eggGojoClicks := 1
+        eggGojoUltimo := A_TickCount
+        ; Cada uno de los 6 ojos tiene un color distinto que se va abriendo
+        ; secuencia: azul cielo → blanco → beige → morado claro → morado profundo → cyan
+        sixEyesColors := ["4FC3F7", "FFFFFF", "E8DEC4", "B388FF", "8A2BE2", "00DDFF"]
+        idx := Min(eggGojoClicks, sixEyesColors.Length)
+        c := colorLogoMacro
+        logoMacro.SetFont("s58 c" sixEyesColors[idx] " Bold", "Segoe UI Symbol")
+        DllCall("InvalidateRect", "Ptr", logoMacro.Hwnd, "Ptr", 0, "Int", 1)
+        SetTimer(() => (logoMacro.SetFont("s58 c" c " Bold", "Segoe UI Symbol"), DllCall("InvalidateRect", "Ptr", logoMacro.Hwnd, "Ptr", 0, "Int", 1)), -300)
+        if (eggGojoClicks >= 6) {  ; los Six Eyes están abiertos
+            eggGojoClicks := 0
+            DesbloquearGojo()
+        }
+        return  ; no caer en los otros eggs del logo
+    }
 
     ; ── Unlock PREMIUM: cuando todos los 5 secretos están desbloqueados,
     ;    10 clicks en el logo en menos de 3 segundos ──
@@ -2584,41 +2613,23 @@ DesbloquearGojo() {
     GuardarEggsBackup()
 
     popup := Gui("+AlwaysOnTop -Caption +ToolWindow")
-    popup.BackColor := "02071F"
-    popup.SetFont("s14 c00FFFF Bold", "Segoe UI")
-    popup.Add("Text", "x0 y0 w360 h32 Background6A0DAD Center cFFFFFF", "  ♾  L I M I T L E S S  D E S B L O Q U E A D O  ♾  ")
-    popup.SetFont("s11 c00DDFF", "Segoe UI")
-    popup.Add("Text", "x10 y42 w340 h20 Center c8A2BE2", "✦ · · ♾ · · · · · · · · · ♾ · · ✦")
-    popup.SetFont("s13 c00FFFF Bold", "Segoe UI Semibold")
-    popup.Add("Text", "x10 y66 w340 h24 Center c00FFFF", "♾  G O J O  S A T O R U  ♾")
-    popup.SetFont("s10 cFFFFFF Italic", "Segoe UI")
-    popup.Add("Text", "x10 y94 w340 h20 Center cFFFFFF", '" Throughout heaven and earth, "')
-    popup.Add("Text", "x10 y112 w340 h20 Center cFFFFFF", '" I alone am the honored one. "')
-    popup.SetFont("s9 c00BFFF", "Segoe UI")
-    popup.Add("Text", "x10 y138 w340 h18 Center c00BFFF", "Los Seis Ojos han despertado.")
-    popup.Add("Text", "x10 y158 w340 h20 Center c8A2BE2", "✦ · · ♾ · · · · · · · · · ♾ · · ✦")
+    popup.BackColor := "0A0E1F"
+    popup.SetFont("s14 cE8DEC4 Bold", "Segoe UI")
+    popup.Add("Text", "x0 y0 w360 h32 Background5B2A8C Center cFFFFFF", "  ♾  L I M I T L E S S  D E S B L O Q U E A D O  ♾  ")
+    popup.SetFont("s11 c4FC3F7", "Segoe UI")
+    popup.Add("Text", "x10 y42 w340 h20 Center c8A2BE2", "○ · · ◉ · · ○ · · ◉ · · ○ · · ◉")
+    popup.SetFont("s13 cFFFFFF Bold", "Segoe UI Semibold")
+    popup.Add("Text", "x10 y66 w340 h24 Center cFFFFFF", "♾  G O J O  S A T O R U  ♾")
+    popup.SetFont("s10 cE8DEC4 Italic", "Segoe UI")
+    popup.Add("Text", "x10 y94 w340 h20 Center cE8DEC4", '" Throughout heaven and earth, "')
+    popup.Add("Text", "x10 y112 w340 h20 Center cE8DEC4", '" I alone am the honored one. "')
+    popup.SetFont("s9 c4FC3F7", "Segoe UI")
+    popup.Add("Text", "x10 y138 w340 h18 Center c4FC3F7", "Los Seis Ojos están abiertos. El Infinito te protege.")
+    popup.SetFont("s9 c8A2BE2", "Segoe UI")
+    popup.Add("Text", "x10 y158 w340 h20 Center c8A2BE2", "○ · · ◉ · · ○ · · ◉ · · ○ · · ◉")
     popup.Show("w360 h184 Center")
     RedondearVentana(popup.Hwnd, 14)
     SetTimer(() => popup.Destroy(), -4500)
-}
-
-ClickSecuenciasGojo(*) {
-    global eggGojoClicks, eggGojoUltimo, eggGojoDesbloqueado, secuenciasLabel, colorTextoPrincipal
-    if (eggGojoDesbloqueado)
-        return
-    if (A_TickCount - eggGojoUltimo < 2500)
-        eggGojoClicks += 1
-    else
-        eggGojoClicks := 1
-    eggGojoUltimo := A_TickCount
-    c := colorTextoPrincipal
-    secuenciasLabel.Opt("c00FFFF")  ; flash cyan Six Eyes
-    DllCall("InvalidateRect", "Ptr", secuenciasLabel.Hwnd, "Ptr", 0, "Int", 1)
-    SetTimer(() => (secuenciasLabel.Opt("c" c), DllCall("InvalidateRect", "Ptr", secuenciasLabel.Hwnd, "Ptr", 0, "Int", 1)), -180)
-    if (eggGojoClicks >= 6) {  ; SIX EYES
-        eggGojoClicks := 0
-        DesbloquearGojo()
-    }
 }
 
 ; ═══════════════════════════════════════════════════════════════
@@ -4978,6 +4989,41 @@ InterpolarHex(hexA, hexB, t) {
         Round(bA + (bB - bA) * t))
 }
 
+; Flash de fuego naranja en la barra — efecto único del tema SUKUNA al completar secuencia.
+; Representa el Fuga (Flame Arrow) que Sukuna lanza.
+BarraFlashFuga() {
+    global colorBarra, colorBarraOverride, rgbBarra
+    if (rgbBarra)
+        return
+    colorFuga := "FF4500"  ; naranja fuego
+    pasos := 10
+    loop pasos {
+        t := A_Index / pasos
+        colorBarraOverride := InterpolarHex(colorBarra, colorFuga, t)
+        Sleep(20)
+    }
+    loop pasos {
+        t := A_Index / pasos
+        colorBarraOverride := InterpolarHex(colorFuga, colorBarra, t)
+        Sleep(20)
+    }
+    colorBarraOverride := ""
+}
+
+; Pulso morado Hollow Purple en el timer — efecto único del tema GOJO.
+; Cada 4 segundos parpadea sutil, representando el Infinito latente.
+GojoPulsoHollowPurple() {
+    global temas, temaActual, timerLabel, colorTextoPrincipal
+    if !IsObject(timerLabel)
+        return
+    if (!temas[temaActual].HasProp("unlock") || temas[temaActual].unlock != "gojo")
+        return  ; solo si el tema activo es Gojo
+    c := colorTextoPrincipal
+    timerLabel.Opt("c8A2BE2")  ; Hollow Purple
+    DllCall("InvalidateRect", "Ptr", timerLabel.Hwnd, "Ptr", 0, "Int", 1)
+    SetTimer(() => (timerLabel.Opt("c" c), DllCall("InvalidateRect", "Ptr", timerLabel.Hwnd, "Ptr", 0, "Int", 1)), -300)
+}
+
 BarraFlashError() {
     global colorBarra, colorBarraOverride, rgbBarra
     if (rgbBarra)
@@ -5480,6 +5526,9 @@ CheckPrioridad() {
                                     AgregarHistorial(paso.nombre " -> COOLDOWN " Round(paso.cooldown/1000) "s | Secuencias: " contadorSecuencias, paso.HasProp("categoria") ? ObtenerColorCategoria(paso.categoria) : "")
                                     EnviarWebhookEvento("secuencia")
                                     DespuesDeAccion(true)
+                                    ; ── Efecto único de SUKUNA: Fuga (flame arrow) en la barra al completar secuencia ──
+                                    if (temas[temaActual].HasProp("unlock") && temas[temaActual].unlock = "sukuna")
+                                        SetTimer(BarraFlashFuga, -1)
                                 } else {
                                     AgregarHistorial(paso.nombre " -> COOLDOWN " Round(paso.cooldown/1000) "s", paso.HasProp("categoria") ? ObtenerColorCategoria(paso.categoria) : "")
                                     DespuesDeAccion(false)
