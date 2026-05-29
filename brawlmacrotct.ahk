@@ -8,7 +8,7 @@ configPath := A_ScriptDir "\brawlmacro_config.ini"
 global eggsBackupPath := A_ScriptDir "\brawlmacro_eggs.txt"
 global heartbeatPath := A_ScriptDir "\brawlmacro_heartbeat.txt"
 global historialLogPath := A_ScriptDir "\brawlmacro_historial.log"
-global VERSION_ACTUAL := "28.4.5"
+global VERSION_ACTUAL := "28.4.6"
 
 ; ===== TEMAS =====
 temas := [
@@ -5293,7 +5293,7 @@ BloqueoGlobalActivo() {
 ; ===== CHECK PRIORIDAD =====
 CheckPrioridad() {
     global pasosPrioridad, pasosNormales, activo, accionEnCurso, ultimoCambio, contadorSecuencias
-    global modoDestruccion
+    global modoDestruccion, ultimaDeteccionReal
 
     if BloqueoGlobalActivo()
         return false
@@ -5389,7 +5389,7 @@ EjecutarMacro(*) {
     global ultimoPasoEjecutado
     global modoDestruccion, contadorDestruccion
     global tiempoUltimoLanzamiento
-    global ultimoAfkMove
+    global ultimoAfkMove, ultimaDeteccionReal
     static PASOS_ENTRE_PRIO := 5   ; CheckPrioridad cada N pasos normales revisados
 
     ; Proof-of-life para el watchdog ANTES de cualquier return.
