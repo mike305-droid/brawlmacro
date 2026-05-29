@@ -7,6 +7,7 @@ CoordMode("Mouse", "Screen")
 configPath := A_ScriptDir "\brawlmacro_config.ini"
 global eggsBackupPath := A_ScriptDir "\brawlmacro_eggs.txt"
 global heartbeatPath := A_ScriptDir "\brawlmacro_heartbeat.txt"
+global historialLogPath := A_ScriptDir "\brawlmacro_historial.log"
 global VERSION_ACTUAL := "28.3.1"
 
 ; ===== TEMAS =====
@@ -2091,6 +2092,11 @@ SetTimer(WatchdogAFK, 30000)     ; cada 30 s; si activo && > 90 s sin AFK → Re
 SetTimer(EscribirHeartbeat, 5000) ; cada 5 s escribe pid + timestamp en heartbeat.txt para el watchdog externo
 EscribirHeartbeat()              ; un primer write inmediato
 LanzarWatchdogSiNoEsta()         ; arrancar el watchdog externo en paralelo si no está corriendo
+
+; Marcar arranque del macro en el log persistente
+try {
+    FileAppend("`r`n═══════ MACRO ARRANCADO v" VERSION_ACTUAL " - " FormatTime(A_Now, "yyyy-MM-dd HH:mm:ss") " ═══════`r`n", historialLogPath, "UTF-8")
+}
 
 ; Si la instancia anterior se reinició por watchdog, auto-arrancar el macro.
 ; Pequeño delay para que la GUI termine de asentarse antes de Iniciar().
@@ -4935,11 +4941,43 @@ ObtenerColorCategoria(categoria) {
 ; Variables globales para acumulación del historial
 global histUltimoTexto := "", histUltimoCount := 0, histUltimoLongLinea := 0
 
+; Escribe cada entrada del historial a un archivo de log persistente.
+; Sirve para investigar despues si algo raro pasa (ej. Brawlhalla cerrado misteriosamente).
+; Rota automaticamente a .old si pasa de 5MB.
+GuardarHistorialLog(texto) {
+    global historialLogPath
+    static contadorRotacion := 0
+
+    contadorRotacion += 1
+    if (contadorRotacion >= 500) {
+        contadorRotacion := 0
+        try {
+            if (FileExist(historialLogPath)) {
+                size := FileGetSize(historialLogPath)
+                if (size > 5 * 1024 * 1024) {  ; 5 MB
+                    oldPath := historialLogPath ".old"
+                    try FileDelete(oldPath)
+                    try FileMove(historialLogPath, oldPath)
+                }
+            }
+        }
+    }
+
+    try {
+        timestamp := FormatTime(A_Now, "yyyy-MM-dd HH:mm:ss")
+        FileAppend("[" timestamp "] " texto "`r`n", historialLogPath, "UTF-8")
+    }
+}
+
 AgregarHistorial(texto, CH := "") {
     global historialBox, histUltimoTexto, histUltimoCount, histUltimoLongLinea
     global contadorAcciones, histFlashStep
     local hora := FormatTime(A_Now, "HH:mm:ss")
     local colorHex := (CH != "" ? CH : ObtenerColorHistorial())
+
+    ; Guardar SIEMPRE en archivo de log persistente (con fecha completa)
+    ; Asi se puede revisar despues que paso si Brawlhalla se cerro misteriosamente.
+    GuardarHistorialLog(texto)
 
     ; Limitar historial a ~500 líneas para evitar que el RichEdit colapse
     ; tras muchas horas de uso. Cada ~100 entradas comprobamos y recortamos.
