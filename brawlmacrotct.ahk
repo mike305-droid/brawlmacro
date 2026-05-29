@@ -8,7 +8,7 @@ configPath := A_ScriptDir "\brawlmacro_config.ini"
 global eggsBackupPath := A_ScriptDir "\brawlmacro_eggs.txt"
 global heartbeatPath := A_ScriptDir "\brawlmacro_heartbeat.txt"
 global historialLogPath := A_ScriptDir "\brawlmacro_historial.log"
-global VERSION_ACTUAL := "28.5.1"
+global VERSION_ACTUAL := "28.5.2"
 
 ; ===== TEMAS =====
 temas := [
@@ -269,6 +269,7 @@ global logoFontFamily := 0, logoStringFormat := 0
 global logoGearFont := 0           ; handle del font (no solo la familia)
 global logoGearCache := []          ; array de 32 HBITMAPs ya rotados
 global logoGearCacheColor := ""     ; color hex con el que está construido el cache
+global logoGearCacheChar  := ""     ; char (∞/⛩/⚙) con el que está construido el cache
 global logoGearCacheW := 0          ; ancho del bitmap cacheado
 global logoGearCacheH := 0          ; alto del bitmap cacheado
 global LOGO_GEAR_CACHE_FRAMES := 32
@@ -521,26 +522,39 @@ InicializarGdip() {
 
 ; Libera el cache de bitmaps del engranaje (llamar al cambiar color o salir).
 LiberarCacheGear() {
-    global logoGearCache, logoGearCacheColor
+    global logoGearCache, logoGearCacheColor, logoGearCacheChar
     for hbm in logoGearCache {
         if (hbm)
             DllCall("DeleteObject", "Ptr", hbm)
     }
     logoGearCache := []
     logoGearCacheColor := ""
+    logoGearCacheChar  := ""
+}
+
+; Devuelve el char que el logo debe mostrar segun el tema activo:
+; - Tema Gojo → ∞ (Limitless)
+; - Tema Sukuna → ⛩ (Malevolent Shrine)
+; - Cualquier otro → ⚙ (engranaje por defecto)
+ObtenerCharLogo() {
+    global temas, temaActual
+    if (temas[temaActual].HasProp("logoChar"))
+        return temas[temaActual].logoChar
+    return Chr(9881)
 }
 
 ; Pre-renderiza 32 bitmaps del engranaje (uno por cada ~1.4° en el rango 0-45°)
 ; en el color dado. El engranaje tiene 8 dientes → simetría rotacional de 45° → con 32 frames
 ; en ese rango se ve perfectamente fluido cubriendo cualquier ángulo (se hace modulo 45).
 ConstruirCacheGear(colorHex, w, h) {
-    global logoGearCache, logoGearCacheColor, logoGearCacheW, logoGearCacheH
+    global logoGearCache, logoGearCacheColor, logoGearCacheChar, logoGearCacheW, logoGearCacheH
     global logoFontFamily, logoGearFont, LOGO_GEAR_CACHE_FRAMES
 
     if (!logoFontFamily || !logoGearFont)
         return false
 
     LiberarCacheGear()
+    charLogo := ObtenerCharLogo()
 
     cRgb := Integer("0x" colorHex)
     cArgb := 0xFF000000 | cRgb
@@ -583,7 +597,7 @@ ConstruirCacheGear(colorHex, w, h) {
         NumPut("Float", 1000.0, bigR, 12)
         bb := Buffer(16, 0)
         cp := 0, ln := 0
-        DllCall("gdiplus\GdipMeasureString", "Ptr", g, "WStr", Chr(9881), "Int", 1,
+        DllCall("gdiplus\GdipMeasureString", "Ptr", g, "WStr", charLogo, "Int", StrLen(charLogo),
                 "Ptr", logoGearFont, "Ptr", bigR, "Ptr", mFmt, "Ptr", bb, "Int*", &cp, "Int*", &ln)
         DllCall("gdiplus\GdipDeleteStringFormat", "Ptr", mFmt)
         gearCX := NumGet(bb, 0, "Float") + NumGet(bb, 8, "Float") / 2.0
@@ -610,7 +624,7 @@ ConstruirCacheGear(colorHex, w, h) {
         DllCall("gdiplus\GdipTranslateWorldTransform", "Ptr", g, "Float",  w/2.0, "Float",  h/2.0, "Int", 0)
         DllCall("gdiplus\GdipRotateWorldTransform",    "Ptr", g, "Float",  angle,                  "Int", 0)
         DllCall("gdiplus\GdipTranslateWorldTransform", "Ptr", g, "Float", -w/2.0, "Float", -h/2.0, "Int", 0)
-        DllCall("gdiplus\GdipDrawString", "Ptr", g, "WStr", Chr(9881), "Int", 1, "Ptr", logoGearFont, "Ptr", drawRect, "Ptr", fmt, "Ptr", brush)
+        DllCall("gdiplus\GdipDrawString", "Ptr", g, "WStr", charLogo, "Int", StrLen(charLogo), "Ptr", logoGearFont, "Ptr", drawRect, "Ptr", fmt, "Ptr", brush)
 
         DllCall("gdiplus\GdipDeleteStringFormat", "Ptr", fmt)
         DllCall("gdiplus\GdipDeleteBrush",        "Ptr", brush)
@@ -630,6 +644,7 @@ ConstruirCacheGear(colorHex, w, h) {
     }
 
     logoGearCacheColor := colorHex
+    logoGearCacheChar  := charLogo
     logoGearCacheW := w
     logoGearCacheH := h
     return true
@@ -638,7 +653,14 @@ ConstruirCacheGear(colorHex, w, h) {
 ; Pinta el engranaje rotado directamente sobre el HDC dado, usando GDI para el fondo y GDI+ para
 ; el texto rotado. No crea bitmap intermedio. Lo invoca ManejarLogoOwnerDraw en respuesta a WM_DRAWITEM.
 DibujarGearEnDC(hdc, w, h, angulo, colorHex, fondoHex) {
-    static gearCX := "", gearCY := ""
+    static gearCX := "", gearCY := "", lastChar := ""
+    charLogo := ObtenerCharLogo()
+    ; Si cambio el char (cambio de tema), invalidar el cache estatico del centro
+    if (charLogo != lastChar) {
+        gearCX := ""
+        gearCY := ""
+        lastChar := charLogo
+    }
 
     ; Fondo opaco
     fondoBgr := HexToBGR(fondoHex)
@@ -749,7 +771,7 @@ DibujarGearEnDC(hdc, w, h, angulo, colorHex, fondoHex) {
                 NumPut("Float", 1000.0, bigR, 12)
                 bb := Buffer(16, 0)
                 cp := 0, ln := 0
-                DllCall("gdiplus\GdipMeasureString", "Ptr", g, "WStr", Chr(9881), "Int", 1,
+                DllCall("gdiplus\GdipMeasureString", "Ptr", g, "WStr", charLogo, "Int", StrLen(charLogo),
                         "Ptr", font, "Ptr", bigR, "Ptr", mFmt, "Ptr", bb, "Int*", &cp, "Int*", &ln)
                 DllCall("gdiplus\GdipDeleteStringFormat", "Ptr", mFmt)
                 gearCX := NumGet(bb, 0, "Float") + NumGet(bb, 8, "Float") / 2.0
@@ -803,7 +825,7 @@ DibujarGearEnDC(hdc, w, h, angulo, colorHex, fondoHex) {
                     DllCall("gdiplus\GdipTranslateWorldTransform", "Ptr", g, "Float",  w/2.0, "Float",  h/2.0, "Int", 0)
                     DllCall("gdiplus\GdipRotateWorldTransform",    "Ptr", g, "Float",  trailAngles[A_Index], "Int", 0)
                     DllCall("gdiplus\GdipTranslateWorldTransform", "Ptr", g, "Float", -w/2.0, "Float", -h/2.0, "Int", 0)
-                    DllCall("gdiplus\GdipDrawString", "Ptr", g, "WStr", Chr(9881), "Int", 1, "Ptr", font, "Ptr", tRc, "Ptr", fmt, "Ptr", tBrush)
+                    DllCall("gdiplus\GdipDrawString", "Ptr", g, "WStr", charLogo, "Int", StrLen(charLogo), "Ptr", font, "Ptr", tRc, "Ptr", fmt, "Ptr", tBrush)
                     DllCall("gdiplus\GdipDeleteBrush", "Ptr", tBrush)
                 }
             }
@@ -823,14 +845,14 @@ DibujarGearEnDC(hdc, w, h, angulo, colorHex, fondoHex) {
                 NumPut("Float", drawY - logoGlitchOffY * 2.5, ghostRc,  4)
                 NumPut("Float", gearCX * 2.0 + 20.0,          ghostRc,  8)
                 NumPut("Float", gearCY * 2.0 + 20.0,          ghostRc, 12)
-                DllCall("gdiplus\GdipDrawString", "Ptr", g, "WStr", Chr(9881), "Int", 1, "Ptr", font, "Ptr", ghostRc, "Ptr", fmt, "Ptr", ghostBrush)
+                DllCall("gdiplus\GdipDrawString", "Ptr", g, "WStr", charLogo, "Int", StrLen(charLogo), "Ptr", font, "Ptr", ghostRc, "Ptr", fmt, "Ptr", ghostBrush)
                 DllCall("gdiplus\GdipDeleteBrush", "Ptr", ghostBrush)
             }
 
             ; ── DIBUJO PRINCIPAL DEL ENGRANAJE ──
             ; Si tenemos cache del color actual y NO estamos en modo especial (premium/glitch),
             ; usar BitBlt del bitmap pre-renderizado en vez de hacer la rotación + dibujo cada frame.
-            global logoGearCache, logoGearCacheColor, LOGO_GEAR_CACHE_FRAMES, temaPremiumActivo
+            global logoGearCache, logoGearCacheColor, logoGearCacheChar, LOGO_GEAR_CACHE_FRAMES, temaPremiumActivo
             global activo, rgbLogo
             ; Solo usar cache cuando el color es ESTABLE entre frames:
             ;  - activo=true → color pulsa con Sin() cada frame → invalidaría cache cada tick = malo
@@ -838,7 +860,7 @@ DibujarGearEnDC(hdc, w, h, angulo, colorHex, fondoHex) {
             ;  - premium → anillos arcoíris animados
             ;  - glitching → usa color rojo distinto
             colorEsEstable := !activo && !rgbLogo && !temaPremiumActivo && !glitching
-            canUseCache := colorEsEstable && (logoGearCache.Length = LOGO_GEAR_CACHE_FRAMES) && (logoGearCacheColor = colorHex)
+            canUseCache := colorEsEstable && (logoGearCache.Length = LOGO_GEAR_CACHE_FRAMES) && (logoGearCacheColor = colorHex) && (logoGearCacheChar = charLogo)
 
             ; Si el color es estable pero cambió (o no hay cache), construirlo ahora
             if (!canUseCache && colorEsEstable) {
@@ -875,7 +897,7 @@ DibujarGearEnDC(hdc, w, h, angulo, colorHex, fondoHex) {
                 }
             } else {
                 ; Fallback: dibujo en vivo (premium, glitch, o cache no disponible)
-                DllCall("gdiplus\GdipDrawString", "Ptr", g, "WStr", Chr(9881), "Int", 1, "Ptr", font, "Ptr", drawRect, "Ptr", fmt, "Ptr", brushG)
+                DllCall("gdiplus\GdipDrawString", "Ptr", g, "WStr", charLogo, "Int", StrLen(charLogo), "Ptr", font, "Ptr", drawRect, "Ptr", fmt, "Ptr", brushG)
             }
 
             DllCall("gdiplus\GdipDeleteStringFormat", "Ptr", fmt)
@@ -2121,8 +2143,8 @@ SetTimer(ActualizarScrollbar, 150)
 SetTimer(WatchdogAFK, 30000)     ; cada 30 s; si activo && > 90 s sin AFK → Reload()
 ; Pulso Hollow Purple del timer cada 4s (solo activo si el tema actual es GOJO)
 SetTimer(GojoPulsoHollowPurple, 4000)
-; Aura del Limitless: anillo cyan-morado pulsando cada 3s alrededor del logo (solo GOJO)
-SetTimer(TickAuraGojo, 3000)
+; Hollow Purple: Aka + Aoi convergen cada 4s y explotan en morado (solo GOJO)
+SetTimer(TickAuraGojo, 4000)
 
 SetTimer(EscribirHeartbeat, 5000) ; cada 5 s escribe pid + timestamp en heartbeat.txt para el watchdog externo
 EscribirHeartbeat()              ; un primer write inmediato
@@ -5057,46 +5079,115 @@ PintarDecoracionesEnHDC(hdc, w, h) {
     if (unlock = "sukuna" && sukunaSlashFrame > 0) {
         PintarSlashSukunaEnHDC(hdc, w, h, sukunaSlashFrame)
     } else if (unlock = "gojo" && gojoAuraFrame > 0) {
-        PintarAuraGojoEnHDC(hdc, w, h, gojoAuraFrame, 8)
+        PintarAuraGojoEnHDC(hdc, w, h, gojoAuraFrame, 14)
     }
 }
 
 PintarSlashSukunaEnHDC(hdc, w, h, frame) {
-    grosor := frame + 1                      ; 6 → 2
-    rojoBGR := 0x2A2AFF                       ; FF2A2A
+    ; 4 cortes desde las 4 esquinas convergiendo al centro → los 4 brazos del Rey cortando.
+    ; Cada corte va de la esquina hacia el centro, su longitud progresa con el frame.
+    static MAX_FRAME := 5
+    t := (MAX_FRAME - frame + 1) / MAX_FRAME    ; 0.2 → 1.0 (el corte se extiende)
+    grosor := Max(2, 7 - frame)                  ; arranca grueso, mas fino al final
+    rojoBGR := 0x2A2AFF                           ; FF2A2A
     hPen := DllCall("CreatePen", "Int", 0, "Int", grosor, "UInt", rojoBGR, "Ptr")
     oldPen := DllCall("SelectObject", "Ptr", hdc, "Ptr", hPen)
-    ; Dos cortes cruzados Cleave + Dismantle
-    DllCall("MoveToEx", "Ptr", hdc, "Int", -5, "Int", Round(h * 0.22), "Ptr", 0)
-    DllCall("LineTo",   "Ptr", hdc, "Int", w + 5, "Int", Round(h * 0.78))
-    DllCall("MoveToEx", "Ptr", hdc, "Int", w + 5, "Int", Round(h * 0.18), "Ptr", 0)
-    DllCall("LineTo",   "Ptr", hdc, "Int", -5, "Int", Round(h * 0.82))
+    cx := w / 2.0
+    cy := h / 2.0
+    ; Cada corte parte de una esquina y se acerca al centro proporcionalmente a t
+    esquinas := [[0,0], [w,0], [w,h], [0,h]]
+    for esq in esquinas {
+        ex := esq[1], ey := esq[2]
+        tx := Round(ex + (cx - ex) * t)
+        ty := Round(ey + (cy - ey) * t)
+        ; Inicio del corte: empieza un poco fuera de la esquina (efecto entrada)
+        sx := Round(ex - (cx - ex) * 0.05)
+        sy := Round(ey - (cy - ey) * 0.05)
+        DllCall("MoveToEx", "Ptr", hdc, "Int", sx, "Int", sy, "Ptr", 0)
+        DllCall("LineTo",   "Ptr", hdc, "Int", tx, "Int", ty)
+    }
     DllCall("SelectObject", "Ptr", hdc, "Ptr", oldPen)
     DllCall("DeleteObject", "Ptr", hPen)
+    ; Al final, un destello rojo en el centro (el punto donde convergen los 4 cortes)
+    if (frame <= 2) {
+        radioCentro := (3 - frame) * 4
+        brushCentro := DllCall("CreateSolidBrush", "UInt", rojoBGR, "Ptr")
+        oldBrushC := DllCall("SelectObject", "Ptr", hdc, "Ptr", brushCentro)
+        DllCall("Ellipse", "Ptr", hdc, "Int", Round(cx - radioCentro), "Int", Round(cy - radioCentro), "Int", Round(cx + radioCentro), "Int", Round(cy + radioCentro))
+        DllCall("SelectObject", "Ptr", hdc, "Ptr", oldBrushC)
+        DllCall("DeleteObject", "Ptr", brushCentro)
+    }
 }
 
 PintarAuraGojoEnHDC(hdc, w, h, frame, maxFrame) {
-    ; Logo en miGui: x=19 y=31 w=95 h=95 → centro (66, 78)
-    ; La overlay empieza en y=25 (debajo de la barra), así que el centro Y se desplaza -25
-    cx := 66
-    cy := 78 - 25
-    t := (maxFrame - frame) / maxFrame
-    radio := Round(50 + t * 18)
-    rCyan := 0x4F, gCyan := 0xC3, bCyan := 0xF7
-    rMor  := 0x8A, gMor  := 0x2B, bMor  := 0xE2
-    rN := Round(rCyan + (rMor - rCyan) * t)
-    gN := Round(gCyan + (gMor - gCyan) * t)
-    bN := Round(bCyan + (bMor - bCyan) * t)
-    colorBGR := (bN << 16) | (gN << 8) | rN
-    grosor := Max(1, Round(3 * (1 - t)))
-    hPen := DllCall("CreatePen", "Int", 0, "Int", grosor, "UInt", colorBGR, "Ptr")
+    ; ANIMACION HOLLOW PURPLE de Gojo. La técnica más icónica.
+    ; Aka (rojo, atracción) + Aoi (azul, repulsión) chocan → Murasaki (morado).
+    ;
+    ; Fases (frame va de maxFrame=14 → 0):
+    ;   Fase 1 (14-11): aparecen Aka y Aoi en lados opuestos del logo
+    ;   Fase 2 (10-7):  Aka y Aoi se acercan al centro
+    ;   Fase 3 (6-5):   colisionan en el centro → flash blanco
+    ;   Fase 4 (4-0):   onda Hollow Purple expande hacia afuera
+    cx := 66           ; centro del logo (en miGui)
+    cy := 78 - 25      ; -25 por offset de la overlay (debajo de la barra)
+    static AKA_BGR  := 0x3030FF   ; FF3030 — rojo Aka (Reverse Cursed Technique)
+    static AOI_BGR  := 0xFF8030   ; 3080FF — azul Aoi (Cursed Technique)
+    static MOR_BGR  := 0xE22B8A   ; 8A2BE2 — morado Hollow Purple
+    static WHT_BGR  := 0xFFFFFF
     nullBrush := DllCall("GetStockObject", "Int", 5, "Ptr")
-    oldPen := DllCall("SelectObject", "Ptr", hdc, "Ptr", hPen)
-    oldBrush := DllCall("SelectObject", "Ptr", hdc, "Ptr", nullBrush)
-    DllCall("Ellipse", "Ptr", hdc, "Int", cx - radio, "Int", cy - radio, "Int", cx + radio, "Int", cy + radio)
-    DllCall("SelectObject", "Ptr", hdc, "Ptr", oldPen)
+
+    if (frame >= 11) {
+        ; Fase 1: Aka y Aoi aparecen y crecen
+        crece := (14 - frame) / 3.0  ; 0 → 1
+        radio := Round(3 + crece * 6)  ; 3 → 9
+        offsetXMax := 38               ; distancia inicial del centro
+        ; Aka a la izquierda
+        DibujarBolaSolida(hdc, cx - offsetXMax, cy, radio, AKA_BGR, nullBrush)
+        ; Aoi a la derecha
+        DibujarBolaSolida(hdc, cx + offsetXMax, cy, radio, AOI_BGR, nullBrush)
+    } else if (frame >= 7) {
+        ; Fase 2: Aka y Aoi convergen al centro
+        avance := (10 - frame) / 3.0  ; 0 → 1
+        offset := Round(38 * (1 - avance))  ; 38 → 0
+        radio := 9
+        DibujarBolaSolida(hdc, cx - offset, cy, radio, AKA_BGR, nullBrush)
+        DibujarBolaSolida(hdc, cx + offset, cy, radio, AOI_BGR, nullBrush)
+    } else if (frame >= 5) {
+        ; Fase 3: colisión → flash blanco grande
+        radio := 18 + (6 - frame) * 5  ; 18 → 23
+        DibujarBolaSolida(hdc, cx, cy, radio, WHT_BGR, nullBrush)
+    } else {
+        ; Fase 4: onda Hollow Purple expandiéndose hacia afuera
+        avance := (4 - frame) / 4.0   ; 0 → 1
+        radio := Round(22 + avance * 50)  ; 22 → 72
+        ; Anillo morado con grosor decreciente
+        grosor := Max(2, Round(5 * (1 - avance)))
+        hPen := DllCall("CreatePen", "Int", 0, "Int", grosor, "UInt", MOR_BGR, "Ptr")
+        oldPen := DllCall("SelectObject", "Ptr", hdc, "Ptr", hPen)
+        oldBrush := DllCall("SelectObject", "Ptr", hdc, "Ptr", nullBrush)
+        DllCall("Ellipse", "Ptr", hdc, "Int", cx - radio, "Int", cy - radio, "Int", cx + radio, "Int", cy + radio)
+        DllCall("SelectObject", "Ptr", hdc, "Ptr", oldPen)
+        DllCall("SelectObject", "Ptr", hdc, "Ptr", oldBrush)
+        DllCall("DeleteObject", "Ptr", hPen)
+        ; Núcleo morado denso en el centro que se desvanece
+        if (frame >= 2) {
+            radioCentro := Max(4, 14 - (4 - frame) * 4)
+            DibujarBolaSolida(hdc, cx, cy, radioCentro, MOR_BGR, nullBrush)
+        }
+    }
+}
+
+; Helper: dibuja un círculo relleno en (cx,cy) con radio r y color BGR.
+DibujarBolaSolida(hdc, cx, cy, r, colorBGR, nullBrush) {
+    brush := DllCall("CreateSolidBrush", "UInt", colorBGR, "Ptr")
+    oldBrush := DllCall("SelectObject", "Ptr", hdc, "Ptr", brush)
+    hPenNul := DllCall("CreatePen", "Int", 5, "Int", 1, "UInt", colorBGR, "Ptr")  ; PS_NULL pen
+    oldPen := DllCall("SelectObject", "Ptr", hdc, "Ptr", hPenNul)
+    DllCall("Ellipse", "Ptr", hdc, "Int", Round(cx - r), "Int", Round(cy - r), "Int", Round(cx + r), "Int", Round(cy + r))
     DllCall("SelectObject", "Ptr", hdc, "Ptr", oldBrush)
-    DllCall("DeleteObject", "Ptr", hPen)
+    DllCall("SelectObject", "Ptr", hdc, "Ptr", oldPen)
+    DllCall("DeleteObject", "Ptr", brush)
+    DllCall("DeleteObject", "Ptr", hPenNul)
 }
 
 ReposicionarOverlayDeco() {
@@ -5137,14 +5228,14 @@ AnimarSlashSukuna() {
     InvalidarOverlayDeco()
 }
 
-; ── GOJO: aura del Limitless cada 3s alrededor del logo ──
+; ── GOJO: Hollow Purple cada 4s — Aka + Aoi convergen y explotan en morado ──
 TickAuraGojo() {
     global temas, temaActual, gojoAuraFrame
     if (!temas[temaActual].HasProp("unlock") || temas[temaActual].unlock != "gojo")
         return
     if (gojoAuraFrame > 0)
-        return  ; pulso anterior aún en marcha
-    gojoAuraFrame := 8
+        return  ; secuencia anterior aún en marcha
+    gojoAuraFrame := 14   ; 4 fases × ~3-4 frames cada una
     ReposicionarOverlayDeco()
     SetTimer(AnimarAuraGojo, 50)
 }
