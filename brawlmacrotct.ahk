@@ -8,7 +8,7 @@ configPath := A_ScriptDir "\brawlmacro_config.ini"
 global eggsBackupPath := A_ScriptDir "\brawlmacro_eggs.txt"
 global heartbeatPath := A_ScriptDir "\brawlmacro_heartbeat.txt"
 global historialLogPath := A_ScriptDir "\brawlmacro_historial.log"
-global VERSION_ACTUAL := "28.4.9"
+global VERSION_ACTUAL := "28.5.0"
 
 ; ===== TEMAS =====
 temas := [
@@ -2104,6 +2104,7 @@ global hoverActual := ""
 AplicarPreset(presetRendimiento)
 InstalarSubclassBarras()
 InstalarSubclassParticulas()
+CrearOverlayDecoraciones()   ; overlay topmost para slashes Sukuna + aura Gojo
 SetTimer(AnimarBarras, 33)
 EstablecerTrayIcon("888888")
 SetTimer(ActualizarTrayIcon, 1000)
@@ -4992,61 +4993,150 @@ InterpolarHex(hexA, hexB, t) {
 }
 
 ; ════════════════════════════════════════════════════════════════════════
-; DECORACION VISUAL UNICA — SUKUNA: cortes diagonales rojos (Cleave/Dismantle)
-; Se disparan en cada detección. 2 líneas que cruzan la GUI, animadas 5 frames.
+; OVERLAY DE DECORACIONES TEMÁTICAS — encima de toda la GUI del macro
+; Window topmost + layered + transparent + color-key. Click-through.
+; Comparte para Sukuna (slashes) y Gojo (aura del Limitless).
 ; ════════════════════════════════════════════════════════════════════════
+global overlayDecoraciones := "", overlayDecoSubclassCb := 0
 global sukunaSlashFrame := 0
+global gojoAuraFrame := 0
+; Color key — cualquier pixel pintado de este color se vuelve transparente
+global DECO_COLORKEY_HEX := "010203"
+global DECO_COLORKEY_BGR := 0x030201
 
+CrearOverlayDecoraciones() {
+    global miGui, overlayDecoraciones, overlayDecoSubclassCb, DECO_COLORKEY_HEX, DECO_COLORKEY_BGR
+    static BAR_H := 25
+    if (IsObject(overlayDecoraciones))
+        return
+    ; +E0x80020 = WS_EX_LAYERED | WS_EX_TRANSPARENT (clicks pasan a través)
+    overlayDecoraciones := Gui("+AlwaysOnTop -Caption +ToolWindow +E0x80020")
+    overlayDecoraciones.Opt("+Owner" miGui.Hwnd)
+    overlayDecoraciones.BackColor := DECO_COLORKEY_HEX
+    miGui.GetPos(&mx, &my, &mw, &mh)
+    overlayDecoraciones.Show("x" mx " y" (my + BAR_H) " w" mw " h" (mh - BAR_H) " NoActivate")
+    ; Color key transparente
+    DllCall("SetLayeredWindowAttributes", "Ptr", overlayDecoraciones.Hwnd, "UInt", DECO_COLORKEY_BGR, "UChar", 255, "UInt", 1)
+    ; Subclase para WM_PAINT — pinta el contenido decorativo
+    overlayDecoSubclassCb := CallbackCreate(DecoOverlaySubclassProc, "F", 6)
+    DllCall("Comctl32.dll\SetWindowSubclass", "Ptr", overlayDecoraciones.Hwnd, "Ptr", overlayDecoSubclassCb, "Ptr", 27, "Ptr", 0)
+}
+
+DecoOverlaySubclassProc(hWnd, uMsg, wParam, lParam, idSubclass, refData) {
+    static WM_PAINT := 0x000F, WM_ERASEBKGND := 0x0014
+    if (uMsg = WM_ERASEBKGND)
+        return 1
+    if (uMsg = WM_PAINT) {
+        ps := Buffer(72, 0)
+        hdc := DllCall("BeginPaint", "Ptr", hWnd, "Ptr", ps, "Ptr")
+        if (hdc) {
+            rc := Buffer(16, 0)
+            DllCall("GetClientRect", "Ptr", hWnd, "Ptr", rc)
+            w := NumGet(rc, 8, "Int")
+            h := NumGet(rc, 12, "Int")
+            ; Fondo con color key (todo transparente)
+            global DECO_COLORKEY_BGR
+            brushKey := DllCall("CreateSolidBrush", "UInt", DECO_COLORKEY_BGR, "Ptr")
+            DllCall("FillRect", "Ptr", hdc, "Ptr", rc, "Ptr", brushKey)
+            DllCall("DeleteObject", "Ptr", brushKey)
+            ; Dibujar decoración según tema activo + estado de animación
+            PintarDecoracionesEnHDC(hdc, w, h)
+            DllCall("EndPaint", "Ptr", hWnd, "Ptr", ps)
+        }
+        return 0
+    }
+    return DllCall("Comctl32.dll\DefSubclassProc", "Ptr", hWnd, "UInt", uMsg, "Ptr", wParam, "Ptr", lParam, "Ptr")
+}
+
+PintarDecoracionesEnHDC(hdc, w, h) {
+    global temas, temaActual, sukunaSlashFrame, gojoAuraFrame
+    if (!temas[temaActual].HasProp("unlock"))
+        return
+    unlock := temas[temaActual].unlock
+    if (unlock = "sukuna" && sukunaSlashFrame > 0) {
+        PintarSlashSukunaEnHDC(hdc, w, h, sukunaSlashFrame)
+    } else if (unlock = "gojo" && gojoAuraFrame > 0) {
+        PintarAuraGojoEnHDC(hdc, w, h, gojoAuraFrame, 8)
+    }
+}
+
+PintarSlashSukunaEnHDC(hdc, w, h, frame) {
+    grosor := frame + 1                      ; 6 → 2
+    rojoBGR := 0x2A2AFF                       ; FF2A2A
+    hPen := DllCall("CreatePen", "Int", 0, "Int", grosor, "UInt", rojoBGR, "Ptr")
+    oldPen := DllCall("SelectObject", "Ptr", hdc, "Ptr", hPen)
+    ; Dos cortes cruzados Cleave + Dismantle
+    DllCall("MoveToEx", "Ptr", hdc, "Int", -5, "Int", Round(h * 0.22), "Ptr", 0)
+    DllCall("LineTo",   "Ptr", hdc, "Int", w + 5, "Int", Round(h * 0.78))
+    DllCall("MoveToEx", "Ptr", hdc, "Int", w + 5, "Int", Round(h * 0.18), "Ptr", 0)
+    DllCall("LineTo",   "Ptr", hdc, "Int", -5, "Int", Round(h * 0.82))
+    DllCall("SelectObject", "Ptr", hdc, "Ptr", oldPen)
+    DllCall("DeleteObject", "Ptr", hPen)
+}
+
+PintarAuraGojoEnHDC(hdc, w, h, frame, maxFrame) {
+    ; Logo en miGui: x=19 y=31 w=95 h=95 → centro (66, 78)
+    ; La overlay empieza en y=25 (debajo de la barra), así que el centro Y se desplaza -25
+    cx := 66
+    cy := 78 - 25
+    t := (maxFrame - frame) / maxFrame
+    radio := Round(50 + t * 18)
+    rCyan := 0x4F, gCyan := 0xC3, bCyan := 0xF7
+    rMor  := 0x8A, gMor  := 0x2B, bMor  := 0xE2
+    rN := Round(rCyan + (rMor - rCyan) * t)
+    gN := Round(gCyan + (gMor - gCyan) * t)
+    bN := Round(bCyan + (bMor - bCyan) * t)
+    colorBGR := (bN << 16) | (gN << 8) | rN
+    grosor := Max(1, Round(3 * (1 - t)))
+    hPen := DllCall("CreatePen", "Int", 0, "Int", grosor, "UInt", colorBGR, "Ptr")
+    nullBrush := DllCall("GetStockObject", "Int", 5, "Ptr")
+    oldPen := DllCall("SelectObject", "Ptr", hdc, "Ptr", hPen)
+    oldBrush := DllCall("SelectObject", "Ptr", hdc, "Ptr", nullBrush)
+    DllCall("Ellipse", "Ptr", hdc, "Int", cx - radio, "Int", cy - radio, "Int", cx + radio, "Int", cy + radio)
+    DllCall("SelectObject", "Ptr", hdc, "Ptr", oldPen)
+    DllCall("SelectObject", "Ptr", hdc, "Ptr", oldBrush)
+    DllCall("DeleteObject", "Ptr", hPen)
+}
+
+ReposicionarOverlayDeco() {
+    global miGui, overlayDecoraciones
+    static BAR_H := 25
+    if (!IsObject(overlayDecoraciones))
+        return
+    miGui.GetPos(&mx, &my, &mw, &mh)
+    overlayDecoraciones.GetPos(&ox, &oy, &ow, &oh)
+    if (ox != mx || oy != my + BAR_H || ow != mw || oh != mh - BAR_H)
+        overlayDecoraciones.Move(mx, my + BAR_H, mw, mh - BAR_H)
+}
+
+InvalidarOverlayDeco() {
+    global overlayDecoraciones
+    if (IsObject(overlayDecoraciones))
+        DllCall("InvalidateRect", "Ptr", overlayDecoraciones.Hwnd, "Ptr", 0, "Int", 1)
+}
+
+; ── SUKUNA: cortes diagonales rojos al detectar ──
 LanzarSlashSukuna() {
     global temas, temaActual, sukunaSlashFrame
     if (!temas[temaActual].HasProp("unlock") || temas[temaActual].unlock != "sukuna")
         return
     sukunaSlashFrame := 5
+    ReposicionarOverlayDeco()
     SetTimer(AnimarSlashSukuna, 40)
 }
 
 AnimarSlashSukuna() {
-    global miGui, sukunaSlashFrame
+    global sukunaSlashFrame
     if (sukunaSlashFrame <= 0) {
         SetTimer(AnimarSlashSukuna, 0)
-        ; Limpiar las lineas — invalidar miGui y todos sus hijos
-        DllCall("RedrawWindow", "Ptr", miGui.Hwnd, "Ptr", 0, "Ptr", 0, "UInt", 0x0001 | 0x0004 | 0x0080)
+        InvalidarOverlayDeco()
         return
     }
-    PintarSlashSukuna(sukunaSlashFrame)
     sukunaSlashFrame -= 1
+    InvalidarOverlayDeco()
 }
 
-PintarSlashSukuna(frame) {
-    global miGui
-    hDC := DllCall("GetDC", "Ptr", miGui.Hwnd, "Ptr")
-    if !hDC
-        return
-    rc := Buffer(16, 0)
-    DllCall("GetClientRect", "Ptr", miGui.Hwnd, "Ptr", rc)
-    w := NumGet(rc, 8, "Int")
-    h := NumGet(rc, 12, "Int")
-    grosor := frame + 1                      ; 6 → 2 (se afina con el frame)
-    rojoBGR := 0x2A2AFF                      ; FF2A2A en BGR (rojo brillante)
-    hPen := DllCall("CreatePen", "Int", 0, "Int", grosor, "UInt", rojoBGR, "Ptr")
-    oldPen := DllCall("SelectObject", "Ptr", hDC, "Ptr", hPen)
-    ; Dos cortes cruzados (Cleave + Dismantle)
-    DllCall("MoveToEx", "Ptr", hDC, "Int", -5, "Int", Round(h * 0.22), "Ptr", 0)
-    DllCall("LineTo",   "Ptr", hDC, "Int", w + 5, "Int", Round(h * 0.78))
-    DllCall("MoveToEx", "Ptr", hDC, "Int", w + 5, "Int", Round(h * 0.18), "Ptr", 0)
-    DllCall("LineTo",   "Ptr", hDC, "Int", -5, "Int", Round(h * 0.82))
-    DllCall("SelectObject", "Ptr", hDC, "Ptr", oldPen)
-    DllCall("DeleteObject", "Ptr", hPen)
-    DllCall("ReleaseDC", "Ptr", miGui.Hwnd, "Ptr", hDC)
-}
-
-; ════════════════════════════════════════════════════════════════════════
-; DECORACION VISUAL UNICA — GOJO: aura del Limitless (anillo cyan-morado)
-; Cada 3 segundos pulsa un anillo concéntrico alrededor del logo.
-; Representa la barrera invisible del Infinito + los Six Eyes activos.
-; ════════════════════════════════════════════════════════════════════════
-global gojoAuraFrame := 0
-
+; ── GOJO: aura del Limitless cada 3s alrededor del logo ──
 TickAuraGojo() {
     global temas, temaActual, gojoAuraFrame
     if (!temas[temaActual].HasProp("unlock") || temas[temaActual].unlock != "gojo")
@@ -5054,48 +5144,19 @@ TickAuraGojo() {
     if (gojoAuraFrame > 0)
         return  ; pulso anterior aún en marcha
     gojoAuraFrame := 8
+    ReposicionarOverlayDeco()
     SetTimer(AnimarAuraGojo, 50)
 }
 
 AnimarAuraGojo() {
-    global miGui, gojoAuraFrame
-    static MAX_FRAME := 8
+    global gojoAuraFrame
     if (gojoAuraFrame <= 0) {
         SetTimer(AnimarAuraGojo, 0)
-        DllCall("RedrawWindow", "Ptr", miGui.Hwnd, "Ptr", 0, "Ptr", 0, "UInt", 0x0001 | 0x0004 | 0x0080)
+        InvalidarOverlayDeco()
         return
     }
-    PintarAuraGojo(gojoAuraFrame, MAX_FRAME)
     gojoAuraFrame -= 1
-}
-
-PintarAuraGojo(frame, maxFrame) {
-    global miGui
-    ; Logo está en x=19 y=31 w=95 h=95 → centro = (66, 78)
-    cx := 66
-    cy := 78
-    t := (maxFrame - frame) / maxFrame      ; 0 → 1 (expande con el tiempo)
-    radio := Round(50 + t * 18)              ; 50 → 68 (el anillo crece)
-    ; Interpolar cyan → morado conforme se expande
-    rCyan := 0x4F, gCyan := 0xC3, bCyan := 0xF7
-    rMor  := 0x8A, gMor  := 0x2B, bMor  := 0xE2
-    rN := Round(rCyan + (rMor  - rCyan) * t)
-    gN := Round(gCyan + (gMor  - gCyan) * t)
-    bN := Round(bCyan + (bMor  - bCyan) * t)
-    colorBGR := (bN << 16) | (gN << 8) | rN
-    hDC := DllCall("GetDC", "Ptr", miGui.Hwnd, "Ptr")
-    if !hDC
-        return
-    grosor := Max(1, Round(3 * (1 - t)))    ; pen más grueso al inicio, fino al final
-    hPen := DllCall("CreatePen", "Int", 0, "Int", grosor, "UInt", colorBGR, "Ptr")
-    nullBrush := DllCall("GetStockObject", "Int", 5, "Ptr")  ; HOLLOW_BRUSH = 5, solo borde
-    oldPen := DllCall("SelectObject", "Ptr", hDC, "Ptr", hPen)
-    oldBrush := DllCall("SelectObject", "Ptr", hDC, "Ptr", nullBrush)
-    DllCall("Ellipse", "Ptr", hDC, "Int", cx - radio, "Int", cy - radio, "Int", cx + radio, "Int", cy + radio)
-    DllCall("SelectObject", "Ptr", hDC, "Ptr", oldPen)
-    DllCall("SelectObject", "Ptr", hDC, "Ptr", oldBrush)
-    DllCall("DeleteObject", "Ptr", hPen)
-    DllCall("ReleaseDC", "Ptr", miGui.Hwnd, "Ptr", hDC)
+    InvalidarOverlayDeco()
 }
 
 ; Flash de fuego naranja en la barra — efecto único del tema SUKUNA al completar secuencia.
