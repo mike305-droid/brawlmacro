@@ -8,7 +8,7 @@ configPath := A_ScriptDir "\brawlmacro_config.ini"
 global eggsBackupPath := A_ScriptDir "\brawlmacro_eggs.txt"
 global heartbeatPath := A_ScriptDir "\brawlmacro_heartbeat.txt"
 global historialLogPath := A_ScriptDir "\brawlmacro_historial.log"
-global VERSION_ACTUAL := "28.4.6"
+global VERSION_ACTUAL := "28.4.7"
 
 ; ===== TEMAS =====
 temas := [
@@ -56,6 +56,8 @@ temas := [
     ; Rojos / fuego oscuros
     { nombre:"Magma",      fondo:"0E0400", texto:"FF6B35", barra:"1E0800", textoBarra:"FF9A5C", historial:"080200", panel:"180600", cooldown:"FF1744", afk:"FF6B35", boton:"1E0800", hover:"330D00", logo:"FF9A5C", luzOn:"FF4500", luzAccion:"FF6B35", luzOff:"1E0800",  btnTexto:"FF9A5C", histColor1:"FF6B35", histColor2:"FF4500", histColor3:"FF9A5C" },
     { nombre:"Sangre",     fondo:"0A0000", texto:"F5DDD0", barra:"2A0000", textoBarra:"FFD0C0", historial:"060000", panel:"160000", cooldown:"FF0000", afk:"FF6644", boton:"1A0000", hover:"3A0000", logo:"FF2222", luzOn:"CC0000", luzAccion:"FF3322", luzOff:"0A0000",  btnTexto:"FFD0C0", histColor1:"F5DDD0", histColor2:"CC0000", histColor3:"FF3322" },
+    { nombre:"Abismo",     fondo:"0A0010", texto:"D8C8FF", barra:"120020", textoBarra:"E0D0FF", historial:"0D0018", panel:"140025", cooldown:"FF4477", afk:"AA88FF", boton:"1A0030", hover:"280050", logo:"C8A8FF", luzOn:"9966FF", luzAccion:"BB88FF", luzOff:"1A0030",  btnTexto:"D8C8FF", histColor1:"D8C8FF", histColor2:"9966FF", histColor3:"BB88FF" },
+    { nombre:"Electrico",  fondo:"0A0A1A", texto:"E040FB", barra:"4A148C", textoBarra:"EA80FC", historial:"080812", panel:"0D0D22", cooldown:"FF1744", afk:"7B1FA2", boton:"4A148C", hover:"6A1EB0", logo:"E040FB", luzOn:"AA00FF", luzAccion:"E040FB", luzOff:"1A0030",  btnTexto:"EA80FC", histColor1:"E040FB", histColor2:"AA00FF", histColor3:"CE93D8" },
     ; ─────────── SECRETOS — PACK GAMER ───────────
     { nombre:"★ Brawl",       secreto:true, unlock:"gamer", fondo:"000000", texto:"FFFFFF", barra:"0050D5", textoBarra:"FFFFFF", historial:"000000", panel:"0A1A30", cooldown:"FF4444", afk:"4FC3F7", boton:"0050D5", hover:"1976D2", logo:"FFFFFF", luzOn:"00B0FF", luzAccion:"FFFFFF", luzOff:"050E1C",  btnTexto:"FFFFFF", histColor1:"FFFFFF", histColor2:"00B0FF", histColor3:"0050D5" },
     { nombre:"◆ Cyberpunk",   secreto:true, unlock:"gamer", fondo:"0D0B1F", texto:"00FFFF", barra:"FF00AA", textoBarra:"FFFF00", historial:"070518", panel:"130E2E", cooldown:"FFFF00", afk:"00FFFF", boton:"FF00AA", hover:"FF33BB", logo:"FFFF00", luzOn:"FF00AA", luzAccion:"00FFFF", luzOff:"1A1240",  btnTexto:"FFFFFF", histColor1:"00FFFF", histColor2:"FF00AA", histColor3:"FFFF00" },
@@ -64,8 +66,6 @@ temas := [
     { nombre:"☆ Sky",         secreto:true, unlock:"gamer", fondo:"E1F5FE", texto:"0277BD", barra:"FFFFFF", textoBarra:"0277BD", historial:"F0FAFE", panel:"B3E5FC", cooldown:"F06292", afk:"81D4FA", boton:"FFFFFF", hover:"F5F9FB", logo:"0277BD", luzOn:"81D4FA", luzAccion:"F8BBD9", luzOff:"0277BD",  btnTexto:"0277BD", histColor1:"0277BD", histColor2:"F06292", histColor3:"81D4FA" },
     { nombre:"▣ Matrix",      secreto:true, unlock:"gamer", fondo:"000000", texto:"00FF00", barra:"002200", textoBarra:"00FF00", historial:"000800", panel:"001100", cooldown:"FF0000", afk:"00FF00", boton:"002200", hover:"003800", logo:"00FF00", luzOn:"00FF00", luzAccion:"FFFFFF", luzOff:"001100",  btnTexto:"00FF00", histColor1:"00FF00", histColor2:"00FF88", histColor3:"FFFFFF" },
     ; Morados / magenta oscuros
-    { nombre:"Abismo",     fondo:"0A0010", texto:"D8C8FF", barra:"120020", textoBarra:"E0D0FF", historial:"0D0018", panel:"140025", cooldown:"FF4477", afk:"AA88FF", boton:"1A0030", hover:"280050", logo:"C8A8FF", luzOn:"9966FF", luzAccion:"BB88FF", luzOff:"1A0030",  btnTexto:"D8C8FF", histColor1:"D8C8FF", histColor2:"9966FF", histColor3:"BB88FF" },
-    { nombre:"Electrico",  fondo:"0A0A1A", texto:"E040FB", barra:"4A148C", textoBarra:"EA80FC", historial:"080812", panel:"0D0D22", cooldown:"FF1744", afk:"7B1FA2", boton:"4A148C", hover:"6A1EB0", logo:"E040FB", luzOn:"AA00FF", luzAccion:"E040FB", luzOff:"1A0030",  btnTexto:"EA80FC", histColor1:"E040FB", histColor2:"AA00FF", histColor3:"CE93D8" },
     ; ─────────── SECRETOS — PACK ORIGINAL ───────────
     { nombre:"✦ E C L I P S E ✦", secreto:true, unlock:"shadow",  fondo:"050508", texto:"C8A060", barra:"0D0A20", textoBarra:"FFB347", historial:"030306", panel:"0A0818", cooldown:"FF2244", afk:"00FFCC", boton:"14102A", hover:"221840", logo:"FFB347", luzOn:"FF6600", luzAccion:"FFD700", luzOff:"080520",  btnTexto:"FFB347", histColor1:"FFD700", histColor2:"FF6600", histColor3:"00FFCC" },
     { nombre:"✦ C O S M O S ✦",   secreto:true, unlock:"cosmos",  fondo:"03000F", texto:"E2C9FF", barra:"180040", textoBarra:"FFD700", historial:"020008", panel:"0D001E", cooldown:"FF1493", afk:"00E5FF", boton:"12002E", hover:"1E0050", logo:"FFD700", luzOn:"BF00FF", luzAccion:"FF69B4", luzOff:"080020",  btnTexto:"FFD700", histColor1:"FF69B4", histColor2:"BF00FF", histColor3:"00E5FF" },
@@ -73,6 +73,22 @@ temas := [
     { nombre:"🔥 F E N I X 🔥",   secreto:true, unlock:"solar",   fondo:"FFF8EC", texto:"8B3A00", barra:"FF6B00", textoBarra:"FFFFFF", historial:"FFFBF5", panel:"FFE5C0", cooldown:"00C9B7", afk:"00C9B7", boton:"FFB347", hover:"FF8C00", logo:"00C9B7", luzOn:"00C9B7", luzAccion:"FF6B00", luzOff:"FFB347",  btnTexto:"FFFFFF", histColor1:"FFD700", histColor2:"FF6B00", histColor3:"00C9B7" },
     { nombre:"✦ N I K A ✦",       secreto:true, unlock:"blanco",  fondo:"FFFFFF", texto:"CC0000", barra:"CC0000", textoBarra:"FFFFFF", historial:"FFFFFF", panel:"FFF2F2", cooldown:"990000", afk:"CC0000", boton:"FFF2F2", hover:"FFE0E0", logo:"CC0000", luzOn:"DD0000", luzAccion:"FF2222", luzOff:"CC0000",  btnTexto:"CC0000", histColor1:"CC0000", histColor2:"DD0000", histColor3:"FF2222" },
     { nombre:"💎 P R E M I U M 💎", secreto:true, unlock:"premium", fondo:"050008", texto:"FFFFFF", barra:"0F0020", textoBarra:"FFFFFF", historial:"030005", panel:"0A0015", cooldown:"FF0066", afk:"00FFCC", boton:"15002A", hover:"25004A", logo:"FFFFFF", luzOn:"FF00FF", luzAccion:"FFD700", luzOff:"0A0015",  btnTexto:"FFFFFF", histColor1:"FF00FF", histColor2:"00FFFF", histColor3:"FFFF00" },
+    ; ── GOJO: el más fuerte. Six Eyes + Limitless + Hollow Purple ──
+    ; Logo: ∞ (Limitless infinito). Cielo nocturno + cian Six Eyes + morado Hollow Purple.
+    { nombre:"♾ G O J O ♾", secreto:true, unlock:"gojo", logoChar:Chr(0x221E),
+      fondo:"02071F", texto:"00DDFF", barra:"6A0DAD", textoBarra:"FFFFFF",
+      historial:"01030F", panel:"050B25", cooldown:"FF1493", afk:"00BFFF",
+      boton:"0A0F35", hover:"1A1A55", logo:"8A2BE2",
+      luzOn:"00FFFF", luzAccion:"BF00FF", luzOff:"02071F",
+      btnTexto:"00DDFF", histColor1:"00FFFF", histColor2:"8A2BE2", histColor3:"FFFFFF" },
+    ; ── SUKUNA: Rey de las Maldiciones. Malevolent Shrine + Fuga + marcas doradas ──
+    ; Logo: ⛩ (puerta torii = Malevolent Shrine). Negro sangre + dorado imperial + fuego.
+    { nombre:"⛩ S U K U N A ⛩", secreto:true, unlock:"sukuna", logoChar:Chr(0x26E9),
+      fondo:"0A0000", texto:"FFB000", barra:"5C0000", textoBarra:"FFD700",
+      historial:"050000", panel:"1A0000", cooldown:"FF4500", afk:"DC143C",
+      boton:"2B0000", hover:"400000", logo:"FFD700",
+      luzOn:"8B0000", luzAccion:"FF4500", luzOff:"0A0000",
+      btnTexto:"FFD700", histColor1:"FFD700", histColor2:"8B0000", histColor3:"FF4500" },
 ]
 
 temaActual := LeerTemaGuardado()
@@ -107,9 +123,9 @@ pasosPrioridad := []
 pasosNormales := []
 
 ; ===== PASOS DE PRIORIDAD =====
-pasosPrioridad.Push({ tipo:"pimg", nombre:"LEAVINGGAME1...", color:0xFFFFFF, categoria:1, accion:"Esc", hold:1000, tolerancia:1, delayClick:3000, delayTecla:1000, cooldown:190000, tct:true, sp:true, lastUsed:0, x1:1445, y1:65, x2:1448, y2:69, esperarA:"leaving1..." })
+pasosPrioridad.Push({ tipo:"pimg", nombre:"LEAVINGGAME1...", color:0xFFFFFF, categoria:1, accion:"Esc", hold:1000, tolerancia:1, delayClick:3000, delayTecla:1000, cooldown:190000, tct:true, lastUsed:0, x1:1445, y1:65, x2:1448, y2:69, esperarA:"leaving1..." })
 
-pasosPrioridad.Push({ tipo:"pimg", nombre:"LEAVINGGAME2...", color:0xFFFFFF, categoria:1, accion:"Esc", hold:1000, tolerancia:1, delayClick:3000, delayTecla:1000, cooldown:300000, tct:true, sp:true, lastUsed:0, x1:1624, y1:67, x2:1625, y2:72, esperarA:"leaving2..." })
+pasosPrioridad.Push({ tipo:"pimg", nombre:"LEAVINGGAME2...", color:0xFFFFFF, categoria:1, accion:"Esc", hold:1000, tolerancia:1, delayClick:3000, delayTecla:1000, cooldown:300000, sp:true, lastUsed:0, x1:1624, y1:67, x2:1625, y2:72, esperarA:"leaving2..." })
 
 ; ===== PIXEL PASOS NORMALES =====
 ; Categorias (color del log en historial):
@@ -153,8 +169,8 @@ pasosNormales.Push({ tipo:"pimg", nombre:"gamedone3",     color:0xF7F9F9, catego
 
 ; ─── FASE 6: SALIDA / CIERRE (cat 5) ───────────────────────────────
 pasosNormales.Push({ tipo:"pimg", nombre:"closing...",    color:0xD7D554, categoria:5, hold:400, tolerancia:1, delayClick:30, delayTecla:400, cooldown:300000, tct:true, sp:true, lastUsed:0, x1:742, y1:515, x2:743, y2:518 })
-pasosNormales.Push({ tipo:"pimg", nombre:"leaving1...",    color:0x30F1DD, categoria:5, hold:400, tolerancia:1, delayClick:30, delayTecla:300, cooldown:500,    bloqueoGlobal:3000, tct:true, sp:true, lastUsed:0, x1:859, y1:928, x2:863, y2:931 })
-pasosNormales.Push({ tipo:"pimg", nombre:"leaving2...",    color:0x30F1DD, categoria:5, hold:400, tolerancia:1, delayClick:30, delayTecla:300, cooldown:500,    bloqueoGlobal:3000, tct:true, sp:true, lastUsed:0, x1:859, y1:928, x2:863, y2:931 })
+pasosNormales.Push({ tipo:"pimg", nombre:"leaving1...",    color:0x30F1DD, categoria:5, hold:400, tolerancia:1, delayClick:30, delayTecla:300, cooldown:500,    bloqueoGlobal:3000, sp:true,  lastUsed:0, x1:859, y1:928, x2:863, y2:931 })
+pasosNormales.Push({ tipo:"pimg", nombre:"leaving2...",    color:0x30F1DD, categoria:5, hold:400, tolerancia:1, delayClick:30, delayTecla:300, cooldown:500,    bloqueoGlobal:3000, tct:true, lastUsed:0, x1:859, y1:928, x2:863, y2:931 })
 
 ; ─── FASE 7: ANOMALIAS / GLITCHES (cat 6, red de seguridad) ────────
 pasosNormales.Push({ tipo:"pimg", nombre:"glitch1",       color:0x0059A2, categoria:6, tiempoNecesario:4000, tiempoDetectando:0, accion:"Esc", hold:400, tolerancia:1, delayClick:30, delayTecla:250, cooldown:500, tct:true, sp:true, lastUsed:0, x1:38,  y1:252, x2:53,  y2:259 })
@@ -270,6 +286,8 @@ global luzSeq := [], luzSeqUltimo := 0
 global nikaHistClicks := 0, nikaHistUltimo := 0
 global eggPremiumClicks := 0, eggPremiumUltimo := 0
 global eggGamerClicks := 0, eggGamerUltimo := 0
+global eggGojoClicks := 0, eggGojoUltimo := 0       ; 6 clicks (Six Eyes) en secuenciasLabel
+global eggSukunaClicks := 0, eggSukunaUltimo := 0   ; 4 clicks (cuatro brazos) en destruccionesLabel
 global temaPremiumActivo := false
 global temaArcoirisData := Map(), temaArcoirisCbs := []
 global horaInicioSesion := ""
@@ -1915,9 +1933,12 @@ contadorLabel.SetFont("s9 c" colorTextoPrincipal, "Segoe UI")
 afkText      := historialGui.Add("Text", "x10 y305 w250 h18 vAfkText c" colorAFK " Background" colorVentanaHistorial)
 secuenciasLabel.SetFont("s10 Bold", "Segoe UI")
 destruccionesLabel.SetFont("s10 Bold", "Segoe UI")
-secuenciasLabel.OnEvent("Click", ClickSecuenciasGamer)  ; egg secreto del pack Gamer
+; egg pack Gamer + egg Gojo (Six Eyes / 6 clicks) coexisten en el mismo label
+secuenciasLabel.OnEvent("Click", (*) => (ClickSecuenciasGamer(), ClickSecuenciasGojo()))
 secuenciasLabel.Value := Chr(0x276E) "  Secuencias: 0  " Chr(0x276F)
 destruccionesLabel.Value := Chr(0x276E) "  Destrucciones: 0  " Chr(0x276F)
+; egg Sukuna (4 brazos / 4 clicks) en destruccionesLabel
+destruccionesLabel.OnEvent("Click", ClickDestruccionesSukuna)
 
 ; Grupos: Datos (Stats, Logros) · Sistema (Notas, Overlay, Webhook, Update)
 ; Spacing 26 dentro del grupo, 32 entre grupos. Centrado en GUI de 270.
@@ -2549,11 +2570,115 @@ ClickTitulo(*) {
     }
 }
 
+; ═══════════════════════════════════════════════════════════════
+; EGG GOJO — 6 clicks rápidos (Six Eyes) en secuenciasLabel
+; ═══════════════════════════════════════════════════════════════
+DesbloquearGojo() {
+    global temas, temaActual, eggGojoDesbloqueado, configPath
+
+    eggGojoDesbloqueado := true
+    temaActual := BuscarTemaPorUnlock("gojo")
+    TransicionTema(temas[temaActual])
+    GuardarTema()
+    IniWrite(1, configPath, "EggGojo", "Desbloqueado")
+    GuardarEggsBackup()
+
+    popup := Gui("+AlwaysOnTop -Caption +ToolWindow")
+    popup.BackColor := "02071F"
+    popup.SetFont("s14 c00FFFF Bold", "Segoe UI")
+    popup.Add("Text", "x0 y0 w360 h32 Background6A0DAD Center cFFFFFF", "  ♾  L I M I T L E S S  D E S B L O Q U E A D O  ♾  ")
+    popup.SetFont("s11 c00DDFF", "Segoe UI")
+    popup.Add("Text", "x10 y42 w340 h20 Center c8A2BE2", "✦ · · ♾ · · · · · · · · · ♾ · · ✦")
+    popup.SetFont("s13 c00FFFF Bold", "Segoe UI Semibold")
+    popup.Add("Text", "x10 y66 w340 h24 Center c00FFFF", "♾  G O J O  S A T O R U  ♾")
+    popup.SetFont("s10 cFFFFFF Italic", "Segoe UI")
+    popup.Add("Text", "x10 y94 w340 h20 Center cFFFFFF", '" Throughout heaven and earth, "')
+    popup.Add("Text", "x10 y112 w340 h20 Center cFFFFFF", '" I alone am the honored one. "')
+    popup.SetFont("s9 c00BFFF", "Segoe UI")
+    popup.Add("Text", "x10 y138 w340 h18 Center c00BFFF", "Los Seis Ojos han despertado.")
+    popup.Add("Text", "x10 y158 w340 h20 Center c8A2BE2", "✦ · · ♾ · · · · · · · · · ♾ · · ✦")
+    popup.Show("w360 h184 Center")
+    RedondearVentana(popup.Hwnd, 14)
+    SetTimer(() => popup.Destroy(), -4500)
+}
+
+ClickSecuenciasGojo(*) {
+    global eggGojoClicks, eggGojoUltimo, eggGojoDesbloqueado, secuenciasLabel, colorTextoPrincipal
+    if (eggGojoDesbloqueado)
+        return
+    if (A_TickCount - eggGojoUltimo < 2500)
+        eggGojoClicks += 1
+    else
+        eggGojoClicks := 1
+    eggGojoUltimo := A_TickCount
+    c := colorTextoPrincipal
+    secuenciasLabel.Opt("c00FFFF")  ; flash cyan Six Eyes
+    DllCall("InvalidateRect", "Ptr", secuenciasLabel.Hwnd, "Ptr", 0, "Int", 1)
+    SetTimer(() => (secuenciasLabel.Opt("c" c), DllCall("InvalidateRect", "Ptr", secuenciasLabel.Hwnd, "Ptr", 0, "Int", 1)), -180)
+    if (eggGojoClicks >= 6) {  ; SIX EYES
+        eggGojoClicks := 0
+        DesbloquearGojo()
+    }
+}
+
+; ═══════════════════════════════════════════════════════════════
+; EGG SUKUNA — 4 clicks rápidos (4 brazos del Rey) en destruccionesLabel
+; ═══════════════════════════════════════════════════════════════
+DesbloquearSukuna() {
+    global temas, temaActual, eggSukunaDesbloqueado, configPath
+
+    eggSukunaDesbloqueado := true
+    temaActual := BuscarTemaPorUnlock("sukuna")
+    TransicionTema(temas[temaActual])
+    GuardarTema()
+    IniWrite(1, configPath, "EggSukuna", "Desbloqueado")
+    GuardarEggsBackup()
+
+    popup := Gui("+AlwaysOnTop -Caption +ToolWindow")
+    popup.BackColor := "0A0000"
+    popup.SetFont("s14 cFFD700 Bold", "Segoe UI")
+    popup.Add("Text", "x0 y0 w360 h32 Background5C0000 Center cFFD700", "  ⛩  E L  R E Y  D E  L A S  M A L D I C I O N E S  ⛩  ")
+    popup.SetFont("s11 cFFB000", "Segoe UI")
+    popup.Add("Text", "x10 y42 w340 h20 Center cFF4500", "⛧ · · · ⛩ · · · · · · · · · ⛩ · · · ⛧")
+    popup.SetFont("s13 cFFD700 Bold", "Segoe UI Semibold")
+    popup.Add("Text", "x10 y66 w340 h24 Center cFFD700", "⛩  R Y O M E N  S U K U N A  ⛩")
+    popup.SetFont("s10 cFFD700 Italic", "Segoe UI")
+    popup.Add("Text", "x10 y94 w340 h20 Center cFFD700", '" 天上天下、唯我独尊 "')
+    popup.Add("Text", "x10 y112 w340 h20 Center cFFB000", '" Entre el cielo y la tierra, "')
+    popup.Add("Text", "x10 y130 w340 h20 Center cFFB000", '" sólo yo merezco honor. "')
+    popup.SetFont("s9 cDC143C", "Segoe UI")
+    popup.Add("Text", "x10 y158 w340 h18 Center cDC143C", "El Rey de las Maldiciones se alza. 真人")
+    popup.Add("Text", "x10 y178 w340 h20 Center cFF4500", "⛧ · · · ⛩ · · · · · · · · · ⛩ · · · ⛧")
+    popup.Show("w360 h204 Center")
+    RedondearVentana(popup.Hwnd, 14)
+    SetTimer(() => popup.Destroy(), -4500)
+}
+
+ClickDestruccionesSukuna(*) {
+    global eggSukunaClicks, eggSukunaUltimo, eggSukunaDesbloqueado, destruccionesLabel, colorTextoPrincipal
+    if (eggSukunaDesbloqueado)
+        return
+    if (A_TickCount - eggSukunaUltimo < 2500)
+        eggSukunaClicks += 1
+    else
+        eggSukunaClicks := 1
+    eggSukunaUltimo := A_TickCount
+    c := colorTextoPrincipal
+    destruccionesLabel.Opt("cFF4500")  ; flash naranja fuego (Fuga)
+    DllCall("InvalidateRect", "Ptr", destruccionesLabel.Hwnd, "Ptr", 0, "Int", 1)
+    SetTimer(() => (destruccionesLabel.Opt("c" c), DllCall("InvalidateRect", "Ptr", destruccionesLabel.Hwnd, "Ptr", 0, "Int", 1)), -180)
+    if (eggSukunaClicks >= 4) {  ; CUATRO BRAZOS
+        eggSukunaClicks := 0
+        DesbloquearSukuna()
+    }
+}
+
 ; ===== FUNCIONES GUI =====
 ; ===== BACKUP ROBUSTO DE EGGS (UTF-8 — inmune a problemas de codificación del .ini) =====
 CargarEggsBackup() {
     global eggDesbloqueado, eggVoidDesbloqueado, eggShadowDesbloqueado
     global eggSolarDesbloqueado, eggBlancoDesbloqueado, eggPremiumDesbloqueado, eggGamerDesbloqueado, eggsBackupPath
+    global eggGojoDesbloqueado, eggSukunaDesbloqueado
     if (!FileExist(eggsBackupPath))
         return
     try {
@@ -2572,12 +2697,17 @@ CargarEggsBackup() {
             eggPremiumDesbloqueado := true
         if (InStr(txt, "gamer"))
             eggGamerDesbloqueado := true
+        if (InStr(txt, "gojo"))
+            eggGojoDesbloqueado := true
+        if (InStr(txt, "sukuna"))
+            eggSukunaDesbloqueado := true
     }
 }
 
 GuardarEggsBackup() {
     global eggDesbloqueado, eggVoidDesbloqueado, eggShadowDesbloqueado
     global eggSolarDesbloqueado, eggBlancoDesbloqueado, eggPremiumDesbloqueado, eggGamerDesbloqueado, eggsBackupPath
+    global eggGojoDesbloqueado, eggSukunaDesbloqueado
     txt := ""
     if (eggDesbloqueado)
         txt .= "cosmos`n"
@@ -2593,6 +2723,10 @@ GuardarEggsBackup() {
         txt .= "premium`n"
     if (eggGamerDesbloqueado)
         txt .= "gamer`n"
+    if (eggGojoDesbloqueado)
+        txt .= "gojo`n"
+    if (eggSukunaDesbloqueado)
+        txt .= "sukuna`n"
     try FileDelete(eggsBackupPath)
     try FileAppend(txt, eggsBackupPath, "UTF-8")
 }
@@ -2601,6 +2735,7 @@ GuardarEggsBackup() {
 PuedeUsarTema(t) {
     global eggDesbloqueado, eggVoidDesbloqueado, eggShadowDesbloqueado
     global eggSolarDesbloqueado, eggBlancoDesbloqueado, eggPremiumDesbloqueado, eggGamerDesbloqueado
+    global eggGojoDesbloqueado, eggSukunaDesbloqueado
     if (!t.HasProp("secreto") || !t.secreto)
         return true
     if (!t.HasProp("unlock"))
@@ -2613,6 +2748,8 @@ PuedeUsarTema(t) {
         case "blanco":  return eggBlancoDesbloqueado
         case "premium": return eggPremiumDesbloqueado
         case "gamer":   return eggGamerDesbloqueado
+        case "gojo":    return eggGojoDesbloqueado
+        case "sukuna":  return eggSukunaDesbloqueado
     }
     return false
 }
@@ -2630,6 +2767,7 @@ BuscarTemaPorUnlock(unlockId) {
 LeerTemaGuardado() {
     global configPath, temas, eggDesbloqueado, eggVoidDesbloqueado, eggShadowDesbloqueado
     global eggSolarDesbloqueado, eggBlancoDesbloqueado, eggPremiumDesbloqueado, eggGamerDesbloqueado, VERSION_ACTUAL
+    global eggGojoDesbloqueado, eggSukunaDesbloqueado
     eggDesbloqueado        := Integer(IniRead(configPath, "Egg",        "Desbloqueado", "0")) = 1
     eggVoidDesbloqueado    := Integer(IniRead(configPath, "EggVoid",    "Desbloqueado", "0")) = 1
     eggShadowDesbloqueado  := Integer(IniRead(configPath, "EggShadow",  "Desbloqueado", "0")) = 1
@@ -2637,6 +2775,8 @@ LeerTemaGuardado() {
     eggBlancoDesbloqueado  := Integer(IniRead(configPath, "EggBlanco",  "Desbloqueado", "0")) = 1
     eggPremiumDesbloqueado := Integer(IniRead(configPath, "EggPremium", "Desbloqueado", "0")) = 1
     eggGamerDesbloqueado   := Integer(IniRead(configPath, "EggGamer",   "Desbloqueado", "0")) = 1
+    eggGojoDesbloqueado    := Integer(IniRead(configPath, "EggGojo",    "Desbloqueado", "0")) = 1
+    eggSukunaDesbloqueado  := Integer(IniRead(configPath, "EggSukuna",  "Desbloqueado", "0")) = 1
     ; Fallback: si el .ini está corrupto o en UTF-16, leer del backup UTF-8
     CargarEggsBackup()
     ; Re-guardar al backup para mantenerlo sincronizado
@@ -4325,6 +4465,8 @@ AplicarTema(tema, guardar := true, fromTrans := false) {
         sepAccion.Opt("Background" colorBarra)
     logoMacro.Opt("c" colorLogoMacro)
     logoMacro.SetFont("s49 c" colorLogoMacro " Bold", "Segoe UI Symbol")
+    ; Cambiar el carácter del logo si el tema define uno especial (Gojo=∞, Sukuna=⛩)
+    try logoMacro.Text := (tema.HasProp("logoChar") ? tema.logoChar : Chr(9881))
     DllCall("InvalidateRect", "Ptr", logoMacro.Hwnd, "Ptr", 0, "Int", 1)
     tituloMacro.Opt("Background" colorFondoPrincipal " c" colorTextoPrincipal)
     tituloMacro.SetFont("s13 c" colorTextoPrincipal " Bold", "Segoe UI Semibold")
