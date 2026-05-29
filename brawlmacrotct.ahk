@@ -8,7 +8,7 @@ configPath := A_ScriptDir "\brawlmacro_config.ini"
 global eggsBackupPath := A_ScriptDir "\brawlmacro_eggs.txt"
 global heartbeatPath := A_ScriptDir "\brawlmacro_heartbeat.txt"
 global historialLogPath := A_ScriptDir "\brawlmacro_historial.log"
-global VERSION_ACTUAL := "28.5.0"
+global VERSION_ACTUAL := "28.5.1"
 
 ; ===== TEMAS =====
 temas := [
@@ -288,6 +288,13 @@ global eggPremiumClicks := 0, eggPremiumUltimo := 0
 global eggGamerClicks := 0, eggGamerUltimo := 0
 global eggGojoClicks := 0, eggGojoUltimo := 0       ; 6 clicks (Six Eyes) en secuenciasLabel
 global eggSukunaClicks := 0, eggSukunaUltimo := 0   ; 4 clicks (cuatro brazos) en destruccionesLabel
+
+; ── Decoraciones tematicas (overlay topmost) ──
+global overlayDecoraciones := "", overlayDecoSubclassCb := 0
+global sukunaSlashFrame := 0     ; > 0 = pintando cortes Sukuna
+global gojoAuraFrame := 0        ; > 0 = pintando anillo Gojo
+global DECO_COLORKEY_HEX := "010203"
+global DECO_COLORKEY_BGR := 0x030201
 global temaPremiumActivo := false
 global temaArcoirisData := Map(), temaArcoirisCbs := []
 global horaInicioSesion := ""
@@ -4996,14 +5003,8 @@ InterpolarHex(hexA, hexB, t) {
 ; OVERLAY DE DECORACIONES TEMÁTICAS — encima de toda la GUI del macro
 ; Window topmost + layered + transparent + color-key. Click-through.
 ; Comparte para Sukuna (slashes) y Gojo (aura del Limitless).
+; (Las globals se declaran en el auto-execute al inicio del script)
 ; ════════════════════════════════════════════════════════════════════════
-global overlayDecoraciones := "", overlayDecoSubclassCb := 0
-global sukunaSlashFrame := 0
-global gojoAuraFrame := 0
-; Color key — cualquier pixel pintado de este color se vuelve transparente
-global DECO_COLORKEY_HEX := "010203"
-global DECO_COLORKEY_BGR := 0x030201
-
 CrearOverlayDecoraciones() {
     global miGui, overlayDecoraciones, overlayDecoSubclassCb, DECO_COLORKEY_HEX, DECO_COLORKEY_BGR
     static BAR_H := 25
