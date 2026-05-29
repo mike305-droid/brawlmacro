@@ -2331,7 +2331,7 @@ AplicarPreset(p) {
         case 1:
             presetHoverPoll := 50
             presetHoverBreath := 0
-            presetParticulas := 0
+            presetParticulas := 150   ; antes 0 (apagado) → ahora 150ms (~6fps, suaves pero visibles)
             presetPulsoBar := 0
             presetPulsoLogo := 0
             presetRGB := 200
