@@ -8,7 +8,7 @@ configPath := A_ScriptDir "\brawlmacro_config.ini"
 global eggsBackupPath := A_ScriptDir "\brawlmacro_eggs.txt"
 global heartbeatPath := A_ScriptDir "\brawlmacro_heartbeat.txt"
 global historialLogPath := A_ScriptDir "\brawlmacro_historial.log"
-global VERSION_ACTUAL := "28.4.8"
+global VERSION_ACTUAL := "28.4.9"
 
 ; ===== TEMAS =====
 temas := [
@@ -2113,6 +2113,8 @@ SetTimer(ActualizarScrollbar, 150)
 SetTimer(WatchdogAFK, 30000)     ; cada 30 s; si activo && > 90 s sin AFK → Reload()
 ; Pulso Hollow Purple del timer cada 4s (solo activo si el tema actual es GOJO)
 SetTimer(GojoPulsoHollowPurple, 4000)
+; Aura del Limitless: anillo cyan-morado pulsando cada 3s alrededor del logo (solo GOJO)
+SetTimer(TickAuraGojo, 3000)
 
 SetTimer(EscribirHeartbeat, 5000) ; cada 5 s escribe pid + timestamp en heartbeat.txt para el watchdog externo
 EscribirHeartbeat()              ; un primer write inmediato
@@ -4989,6 +4991,113 @@ InterpolarHex(hexA, hexB, t) {
         Round(bA + (bB - bA) * t))
 }
 
+; ════════════════════════════════════════════════════════════════════════
+; DECORACION VISUAL UNICA — SUKUNA: cortes diagonales rojos (Cleave/Dismantle)
+; Se disparan en cada detección. 2 líneas que cruzan la GUI, animadas 5 frames.
+; ════════════════════════════════════════════════════════════════════════
+global sukunaSlashFrame := 0
+
+LanzarSlashSukuna() {
+    global temas, temaActual, sukunaSlashFrame
+    if (!temas[temaActual].HasProp("unlock") || temas[temaActual].unlock != "sukuna")
+        return
+    sukunaSlashFrame := 5
+    SetTimer(AnimarSlashSukuna, 40)
+}
+
+AnimarSlashSukuna() {
+    global miGui, sukunaSlashFrame
+    if (sukunaSlashFrame <= 0) {
+        SetTimer(AnimarSlashSukuna, 0)
+        ; Limpiar las lineas — invalidar miGui y todos sus hijos
+        DllCall("RedrawWindow", "Ptr", miGui.Hwnd, "Ptr", 0, "Ptr", 0, "UInt", 0x0001 | 0x0004 | 0x0080)
+        return
+    }
+    PintarSlashSukuna(sukunaSlashFrame)
+    sukunaSlashFrame -= 1
+}
+
+PintarSlashSukuna(frame) {
+    global miGui
+    hDC := DllCall("GetDC", "Ptr", miGui.Hwnd, "Ptr")
+    if !hDC
+        return
+    rc := Buffer(16, 0)
+    DllCall("GetClientRect", "Ptr", miGui.Hwnd, "Ptr", rc)
+    w := NumGet(rc, 8, "Int")
+    h := NumGet(rc, 12, "Int")
+    grosor := frame + 1                      ; 6 → 2 (se afina con el frame)
+    rojoBGR := 0x2A2AFF                      ; FF2A2A en BGR (rojo brillante)
+    hPen := DllCall("CreatePen", "Int", 0, "Int", grosor, "UInt", rojoBGR, "Ptr")
+    oldPen := DllCall("SelectObject", "Ptr", hDC, "Ptr", hPen)
+    ; Dos cortes cruzados (Cleave + Dismantle)
+    DllCall("MoveToEx", "Ptr", hDC, "Int", -5, "Int", Round(h * 0.22), "Ptr", 0)
+    DllCall("LineTo",   "Ptr", hDC, "Int", w + 5, "Int", Round(h * 0.78))
+    DllCall("MoveToEx", "Ptr", hDC, "Int", w + 5, "Int", Round(h * 0.18), "Ptr", 0)
+    DllCall("LineTo",   "Ptr", hDC, "Int", -5, "Int", Round(h * 0.82))
+    DllCall("SelectObject", "Ptr", hDC, "Ptr", oldPen)
+    DllCall("DeleteObject", "Ptr", hPen)
+    DllCall("ReleaseDC", "Ptr", miGui.Hwnd, "Ptr", hDC)
+}
+
+; ════════════════════════════════════════════════════════════════════════
+; DECORACION VISUAL UNICA — GOJO: aura del Limitless (anillo cyan-morado)
+; Cada 3 segundos pulsa un anillo concéntrico alrededor del logo.
+; Representa la barrera invisible del Infinito + los Six Eyes activos.
+; ════════════════════════════════════════════════════════════════════════
+global gojoAuraFrame := 0
+
+TickAuraGojo() {
+    global temas, temaActual, gojoAuraFrame
+    if (!temas[temaActual].HasProp("unlock") || temas[temaActual].unlock != "gojo")
+        return
+    if (gojoAuraFrame > 0)
+        return  ; pulso anterior aún en marcha
+    gojoAuraFrame := 8
+    SetTimer(AnimarAuraGojo, 50)
+}
+
+AnimarAuraGojo() {
+    global miGui, gojoAuraFrame
+    static MAX_FRAME := 8
+    if (gojoAuraFrame <= 0) {
+        SetTimer(AnimarAuraGojo, 0)
+        DllCall("RedrawWindow", "Ptr", miGui.Hwnd, "Ptr", 0, "Ptr", 0, "UInt", 0x0001 | 0x0004 | 0x0080)
+        return
+    }
+    PintarAuraGojo(gojoAuraFrame, MAX_FRAME)
+    gojoAuraFrame -= 1
+}
+
+PintarAuraGojo(frame, maxFrame) {
+    global miGui
+    ; Logo está en x=19 y=31 w=95 h=95 → centro = (66, 78)
+    cx := 66
+    cy := 78
+    t := (maxFrame - frame) / maxFrame      ; 0 → 1 (expande con el tiempo)
+    radio := Round(50 + t * 18)              ; 50 → 68 (el anillo crece)
+    ; Interpolar cyan → morado conforme se expande
+    rCyan := 0x4F, gCyan := 0xC3, bCyan := 0xF7
+    rMor  := 0x8A, gMor  := 0x2B, bMor  := 0xE2
+    rN := Round(rCyan + (rMor  - rCyan) * t)
+    gN := Round(gCyan + (gMor  - gCyan) * t)
+    bN := Round(bCyan + (bMor  - bCyan) * t)
+    colorBGR := (bN << 16) | (gN << 8) | rN
+    hDC := DllCall("GetDC", "Ptr", miGui.Hwnd, "Ptr")
+    if !hDC
+        return
+    grosor := Max(1, Round(3 * (1 - t)))    ; pen más grueso al inicio, fino al final
+    hPen := DllCall("CreatePen", "Int", 0, "Int", grosor, "UInt", colorBGR, "Ptr")
+    nullBrush := DllCall("GetStockObject", "Int", 5, "Ptr")  ; HOLLOW_BRUSH = 5, solo borde
+    oldPen := DllCall("SelectObject", "Ptr", hDC, "Ptr", hPen)
+    oldBrush := DllCall("SelectObject", "Ptr", hDC, "Ptr", nullBrush)
+    DllCall("Ellipse", "Ptr", hDC, "Int", cx - radio, "Int", cy - radio, "Int", cx + radio, "Int", cy + radio)
+    DllCall("SelectObject", "Ptr", hDC, "Ptr", oldPen)
+    DllCall("SelectObject", "Ptr", hDC, "Ptr", oldBrush)
+    DllCall("DeleteObject", "Ptr", hPen)
+    DllCall("ReleaseDC", "Ptr", miGui.Hwnd, "Ptr", hDC)
+}
+
 ; Flash de fuego naranja en la barra — efecto único del tema SUKUNA al completar secuencia.
 ; Representa el Fuga (Flame Arrow) que Sukuna lanza.
 BarraFlashFuga() {
@@ -5932,6 +6041,8 @@ DespuesDeAccion(esSecuencia := false) {
     global contadorSecuencias, totalCriticos
     TriggerSpeedLines()
     IncrementarStreak()
+    ; ── Decoración visual SUKUNA: cortes diagonales en cada detección (no-op en otros temas)
+    LanzarSlashSukuna()
 
     ; ── Crítico aleatorio (1% por acción) ──
     if (Random(1, 100) = 1) {
