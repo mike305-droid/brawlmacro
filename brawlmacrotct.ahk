@@ -8,7 +8,7 @@ configPath := A_ScriptDir "\brawlmacro_config.ini"
 global eggsBackupPath := A_ScriptDir "\brawlmacro_eggs.txt"
 global heartbeatPath := A_ScriptDir "\brawlmacro_heartbeat.txt"
 global historialLogPath := A_ScriptDir "\brawlmacro_historial.log"
-global VERSION_ACTUAL := "28.6.0"
+global VERSION_ACTUAL := "28.6.1"
 
 ; ===== TEMAS =====
 temas := [
@@ -4839,7 +4839,9 @@ EmojiPerfil(idx := 0) {
         return Chr(0x1F310)  ; 🌐 publico
     if (idx = 2)
         return Chr(0x1F512)  ; 🔒 privado
-    return Chr(0x2694)        ; ⚔ frt (spam mode)
+    if (idx = 3)
+        return Chr(0x2694)   ; ⚔ frt (spam mode)
+    return Chr(0x2205)        ; ∅ dstv (vacio, no hace nada)
 }
 
 ; Devuelve el nombre legible completo (emoji + nombre) para el historial.
@@ -4848,16 +4850,18 @@ NombrePerfil(idx := 0) {
     if (idx = 0)
         idx := perfilActivo
     if (idx = 1)
-        return Chr(0x1F310) " tct"   ; 🌐 tct (publico)
+        return Chr(0x1F310) " tct"    ; 🌐 tct (publico)
     if (idx = 2)
-        return Chr(0x1F512) " sp"     ; 🔒 sp (privado)
-    return Chr(0x2694) " frt"          ; ⚔ frt (spam clicks + 1-7)
+        return Chr(0x1F512) " sp"      ; 🔒 sp (privado)
+    if (idx = 3)
+        return Chr(0x2694) " frt"      ; ⚔ frt (spam clicks + 1-7)
+    return Chr(0x2205) " dstv"          ; ∅ dstv (vacio - sin pasos ni acciones)
 }
 
-; Cicla 1 → 2 → 3 → 1 → ...
+; Cicla 1 → 2 → 3 → 4 → 1 → ...
 CambiarPerfil(*) {
     global perfilActivo, btnPerfil, configPath, brawlhallaLanzado
-    perfilActivo := (perfilActivo >= 3) ? 1 : perfilActivo + 1
+    perfilActivo := (perfilActivo >= 4) ? 1 : perfilActivo + 1
     btnPerfil.Value := EmojiPerfil()
     DllCall("InvalidateRect", "Ptr", btnPerfil.Hwnd, "Ptr", 0, "Int", 1)
     DllCall("UpdateWindow",   "Ptr", btnPerfil.Hwnd)
@@ -5729,7 +5733,7 @@ PasoActivoEnPerfil(paso) {
     tieneTct := (paso.HasProp("tct") && paso.tct) || (paso.HasProp("p1") && paso.p1)
     tieneSp  := (paso.HasProp("sp")  && paso.sp)  || (paso.HasProp("p2") && paso.p2)
     tieneFrt := paso.HasProp("frt") && paso.frt
-    ; Paso sin marcar = común a tct/sp pero NO a frt
+    ; Paso sin marcar = común a tct/sp pero NO a frt ni a dstv
     if (!tieneTct && !tieneSp && !tieneFrt)
         return (perfilActivo = 1 || perfilActivo = 2)
     if (perfilActivo = 1)
@@ -5738,6 +5742,7 @@ PasoActivoEnPerfil(paso) {
         return tieneSp
     if (perfilActivo = 3)
         return tieneFrt
+    ; perfilActivo = 4 (dstv): nunca hay pasos activos — perfil totalmente vacio
     return false
 }
 
@@ -6818,22 +6823,23 @@ ActualizarTimersFrt() {
 
 ; Muestra/oculta los labels del historial relacionados con anti-AFK,
 ; secuencias, destrucciones y cooldowns segun el perfil activo.
-; En modo frt todo eso es irrelevante — solo clicks y teclas.
+; En frt (solo spam) y dstv (perfil vacio) esos labels son irrelevantes.
 ActualizarVisibilidadFrt() {
     global perfilActivo, afkText, secuenciasLabel, destruccionesLabel
     global contadorLabel, cooldownText
-    esFrt := (perfilActivo = 3)
+    ocultar := (perfilActivo = 3 || perfilActivo = 4)
     for ctrl in [afkText, secuenciasLabel, destruccionesLabel, contadorLabel, cooldownText] {
         if (IsObject(ctrl)) {
-            try ctrl.Visible := !esFrt
+            try ctrl.Visible := !ocultar
         }
     }
 }
 
 ; Lanza el juego asociado al perfil activo cuando se presiona Iniciar.
-;   🌐 tct (perfilActivo=1) → Brawlhalla via Steam
-;   🔒 sp  (perfilActivo=2) → Brawlhalla via Steam (mismo juego, distinto layout/pasos)
+;   🌐 tct  (perfilActivo=1) → Brawlhalla via Steam
+;   🔒 sp   (perfilActivo=2) → Brawlhalla via Steam (mismo juego, distinto layout/pasos)
 ;   ⚔ frt  (perfilActivo=3) → NO lanza nada, solo spam de clicks + teclas
+;   ∅ dstv (perfilActivo=4) → NO lanza nada, sin pasos, sin spam (perfil vacio)
 LanzarJuegoDelPerfil() {
     global brawlhallaLanzado, perfilActivo
     if (brawlhallaLanzado)
@@ -6846,7 +6852,7 @@ LanzarJuegoDelPerfil() {
         LanzarBrawlhallaConFoco()
         return
     }
-    ; frt no lanza ningun juego
+    ; frt y dstv no lanzan ningun juego
 }
 
 ; Secuencia robusta de lanzamiento (condicional):
@@ -6889,7 +6895,8 @@ LanzarBrawlhalla_TypeName() {
 
 CheckBrawlhallaMinimizado() {
     global activo, perfilActivo
-    if (!activo || perfilActivo = 3)
+    ; frt (3) y dstv (4) no manejan Brawlhalla
+    if (!activo || perfilActivo = 3 || perfilActivo = 4)
         return
     try {
         if !ProcessExist("Brawlhalla.exe")
