@@ -5514,30 +5514,26 @@ EjecutarMacro(*) {
         ultimoCambio := A_TickCount
         ultimoPasoEjecutado := ""
 
-        AgregarHistorial("💀 Alt+F4 ejecutado - reiniciando Brawlhalla", "FF0000")
+        AgregarHistorial("💀 Terminando proceso de Brawlhalla", "FF0000")
         EnviarWebhookEvento("altf4")
 
-        ; Activar la ventana de Brawlhalla antes del Alt+F4
-        ; (sin esto, SendInput manda Alt+F4 a la GUI del macro)
-        if WinExist("ahk_exe Brawlhalla.exe") {
-            WinActivate("ahk_exe Brawlhalla.exe")
-            Sleep 500
-            SendInput "!{F4}"
-        }
-        Sleep 5000
-
-        ; Si sigue vivo, forzar cierre del proceso
+        ; Antes usabamos Alt+F4 pero es lento (animacion de cierre) y poco fiable
+        ; (si la ventana esta en un menu o dialogo, no cierra). Mejor matar el proceso
+        ; directamente — instantaneo y 100% fiable.
         if ProcessExist("Brawlhalla.exe") {
-            AgregarHistorial("⚠ Alt+F4 no cerró Brawlhalla — forzando cierre", "FF8800")
-            ProcessClose("Brawlhalla.exe")
+            try ProcessClose("Brawlhalla.exe")
+            ; Backup: taskkill /F por si ProcessClose no tiene permisos
+            if ProcessExist("Brawlhalla.exe") {
+                try Run(A_ComSpec ' /c taskkill /F /IM Brawlhalla.exe', , "Hide")
+            }
         }
 
-        ; Esperar a que el proceso muera realmente (hasta 5s extra)
+        ; Esperar a que el proceso muera realmente (hasta 5s)
         cierreT0 := A_TickCount
         while (ProcessExist("Brawlhalla.exe") && (A_TickCount - cierreT0) < 5000)
-            Sleep 250
+            Sleep 200
 
-        Sleep 2000
+        Sleep 1500  ; dar tiempo al sistema antes de relanzar
         AgregarHistorial("🔄 Abriendo Brawlhalla por Steam...", "FF8800")
         try Run("steam://rungameid/291550")
         tiempoUltimoLanzamiento := A_TickCount
@@ -5561,9 +5557,23 @@ EjecutarMacro(*) {
     if (tiempoUltimoLanzamiento > 0 && (A_TickCount - tiempoUltimoLanzamiento) > 60000) {
         tiempoUltimoLanzamiento := A_TickCount
         ultimoCambio := A_TickCount
-        ; Si el juego ya está corriendo, no relances — el problema es de detección, no de lanzamiento
         if (ProcessExist("Brawlhalla.exe")) {
-            AgregarHistorial("⚠️ Sin detección tras 2 min - Brawlhalla corre pero el macro no detecta", "FF8800")
+            ; Si el proceso existe pero el macro no detecta nada, normalmente es porque
+            ; la ventana perdio el foco o se minimizo. Restaurarla y activarla.
+            try {
+                if WinExist("ahk_exe Brawlhalla.exe") {
+                    hwndBH := WinGetID("ahk_exe Brawlhalla.exe")
+                    if DllCall("IsIconic", "Ptr", hwndBH, "Int") {
+                        WinRestore("ahk_exe Brawlhalla.exe")
+                        AgregarHistorial("⚠️ Sin detección tras 2 min - Brawlhalla minimizado → restaurado", "FF8800")
+                    } else {
+                        WinActivate("ahk_exe Brawlhalla.exe")
+                        AgregarHistorial("⚠️ Sin detección tras 2 min - reenfocando ventana de Brawlhalla", "FF8800")
+                    }
+                } else {
+                    AgregarHistorial("⚠️ Sin detección tras 2 min - Brawlhalla corre sin ventana visible", "FF8800")
+                }
+            }
         } else {
             AgregarHistorial("⚠️ Sin detección tras 2 min - reintentando lanzamiento por Steam...", "FF8800")
             try Run("steam://rungameid/291550")
@@ -6321,7 +6331,22 @@ LanzarJuegoDelPerfil() {
     if (perfilActivo = 1 || perfilActivo = 2) {
         ; ── tct y sp ambos abren Brawlhalla ──
         if (ProcessExist("Brawlhalla.exe")) {
-            AgregarHistorial(Chr(0x2705) " Brawlhalla ya está abierto", "00CC44")
+            ; Ya esta abierto pero puede estar en background o minimizado.
+            ; Activar/restaurar la ventana en vez de fingir relanzarlo.
+            try {
+                if WinExist("ahk_exe Brawlhalla.exe") {
+                    hwndBH := WinGetID("ahk_exe Brawlhalla.exe")
+                    if DllCall("IsIconic", "Ptr", hwndBH, "Int") {
+                        WinRestore("ahk_exe Brawlhalla.exe")
+                        AgregarHistorial(Chr(0x1F504) " Brawlhalla estaba minimizado → restaurado", "00CC44")
+                    } else {
+                        WinActivate("ahk_exe Brawlhalla.exe")
+                        AgregarHistorial(Chr(0x2705) " Brawlhalla ya abierto → enfocando ventana", "00CC44")
+                    }
+                } else {
+                    AgregarHistorial(Chr(0x2705) " Brawlhalla ya está abierto", "00CC44")
+                }
+            }
             return
         }
         AgregarHistorial(Chr(0x1F504) " Abriendo Brawlhalla por Steam...", "FF8800")
