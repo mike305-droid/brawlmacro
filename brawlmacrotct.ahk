@@ -8,7 +8,7 @@ configPath := A_ScriptDir "\brawlmacro_config.ini"
 global eggsBackupPath := A_ScriptDir "\brawlmacro_eggs.txt"
 global heartbeatPath := A_ScriptDir "\brawlmacro_heartbeat.txt"
 global historialLogPath := A_ScriptDir "\brawlmacro_historial.log"
-global VERSION_ACTUAL := "28.5.4"
+global VERSION_ACTUAL := "28.5.5"
 
 ; ===== TEMAS =====
 temas := [
@@ -853,13 +853,15 @@ DibujarGearEnDC(hdc, w, h, angulo, colorHex, fondoHex) {
             ; Si tenemos cache del color actual y NO estamos en modo especial (premium/glitch),
             ; usar BitBlt del bitmap pre-renderizado en vez de hacer la rotación + dibujo cada frame.
             global logoGearCache, logoGearCacheColor, logoGearCacheChar, LOGO_GEAR_CACHE_FRAMES, temaPremiumActivo
-            global activo, rgbLogo
+            global activo, rgbLogo, temaEnTransicion
             ; Solo usar cache cuando el color es ESTABLE entre frames:
             ;  - activo=true → color pulsa con Sin() cada frame → invalidaría cache cada tick = malo
             ;  - rgbLogo → color cicla con RGB cada frame
             ;  - premium → anillos arcoíris animados
             ;  - glitching → usa color rojo distinto
-            colorEsEstable := !activo && !rgbLogo && !temaPremiumActivo && !glitching
+            ;  - temaEnTransicion → colorLogoEnTransicion lerpea cada frame → reconstruir 32
+            ;    bitmaps por frame = parpadeo masivo. Pintar directo durante la transicion.
+            colorEsEstable := !activo && !rgbLogo && !temaPremiumActivo && !glitching && !temaEnTransicion
             canUseCache := colorEsEstable && (logoGearCache.Length = LOGO_GEAR_CACHE_FRAMES) && (logoGearCacheColor = colorHex) && (logoGearCacheChar = charLogo)
 
             ; Si el color es estable pero cambió (o no hay cache), construirlo ahora
