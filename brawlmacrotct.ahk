@@ -8,7 +8,7 @@ configPath := A_ScriptDir "\brawlmacro_config.ini"
 global eggsBackupPath := A_ScriptDir "\brawlmacro_eggs.txt"
 global heartbeatPath := A_ScriptDir "\brawlmacro_heartbeat.txt"
 global historialLogPath := A_ScriptDir "\brawlmacro_historial.log"
-global VERSION_ACTUAL := "28.5.2"
+global VERSION_ACTUAL := "28.5.3"
 
 ; ===== TEMAS =====
 temas := [
@@ -81,14 +81,14 @@ temas := [
       boton:"1A1F35", hover:"3D1F66", logo:"FFFFFF",
       luzOn:"4FC3F7", luzAccion:"8A2BE2", luzOff:"0A0E1F",
       btnTexto:"E8DEC4", histColor1:"E8DEC4", histColor2:"4FC3F7", histColor3:"8A2BE2" },
-    ; ── SUKUNA: Rey de las Maldiciones. Sangre + carne maldita + Cleave ──
-    ; Logo: ⛩ (Malevolent Shrine). Negro sangre seca + rojo brillante + rojo oscuro + gris rojizo de carne maldita.
+    ; ── SUKUNA: Rey de las Maldiciones. Negro + rojos + gris rojizo + blanco hueso ──
+    ; Acentos en BLANCO (los huesos visibles del Rey). Paleta de alto contraste.
     { nombre:"⛩ S U K U N A ⛩", secreto:true, unlock:"sukuna", logoChar:Chr(0x26E9),
-      fondo:"0A0303", texto:"D63A3A", barra:"5C0A0A", textoBarra:"FFAAAA",
-      historial:"050000", panel:"2A0F0F", cooldown:"FF2A2A", afk:"B22222",
-      boton:"1F0808", hover:"4D0E0E", logo:"CC0000",
-      luzOn:"8B0000", luzAccion:"FF2A2A", luzOff:"0A0303",
-      btnTexto:"FFAAAA", histColor1:"FF4444", histColor2:"8B0000", histColor3:"6E3838" },
+      fondo:"0A0000", texto:"FFFFFF", barra:"2E0506", textoBarra:"FFFFFF",
+      historial:"070000", panel:"3D1A1A", cooldown:"FF3030", afk:"D00000",
+      boton:"3A0808", hover:"5C1010", logo:"B30000",
+      luzOn:"D00000", luzAccion:"FF3030", luzOff:"2A1010",
+      btnTexto:"FFFFFF", histColor1:"FFFFFF", histColor2:"FF3030", histColor3:"6E3838" },
 ]
 
 temaActual := LeerTemaGuardado()
@@ -2679,19 +2679,19 @@ DesbloquearSukuna() {
 
     popup := Gui("+AlwaysOnTop -Caption +ToolWindow")
     popup.BackColor := "0A0000"
-    popup.SetFont("s14 cFFD700 Bold", "Segoe UI")
-    popup.Add("Text", "x0 y0 w360 h32 Background5C0000 Center cFFD700", "  ⛩  E L  R E Y  D E  L A S  M A L D I C I O N E S  ⛩  ")
-    popup.SetFont("s11 cFFB000", "Segoe UI")
-    popup.Add("Text", "x10 y42 w340 h20 Center cFF4500", "⛧ · · · ⛩ · · · · · · · · · ⛩ · · · ⛧")
-    popup.SetFont("s13 cFFD700 Bold", "Segoe UI Semibold")
-    popup.Add("Text", "x10 y66 w340 h24 Center cFFD700", "⛩  R Y O M E N  S U K U N A  ⛩")
-    popup.SetFont("s10 cFFD700 Italic", "Segoe UI")
-    popup.Add("Text", "x10 y94 w340 h20 Center cFFD700", '" 天上天下、唯我独尊 "')
-    popup.Add("Text", "x10 y112 w340 h20 Center cFFB000", '" Entre el cielo y la tierra, "')
-    popup.Add("Text", "x10 y130 w340 h20 Center cFFB000", '" sólo yo merezco honor. "')
-    popup.SetFont("s9 cDC143C", "Segoe UI")
-    popup.Add("Text", "x10 y158 w340 h18 Center cDC143C", "El Rey de las Maldiciones se alza. 真人")
-    popup.Add("Text", "x10 y178 w340 h20 Center cFF4500", "⛧ · · · ⛩ · · · · · · · · · ⛩ · · · ⛧")
+    popup.SetFont("s14 cFFFFFF Bold", "Segoe UI")
+    popup.Add("Text", "x0 y0 w360 h32 Background2E0506 Center cFFFFFF", "  ⛩  E L  R E Y  D E  L A S  M A L D I C I O N E S  ⛩  ")
+    popup.SetFont("s11 cFF3030", "Segoe UI")
+    popup.Add("Text", "x10 y42 w340 h20 Center cFF3030", "⛧ · · · ⛩ · · · · · · · · · ⛩ · · · ⛧")
+    popup.SetFont("s13 cFFFFFF Bold", "Segoe UI Semibold")
+    popup.Add("Text", "x10 y66 w340 h24 Center cFFFFFF", "⛩  R Y O M E N  S U K U N A  ⛩")
+    popup.SetFont("s10 cFFFFFF Italic", "Segoe UI")
+    popup.Add("Text", "x10 y94 w340 h20 Center cFFFFFF", '" 天上天下、唯我独尊 "')
+    popup.Add("Text", "x10 y112 w340 h20 Center cFF3030", '" Entre el cielo y la tierra, "')
+    popup.Add("Text", "x10 y130 w340 h20 Center cFF3030", '" sólo yo merezco honor. "')
+    popup.SetFont("s9 cD00000", "Segoe UI")
+    popup.Add("Text", "x10 y158 w340 h18 Center cD00000", "El Rey de las Maldiciones se alza. 真人")
+    popup.Add("Text", "x10 y178 w340 h20 Center cFF3030", "⛧ · · · ⛩ · · · · · · · · · ⛩ · · · ⛧")
     popup.Show("w360 h204 Center")
     RedondearVentana(popup.Hwnd, 14)
     SetTimer(() => popup.Destroy(), -4500)
@@ -5251,22 +5251,22 @@ AnimarAuraGojo() {
     InvalidarOverlayDeco()
 }
 
-; Flash de fuego naranja en la barra — efecto único del tema SUKUNA al completar secuencia.
-; Representa el Fuga (Flame Arrow) que Sukuna lanza.
+; Flash de sangre brillante en la barra — efecto único del tema SUKUNA al completar secuencia.
+; Representa el corte de Cleave: sangre saltando tras una victoria.
 BarraFlashFuga() {
     global colorBarra, colorBarraOverride, rgbBarra
     if (rgbBarra)
         return
-    colorFuga := "FF4500"  ; naranja fuego
+    colorSangre := "FF3030"  ; rojo brillante (sangre fresca)
     pasos := 10
     loop pasos {
         t := A_Index / pasos
-        colorBarraOverride := InterpolarHex(colorBarra, colorFuga, t)
+        colorBarraOverride := InterpolarHex(colorBarra, colorSangre, t)
         Sleep(20)
     }
     loop pasos {
         t := A_Index / pasos
-        colorBarraOverride := InterpolarHex(colorFuga, colorBarra, t)
+        colorBarraOverride := InterpolarHex(colorSangre, colorBarra, t)
         Sleep(20)
     }
     colorBarraOverride := ""
@@ -6834,7 +6834,7 @@ LanzarBrawlhalla_CheckYEnfocar() {
     global tiempoLanzamientoSteam, ultimaDeteccionReal
     ; Si el macro detecto algo durante los 30s, Brawlhalla esta enfocado y funcionando.
     if (ultimaDeteccionReal > tiempoLanzamientoSteam) {
-        AgregarHistorial(Chr(0x2705) " Detección OK durante los 30s — Brawlhalla enfocado, no hago nada", "00CC44")
+        AgregarHistorial(Chr(0x2705) " Detección ", "00CC44")
         return
     }
     AgregarHistorial(Chr(0x26A0) " Sin detección tras 30s — forzando foco via Win + typing", "FF8800")
