@@ -8,7 +8,7 @@ configPath := A_ScriptDir "\brawlmacro_config.ini"
 global eggsBackupPath := A_ScriptDir "\brawlmacro_eggs.txt"
 global heartbeatPath := A_ScriptDir "\brawlmacro_heartbeat.txt"
 global historialLogPath := A_ScriptDir "\brawlmacro_historial.log"
-global VERSION_ACTUAL := "28.5.5"
+global VERSION_ACTUAL := "28.6.0"
 
 ; ===== TEMAS =====
 temas := [
@@ -334,6 +334,10 @@ global presetParticulas := 50
 global presetPulsoBar := 40
 global presetPulsoLogo := 50
 global presetRGB := 60
+global presetBarras := 33            ; intervalo de AnimarBarras (gradiente shimmer)
+global presetDecoraciones := true    ; pintar slashes Sukuna / aura Gojo
+global presetTrayIcon := 1000        ; intervalo de ActualizarTrayIcon
+global presetLogros := 5000          ; intervalo de VerificarLogros
 
 ; ===== BARRA GRADIENTE / ANILLO COOLDOWN / STATS (GDI+) =====
 global barraGradPhase := 0.0
@@ -2136,10 +2140,9 @@ AplicarPreset(presetRendimiento)
 InstalarSubclassBarras()
 InstalarSubclassParticulas()
 CrearOverlayDecoraciones()   ; overlay topmost para slashes Sukuna + aura Gojo
-SetTimer(AnimarBarras, 33)
+; AnimarBarras, ActualizarTrayIcon y VerificarLogros los configura AplicarPreset
+; (intervalos variables segun el preset Eco/Ligero/Normal/Ultra)
 EstablecerTrayIcon("888888")
-SetTimer(ActualizarTrayIcon, 1000)
-SetTimer(VerificarLogros, 5000)
 ActualizarVisibilidadFrt()  ; si arrancamos en frt, ocultar labels AFK/secuencias/destruccion
 SetTimer(ActualizarScrollbar, 150)
 SetTimer(WatchdogAFK, 30000)     ; cada 30 s; si activo && > 90 s sin AFK → Reload()
@@ -2377,7 +2380,7 @@ HoverBreath() {
 ; ===== PRESETS DE RENDIMIENTO =====
 NombrePreset(p) {
     switch p {
-        case 1: return "Lite"
+        case 1: return "Eco"
         case 2: return "Ligero"
         case 3: return "Normal"
         case 4: return "Ultra"
@@ -2388,18 +2391,25 @@ NombrePreset(p) {
 AplicarPreset(p) {
     global presetRendimiento, presetHoverPoll, presetHoverBreath
     global presetParticulas, presetPulsoBar, presetPulsoLogo, presetRGB
+    global presetBarras, presetDecoraciones, presetTrayIcon, presetLogros
     global presetLabel, fpsLabel, particulasActivas, rgbActivo
     global activo, colorTextoPrincipal
 
     presetRendimiento := p
     switch p {
         case 1:
-            presetHoverPoll := 50
-            presetHoverBreath := 0
-            presetParticulas := 150   ; antes 0 (apagado) → ahora 150ms (~6fps, suaves pero visibles)
-            presetPulsoBar := 0
-            presetPulsoLogo := 0
-            presetRGB := 200
+            ; ECO — minimo consumo de CPU posible sin romper funcionalidad
+            ; Apaga TODAS las animaciones cosmeticas. La deteccion sigue funcionando igual.
+            presetHoverPoll := 150       ; 1s ~ 6fps (era 50)
+            presetHoverBreath := 0       ; off — el boton hover no respira
+            presetParticulas := 0        ; off — sin particulas
+            presetPulsoBar := 0          ; off
+            presetPulsoLogo := 0         ; off
+            presetRGB := 500             ; lentisimo si esta on
+            presetBarras := 200          ; AnimarBarras a 5fps (gradiente shimmer casi parado)
+            presetDecoraciones := false  ; sin slashes/aura Gojo/Sukuna
+            presetTrayIcon := 3000       ; cada 3s (era 1s)
+            presetLogros := 15000        ; cada 15s (era 5s)
         case 2:
             presetHoverPoll := 32
             presetHoverBreath := 80
@@ -2407,6 +2417,10 @@ AplicarPreset(p) {
             presetPulsoBar := 80
             presetPulsoLogo := 100
             presetRGB := 120
+            presetBarras := 50
+            presetDecoraciones := true
+            presetTrayIcon := 1500
+            presetLogros := 8000
         case 3:
             presetHoverPoll := 16
             presetHoverBreath := 40
@@ -2414,6 +2428,10 @@ AplicarPreset(p) {
             presetPulsoBar := 40
             presetPulsoLogo := 50
             presetRGB := 60
+            presetBarras := 33
+            presetDecoraciones := true
+            presetTrayIcon := 1000
+            presetLogros := 5000
         case 4:
             presetHoverPoll := 8
             presetHoverBreath := 20
@@ -2421,11 +2439,18 @@ AplicarPreset(p) {
             presetPulsoBar := 20
             presetPulsoLogo := 25
             presetRGB := 30
+            presetBarras := 16
+            presetDecoraciones := true
+            presetTrayIcon := 1000
+            presetLogros := 5000
     }
 
     SetTimer(HoverPoll, presetHoverPoll)
     SetTimer(HoverBreath, presetHoverBreath > 0 ? presetHoverBreath : 0)
     SetTimer(ActualizarParticulas, presetParticulas > 0 ? presetParticulas : 0)
+    SetTimer(AnimarBarras, presetBarras)
+    SetTimer(ActualizarTrayIcon, presetTrayIcon)
+    SetTimer(VerificarLogros, presetLogros)
     if (rgbActivo)
         SetTimer(ActualizarRGB, presetRGB)
     if (activo) {
@@ -5211,7 +5236,9 @@ InvalidarOverlayDeco() {
 
 ; ── SUKUNA: cortes diagonales rojos al detectar ──
 LanzarSlashSukuna() {
-    global temas, temaActual, sukunaSlashFrame
+    global temas, temaActual, sukunaSlashFrame, presetDecoraciones
+    if (!presetDecoraciones)
+        return  ; preset Eco — sin decoraciones para ahorrar CPU
     if (!temas[temaActual].HasProp("unlock") || temas[temaActual].unlock != "sukuna")
         return
     sukunaSlashFrame := 5
@@ -5232,7 +5259,9 @@ AnimarSlashSukuna() {
 
 ; ── GOJO: Hollow Purple cada 4s — Aka + Aoi convergen y explotan en morado ──
 TickAuraGojo() {
-    global temas, temaActual, gojoAuraFrame
+    global temas, temaActual, gojoAuraFrame, presetDecoraciones
+    if (!presetDecoraciones)
+        return  ; preset Eco — sin decoraciones para ahorrar CPU
     if (!temas[temaActual].HasProp("unlock") || temas[temaActual].unlock != "gojo")
         return
     if (gojoAuraFrame > 0)
@@ -5277,7 +5306,9 @@ BarraFlashFuga() {
 ; Pulso morado Hollow Purple en el timer — efecto único del tema GOJO.
 ; Cada 4 segundos parpadea sutil, representando el Infinito latente.
 GojoPulsoHollowPurple() {
-    global temas, temaActual, timerLabel, colorTextoPrincipal
+    global temas, temaActual, timerLabel, colorTextoPrincipal, presetDecoraciones
+    if (!presetDecoraciones)
+        return  ; preset Eco — sin pulso
     if !IsObject(timerLabel)
         return
     if (!temas[temaActual].HasProp("unlock") || temas[temaActual].unlock != "gojo")
