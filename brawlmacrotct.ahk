@@ -8,7 +8,7 @@ configPath := A_ScriptDir "\brawlmacro_config.ini"
 global eggsBackupPath := A_ScriptDir "\brawlmacro_eggs.txt"
 global heartbeatPath := A_ScriptDir "\brawlmacro_heartbeat.txt"
 global historialLogPath := A_ScriptDir "\brawlmacro_historial.log"
-global VERSION_ACTUAL := "28.5.3"
+global VERSION_ACTUAL := "28.5.4"
 
 ; ===== TEMAS =====
 temas := [
@@ -84,11 +84,11 @@ temas := [
     ; ── SUKUNA: Rey de las Maldiciones. Negro + rojos + gris rojizo + blanco hueso ──
     ; Acentos en BLANCO (los huesos visibles del Rey). Paleta de alto contraste.
     { nombre:"⛩ S U K U N A ⛩", secreto:true, unlock:"sukuna", logoChar:Chr(0x26E9),
-      fondo:"0A0000", texto:"FFFFFF", barra:"2E0506", textoBarra:"FFFFFF",
+      fondo:"0A0000", texto:"D9D5D2", barra:"2E0506", textoBarra:"D9D5D2",
       historial:"070000", panel:"3D1A1A", cooldown:"FF3030", afk:"D00000",
       boton:"3A0808", hover:"5C1010", logo:"B30000",
       luzOn:"D00000", luzAccion:"FF3030", luzOff:"2A1010",
-      btnTexto:"FFFFFF", histColor1:"FFFFFF", histColor2:"FF3030", histColor3:"6E3838" },
+      btnTexto:"D9D5D2", histColor1:"D9D5D2", histColor2:"FF3030", histColor3:"6E3838" },
 ]
 
 temaActual := LeerTemaGuardado()
@@ -2679,14 +2679,14 @@ DesbloquearSukuna() {
 
     popup := Gui("+AlwaysOnTop -Caption +ToolWindow")
     popup.BackColor := "0A0000"
-    popup.SetFont("s14 cFFFFFF Bold", "Segoe UI")
-    popup.Add("Text", "x0 y0 w360 h32 Background2E0506 Center cFFFFFF", "  ⛩  E L  R E Y  D E  L A S  M A L D I C I O N E S  ⛩  ")
+    popup.SetFont("s14 cD9D5D2 Bold", "Segoe UI")
+    popup.Add("Text", "x0 y0 w360 h32 Background2E0506 Center cD9D5D2", "  ⛩  E L  R E Y  D E  L A S  M A L D I C I O N E S  ⛩  ")
     popup.SetFont("s11 cFF3030", "Segoe UI")
     popup.Add("Text", "x10 y42 w340 h20 Center cFF3030", "⛧ · · · ⛩ · · · · · · · · · ⛩ · · · ⛧")
-    popup.SetFont("s13 cFFFFFF Bold", "Segoe UI Semibold")
-    popup.Add("Text", "x10 y66 w340 h24 Center cFFFFFF", "⛩  R Y O M E N  S U K U N A  ⛩")
-    popup.SetFont("s10 cFFFFFF Italic", "Segoe UI")
-    popup.Add("Text", "x10 y94 w340 h20 Center cFFFFFF", '" 天上天下、唯我独尊 "')
+    popup.SetFont("s13 cD9D5D2 Bold", "Segoe UI Semibold")
+    popup.Add("Text", "x10 y66 w340 h24 Center cD9D5D2", "⛩  R Y O M E N  S U K U N A  ⛩")
+    popup.SetFont("s10 cD9D5D2 Italic", "Segoe UI")
+    popup.Add("Text", "x10 y94 w340 h20 Center cD9D5D2", '" 天上天下、唯我独尊 "')
     popup.Add("Text", "x10 y112 w340 h20 Center cFF3030", '" Entre el cielo y la tierra, "')
     popup.Add("Text", "x10 y130 w340 h20 Center cFF3030", '" sólo yo merezco honor. "')
     popup.SetFont("s9 cD00000", "Segoe UI")
