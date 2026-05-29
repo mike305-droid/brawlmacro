@@ -8,7 +8,7 @@ configPath := A_ScriptDir "\brawlmacro_config.ini"
 global eggsBackupPath := A_ScriptDir "\brawlmacro_eggs.txt"
 global heartbeatPath := A_ScriptDir "\brawlmacro_heartbeat.txt"
 global historialLogPath := A_ScriptDir "\brawlmacro_historial.log"
-global VERSION_ACTUAL := "28.4.4"
+global VERSION_ACTUAL := "28.4.5"
 
 ; ===== TEMAS =====
 temas := [
@@ -180,6 +180,8 @@ global pasosPrioridad, pasosNormales, activo := false
 global luzActiva, luzAccion, luzApagado, historialGui, historialBox, cooldownText, afkText
 global tiempoInicio := 0, tiempoAcumulado := 0, timerActivo := false
 global avisoMostrado := false, avisoGui := "", ultimoCambio := 0
+global ultimaDeteccionReal := 0   ; A_TickCount de la ULTIMA deteccion REAL de pixel (no resets/anti-AFK)
+global tiempoLanzamientoSteam := 0 ; timestamp del Run Steam, para abortar Win+typing si hay deteccion en esos 30s
 global ultimoPasoEjecutado := ""
 global modoDestruccion := false
 global historialVisible := true, accionEnCurso := false, contadorEsc := 0
@@ -5324,6 +5326,7 @@ CheckPrioridad() {
                                 paso.lastUsed := A_TickCount
                                 ActivarBloqueoGlobal(paso)
                                 ultimoCambio := A_TickCount
+                                ultimaDeteccionReal := A_TickCount
                                 ; Recuperación de modo destrucción si detectamos algo
                                 if (modoDestruccion) {
                                     modoDestruccion := false
@@ -5371,6 +5374,7 @@ CheckPrioridad() {
                 paso.lastUsed := A_TickCount
                 ActivarBloqueoGlobal(paso)
                 ultimoCambio := A_TickCount
+                ultimaDeteccionReal := A_TickCount
                 LuzAccionFlash()
                 return true
             }
@@ -5414,6 +5418,7 @@ EjecutarMacro(*) {
                             SendInput "{" p.accion "}"
                         p.lastUsed := A_TickCount
                         ActivarBloqueoGlobal(p)
+                        ultimaDeteccionReal := A_TickCount
                         ; Recuperación de modo destrucción si detectamos algo
                         if (modoDestruccion) {
                             modoDestruccion := false
@@ -5510,6 +5515,7 @@ EjecutarMacro(*) {
 
             paso.lastUsed := A_TickCount
             ActivarBloqueoGlobal(paso)
+            ultimaDeteccionReal := A_TickCount
             if (paso.nombre != ultimoPasoEjecutado) {
                 ultimoCambio := A_TickCount
                 ultimoPasoEjecutado := paso.nombre
@@ -6355,27 +6361,41 @@ LanzarJuegoDelPerfil() {
     ; frt no lanza ningun juego
 }
 
-; Secuencia robusta de lanzamiento:
+; Secuencia robusta de lanzamiento (condicional):
 ; 1. Run steam://rungameid/291550 → Steam abre Brawlhalla (o lo trae al frente si ya esta)
-; 2. Espera 30s para que Brawlhalla cargue
-; 3. Pulsa tecla Windows → abre menu Inicio
-; 4. Espera 5s para que el menu este listo
-; 5. Escribe "brawlhalla" → Windows search la encuentra y la enfoca
+; 2. Espera 30s — durante ese tiempo el macro sigue detectando pixeles normalmente
+; 3. Si en esos 30s hubo deteccion REAL → Brawlhalla esta enfocado, no hacer nada
+; 4. Si NO hubo deteccion → pulsa Windows + espera 5s + escribe "brawlhalla"
 ; Todo en timers encadenados (no bloquea el thread principal — heartbeat sigue vivo).
 LanzarBrawlhallaConFoco() {
+    global tiempoLanzamientoSteam
     AgregarHistorial(Chr(0x1F504) " Abriendo Brawlhalla por Steam...", "FF8800")
     try Run("steam://rungameid/291550")
-    SetTimer(LanzarBrawlhalla_PressWin, -30000)  ; 30s despues
+    tiempoLanzamientoSteam := A_TickCount
+    SetTimer(LanzarBrawlhalla_CheckYEnfocar, -30000)  ; 30s despues
 }
 
-LanzarBrawlhalla_PressWin() {
-    AgregarHistorial(Chr(0x2328) " Pulsando tecla Windows...", "FF8800")
+LanzarBrawlhalla_CheckYEnfocar() {
+    global tiempoLanzamientoSteam, ultimaDeteccionReal
+    ; Si el macro detecto algo durante los 30s, Brawlhalla esta enfocado y funcionando.
+    if (ultimaDeteccionReal > tiempoLanzamientoSteam) {
+        AgregarHistorial(Chr(0x2705) " Detección OK durante los 30s — Brawlhalla enfocado, no hago nada", "00CC44")
+        return
+    }
+    AgregarHistorial(Chr(0x26A0) " Sin detección tras 30s — forzando foco via Win + typing", "FF8800")
     try Send "{LWin}"
     SetTimer(LanzarBrawlhalla_TypeName, -5000)  ; 5s despues
 }
 
 LanzarBrawlhalla_TypeName() {
-    AgregarHistorial(Chr(0x2328) " Escribiendo 'brawlhalla'...", "FF8800")
+    global tiempoLanzamientoSteam, ultimaDeteccionReal
+    ; Otra comprobacion: si en los ultimos 5s aparecio deteccion, abortar (cerrar menu Inicio)
+    if (ultimaDeteccionReal > tiempoLanzamientoSteam) {
+        AgregarHistorial(Chr(0x2705) " Detección recuperada — cerrando menú Inicio sin escribir", "00CC44")
+        try Send "{Escape}"
+        return
+    }
+    AgregarHistorial(Chr(0x2328) " Escribiendo 'brawlhalla' en Windows search...", "FF8800")
     try SendInput "brawlhalla"
 }
 
