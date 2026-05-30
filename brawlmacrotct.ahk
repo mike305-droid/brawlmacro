@@ -8,7 +8,7 @@ configPath := A_ScriptDir "\brawlmacro_config.ini"
 global eggsBackupPath := A_ScriptDir "\brawlmacro_eggs.txt"
 global heartbeatPath := A_ScriptDir "\brawlmacro_heartbeat.txt"
 global historialLogPath := A_ScriptDir "\brawlmacro_historial.log"
-global VERSION_ACTUAL := "29.2.8"
+global VERSION_ACTUAL := "29.2.9"
 
 ; ===== TEMAS =====
 temas := [
@@ -5005,6 +5005,7 @@ Minimizar(*) {
 
 Cerrar(*) {
     global miGui, historialGui, overlayPartMain, overlayPartHist, heartbeatPath, miniGui, modoMini
+    global perfilActivo, configPath, historialVisible
     GuardarStats()
     GuardarRGBs()
     IniWrite(historialVisible ? 1 : 0, configPath, "UI", "HistorialVisible")
@@ -5037,6 +5038,7 @@ Cerrar(*) {
 }
 
 Reiniciar(*) {
+    global perfilActivo, configPath, historialVisible
     GuardarStats()
     GuardarRGBs()
     IniWrite(historialVisible ? 1 : 0, configPath, "UI", "HistorialVisible")
@@ -7455,7 +7457,7 @@ ColorEsClaro(ctrl) {
 }
 
 DescargarYActualizar(verRemota, lblEstado, btnAct) {
-    global GITHUB_SCRIPT_URL, updateGui, updateGuiVisible, configPath
+    global GITHUB_SCRIPT_URL, updateGui, updateGuiVisible, configPath, perfilActivo, historialVisible
 
     lblEstado.Value := Chr(0x2B07) "  Descargando v" verRemota " desde GitHub..."
     lblEstado.Opt("cFFAA00")
