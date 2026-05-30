@@ -240,6 +240,7 @@ global overlayPixeles := "", overlayVisible := false
 global miGui, barra, barraHistorial, logoMacro, tituloMacro, timerLabel
 global miniGui := "", modoMini := false, logoMacroMini := "", miniSubclassCb := 0
 global barraMini := "", miniBarraSubclassCb := 0
+global overlayPartMini := "", particulasMini := [], overlayDecoMini := "", overlayDecoMiniSubCb := 0
 global btnIniciar, btnParar, btnCodigo, btnReset, btnHistorial, btnTema, btnMin, btnClose, btnUpdate, btnOverlay, btnRGBBtn, btnStatsBtn, btnWebhook, btnLogros, btnPart, btnPerfil, btnMini
 global hoverAccent := "", hoverAnimStep := 0, hoverAccentTop := "", hoverAccentHist := ""
 global hoverAccentBot := "", hoverAccentRight := "", hoverAccentBotHist := "", hoverAccentRightHist := ""
@@ -1071,10 +1072,17 @@ ToggleMiniMode(*) {
     global modoMini, miGui, historialGui, historialVisible, miniGui, logoMacroMini, barraMini
     global colorFondoPrincipal, colorBarra, colorTextoBarra, colorBotonNormal, colorBtnTexto, colorLogoMacro
     global overlayPartMain, overlayPartHist, miniBarraSubclassCb
+    global overlayPartMini, particulasMini, overlayDecoMini
 
     if (modoMini) {
         ; ── Salir de mini mode ──
         modoMini := false
+        if (IsObject(overlayPartMini))
+            try overlayPartMini.Destroy()
+        overlayPartMini := ""
+        if (IsObject(overlayDecoMini))
+            try overlayDecoMini.Destroy()
+        overlayDecoMini := ""
         try miniGui.Destroy()
         miniGui := ""
         logoMacroMini := ""
@@ -1104,23 +1112,26 @@ ToggleMiniMode(*) {
 
 CrearMiniGui(posX, posY) {
     global miniGui, logoMacroMini, barraMini, miniBarraSubclassCb
-    global colorFondoPrincipal, colorBarra, colorTextoBarra, colorLogoMacro
+    global colorFondoPrincipal, colorBarra, colorTextoBarra, colorLogoMacro, colorBotonNormal, colorBtnTexto
+    global overlayPartMini, particulasMini, particulasActivas
+    global overlayDecoMini, overlayDecoMiniSubCb, DECO_COLORKEY_HEX, DECO_COLORKEY_BGR
+    static MINI_W := 120, MINI_H := 125, BAR_H := 25
 
     miniGui := Gui("+AlwaysOnTop -Caption +ToolWindow")
     miniGui.BackColor := colorFondoPrincipal
 
     ; Barra superior con texto "Smart" — 25px de alto, efecto ondas via subclass
-    barraMini := miniGui.Add("Text", "x0 y0 w110 h25 Background" colorBarra " Center +0x201", "Smart")
+    barraMini := miniGui.Add("Text", "x0 y0 w" MINI_W " h" BAR_H " Background" colorBarra " Center +0x201", "Smart")
     barraMini.SetFont("s11 c" colorTextoBarra " Bold", "Segoe UI Semibold")
     barraMini.OnEvent("Click", ArrastrarMiniVentana)
 
-    ; Botón restaurar ⤳ arriba-derecha
-    btnRestore := miniGui.Add("Text", "x88 y3 w18 h18 +0x201 Center Background" colorBarra " c" colorTextoBarra, Chr(0x2922))
-    btnRestore.SetFont("s10 c" colorTextoBarra " Bold", "Segoe UI Symbol")
+    ; Botón restaurar ⤳ arriba-derecha sobre la barra
+    btnRestore := miniGui.Add("Text", "x" (MINI_W - 24) " y3 w20 h19 +0x201 Center Background" colorBotonNormal " c" colorBtnTexto, Chr(0x2922))
+    btnRestore.SetFont("s11 c" colorBtnTexto " Bold", "Segoe UI Symbol")
     btnRestore.OnEvent("Click", ToggleMiniMode)
 
-    ; Logo giratorio centrado (110 - 80) / 2 = 15
-    logoMacroMini := miniGui.Add("Text", "x15 y29 w80 h80 Center BackgroundTrans c" colorLogoMacro " +0x1", Chr(9881))
+    ; Logo giratorio centrado: (120 - 80) / 2 = 20
+    logoMacroMini := miniGui.Add("Text", "x20 y" (BAR_H + 5) " w80 h80 Center BackgroundTrans c" colorLogoMacro " +0x1", Chr(9881))
     logoMacroMini.SetFont("s48 c" colorLogoMacro " Bold", "Segoe UI Symbol")
     InstalarSubclassMiniLogo()
 
@@ -1130,8 +1141,28 @@ CrearMiniGui(posX, posY) {
     miniBarraSubclassCb := CallbackCreate(BarraSubclassProc, "F", 6)
     DllCall("Comctl32.dll\SetWindowSubclass", "Ptr", barraMini.Hwnd, "Ptr", miniBarraSubclassCb, "Ptr", 10, "Ptr", 0)
 
-    miniGui.Show("x" posX " y" posY " w110 h115")
+    miniGui.Show("x" posX " y" posY " w" MINI_W " h" MINI_H)
     RedondearVentana(miniGui.Hwnd, 14)
+
+    ; ── Overlay de partículas para mini ──
+    if (particulasActivas) {
+        try WinSetStyle("+0x02000000", "ahk_id " miniGui.Hwnd)
+        overlayPartMini := Gui("+AlwaysOnTop -Caption +ToolWindow +E0x80020")
+        overlayPartMini.Opt("+Owner" miniGui.Hwnd)
+        overlayPartMini.Show("x" posX " y" (posY + BAR_H) " w" MINI_W " h" (MINI_H - BAR_H) " NoActivate")
+        InicializarParticulas(particulasMini, MINI_W, MINI_H - BAR_H, 15)
+    }
+
+    ; ── Overlay de decoraciones (Sukuna slashes / Gojo aura) para mini ──
+    overlayDecoMini := Gui("+AlwaysOnTop -Caption +ToolWindow +E0x80020")
+    overlayDecoMini.Opt("+Owner" miniGui.Hwnd)
+    overlayDecoMini.BackColor := DECO_COLORKEY_HEX
+    overlayDecoMini.Show("x" posX " y" (posY + BAR_H) " w" MINI_W " h" (MINI_H - BAR_H) " NoActivate")
+    DllCall("SetLayeredWindowAttributes", "Ptr", overlayDecoMini.Hwnd, "UInt", DECO_COLORKEY_BGR, "UChar", 255, "UInt", 1)
+    if (overlayDecoMiniSubCb)
+        overlayDecoMiniSubCb := 0
+    overlayDecoMiniSubCb := CallbackCreate(DecoOverlaySubclassProc, "F", 6)
+    DllCall("Comctl32.dll\SetWindowSubclass", "Ptr", overlayDecoMini.Hwnd, "Ptr", overlayDecoMiniSubCb, "Ptr", 27, "Ptr", 0)
 }
 
 ArrastrarMiniVentana(*) {
@@ -1537,6 +1568,39 @@ ActualizarParticulas() {
         ; en coords del overlay: y = 35 - BAR_H = 10). Así las partículas no pintan sobre el thumb.
         PintarOverlayParticulas(overlayPartHist.Hwnd, hw, targetH, particulasHist,
             { x: 243, y: 35 - BAR_H, w: 17, h: 110 })
+    }
+
+    ; ── Partículas + decoraciones del mini mode ──
+    global modoMini, miniGui, overlayPartMini, particulasMini, overlayDecoMini
+    try if (modoMini && IsObject(miniGui) && IsObject(overlayPartMini)) {
+        miniGui.GetPos(&mnx, &mny, &mnw, &mnh)
+        overlayPartMini.GetPos(&opx, &opy, &opw, &oph)
+        tgtY := mny + BAR_H
+        tgtH := mnh - BAR_H
+        if (mnx != opx || tgtY != opy || mnw != opw || tgtH != oph)
+            overlayPartMini.Move(mnx, tgtY, mnw, tgtH)
+        for p in particulasMini {
+            p.x += p.vx
+            p.y += p.vy
+            if (p.x < -8)
+                p.x := mnw + 8
+            else if (p.x > mnw + 8)
+                p.x := -8
+            if (p.y < -8)
+                p.y := tgtH + 8
+            else if (p.y > tgtH + 8)
+                p.y := -8
+        }
+        PintarOverlayParticulas(overlayPartMini.Hwnd, mnw, tgtH, particulasMini)
+    }
+    ; Reposicionar overlay deco mini
+    try if (modoMini && IsObject(miniGui) && IsObject(overlayDecoMini)) {
+        miniGui.GetPos(&mnx2, &mny2, &mnw2, &mnh2)
+        overlayDecoMini.GetPos(&odx, &ody, &odw, &odh)
+        tgtY2 := mny2 + BAR_H
+        tgtH2 := mnh2 - BAR_H
+        if (mnx2 != odx || tgtY2 != ody || mnw2 != odw || tgtH2 != odh)
+            overlayDecoMini.Move(mnx2, tgtY2, mnw2, tgtH2)
     }
 }
 
@@ -4728,6 +4792,12 @@ AplicarTema(tema, guardar := true, fromTrans := false) {
     ; Actualizar mini mode si está activo — recrear con colores nuevos
     if (modoMini && IsObject(miniGui)) {
         miniGui.GetPos(&miniX, &miniY)
+        if (IsObject(overlayPartMini))
+            try overlayPartMini.Destroy()
+        overlayPartMini := ""
+        if (IsObject(overlayDecoMini))
+            try overlayDecoMini.Destroy()
+        overlayDecoMini := ""
         try miniGui.Destroy()
         miniGui := ""
         logoMacroMini := ""
@@ -4941,9 +5011,15 @@ Cerrar(*) {
     GuardarPosiciones()
     ; Borrar heartbeat para que el watchdog externo NO nos reinicie (cierre intencionado)
     try FileDelete(heartbeatPath)
-    ; Cerrar miniGui si está activa
-    if (modoMini && IsObject(miniGui))
-        try miniGui.Destroy()
+    ; Cerrar miniGui y sus overlays si están activos
+    if (modoMini) {
+        if (IsObject(overlayPartMini))
+            try overlayPartMini.Destroy()
+        if (IsObject(overlayDecoMini))
+            try overlayDecoMini.Destroy()
+        if (IsObject(miniGui))
+            try miniGui.Destroy()
+    }
     ; Ocultar los overlays de partículas para que no se vean flotando durante el fade
     if (IsObject(overlayPartMain))
         try overlayPartMain.Hide()
@@ -5374,9 +5450,11 @@ ReposicionarOverlayDeco() {
 }
 
 InvalidarOverlayDeco() {
-    global overlayDecoraciones
+    global overlayDecoraciones, overlayDecoMini, modoMini
     if (IsObject(overlayDecoraciones))
         DllCall("InvalidateRect", "Ptr", overlayDecoraciones.Hwnd, "Ptr", 0, "Int", 1)
+    if (modoMini && IsObject(overlayDecoMini))
+        DllCall("InvalidateRect", "Ptr", overlayDecoMini.Hwnd, "Ptr", 0, "Int", 1)
 }
 
 ; ── SUKUNA: cortes diagonales rojos al detectar ──
