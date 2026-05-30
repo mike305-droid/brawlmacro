@@ -8,7 +8,7 @@ configPath := A_ScriptDir "\brawlmacro_config.ini"
 global eggsBackupPath := A_ScriptDir "\brawlmacro_eggs.txt"
 global heartbeatPath := A_ScriptDir "\brawlmacro_heartbeat.txt"
 global historialLogPath := A_ScriptDir "\brawlmacro_historial.log"
-global VERSION_ACTUAL := "29.2.9"
+global VERSION_ACTUAL := "29.3.0"
 
 ; ===== TEMAS =====
 temas := [
@@ -2204,9 +2204,9 @@ historialVisible := Integer(IniRead(configPath, "UI", "HistorialVisible", "1")) 
 if (!historialVisible)
     historialGui.Hide()
 
-; Restaurar perfil activo guardado (1 o 2)
+; Restaurar perfil activo guardado (1=tct, 2=sp, 3=frt, 4=dstv)
 perfilActivo := Integer(IniRead(configPath, "UI", "PerfilActivo", "1"))
-if (perfilActivo < 1 || perfilActivo > 3)
+if (perfilActivo < 1 || perfilActivo > 4)
     perfilActivo := 1
 
 ; Cargar config de partículas
