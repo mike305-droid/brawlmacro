@@ -5862,8 +5862,8 @@ ActualizarCooldowns(*) {
 ActualizarAFK(*) {
     global ultimoCambio, afkText, colorAFK, rgbActivo, modoDestruccion
     global timerLabel, colorTextoPrincipal, afkAlertaFlash, perfilActivo
-    ; En modo frt no hay anti-AFK ni modo destruccion — es spam puro
-    if (perfilActivo = 3)
+    ; En modo frt y dstv no hay anti-AFK ni modo destruccion
+    if (perfilActivo = 3 || perfilActivo = 4)
         return
     tiempo := A_TickCount - ultimoCambio
     restante := 360000 - tiempo
@@ -7192,6 +7192,13 @@ Iniciar(*) {
     ActualizarEstadoVisual()
     AnimarLucesEncendido()
 
+    ; dstv (perfil 4) = vacío total, solo visual (logo gira), sin timers ni lanzamiento
+    if (perfilActivo = 4) {
+        IniciarTimer()
+        EnviarWebhookEvento("iniciado")
+        return
+    }
+
     ; Lanzar Brawlhalla AHORA, antes de los timers que envían teclas (Esc/c)
     ; — si EjecutarMacro corre durante el Win+brawlhalla puede mandar Esc y cerrar el menú
     LanzarJuegoDelPerfil()
@@ -7200,7 +7207,7 @@ Iniciar(*) {
     SetTimer(EjecutarMacro, 50)
     SetTimer(ActualizarCooldowns, 100)
     SetTimer(ActualizarAFK, 200)
-    if (perfilActivo != 3)
+    if (perfilActivo = 1 || perfilActivo = 2)
         SetTimer(CheckBrawlhallaMinimizado, 10000)
     if (presetPulsoBar > 0)
         SetTimer(PulsoBarraActivo, presetPulsoBar)
