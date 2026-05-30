@@ -8,7 +8,7 @@ configPath := A_ScriptDir "\brawlmacro_config.ini"
 global eggsBackupPath := A_ScriptDir "\brawlmacro_eggs.txt"
 global heartbeatPath := A_ScriptDir "\brawlmacro_heartbeat.txt"
 global historialLogPath := A_ScriptDir "\brawlmacro_historial.log"
-global VERSION_ACTUAL := "29.3.0"
+global VERSION_ACTUAL := "29.3.1"
 
 ; ===== TEMAS =====
 temas := [
@@ -6180,40 +6180,29 @@ EjecutarMacro(*) {
 
         encontrado := BuscarPixel(paso, &x, &y)
 
-        ; ── Detector: vigila pixel blanco 2x2 → Space cuando aparece rojo o desaparece blanco ──
+        ; ── Detector: vigila pixel blanco 1x2 → Space cuando aparece rojo o desaparece blanco ──
         if paso.HasProp("colorDisparo") {
             if (encontrado) {
-                ; Verificar bloque 2x2: comprobar pixel adyacente (x+1, y+1)
+                ; Verificar bloque 1x2: pixel encontrado + el de abajo (y+1)
                 confirmado := false
                 try {
-                    PixelGetColor_x1 := x + 1
-                    PixelGetColor_y1 := y + 1
-                    c2 := PixelGetColor(PixelGetColor_x1, y)
-                    c3 := PixelGetColor(x, PixelGetColor_y1)
-                    c4 := PixelGetColor(PixelGetColor_x1, PixelGetColor_y1)
-                    ; Comparar con tolerancia — extraer RGB del color buscado
+                    c2 := PixelGetColor(x, y + 1)
+                    cVal := Integer(c2)
                     bR := (paso.color >> 16) & 0xFF
                     bG := (paso.color >> 8) & 0xFF
                     bB := paso.color & 0xFF
                     tol := paso.tolerancia
-                    ok2 := true
-                    for , cx in [c2, c3, c4] {
-                        cVal := Integer(cx)
-                        pR := (cVal >> 16) & 0xFF
-                        pG := (cVal >> 8) & 0xFF
-                        pB := cVal & 0xFF
-                        if (Abs(pR - bR) > tol || Abs(pG - bG) > tol || Abs(pB - bB) > tol) {
-                            ok2 := false
-                            break
-                        }
-                    }
-                    confirmado := ok2
+                    pR := (cVal >> 16) & 0xFF
+                    pG := (cVal >> 8) & 0xFF
+                    pB := cVal & 0xFF
+                    if (Abs(pR - bR) <= tol && Abs(pG - bG) <= tol && Abs(pB - bB) <= tol)
+                        confirmado := true
                 }
                 if (!confirmado) {
                     accionEnCurso := false
                     continue
                 }
-                ; 2x2 confirmado — NO mover cursor, solo vigilar
+                ; 1x2 confirmado — NO mover cursor, solo vigilar
                 paso.detectorActivo := true
                 tmpPaso := {x1: paso.x1, y1: paso.y1, x2: paso.x2, y2: paso.y2, color: paso.colorDisparo, tolerancia: paso.HasProp("tolDisparo") ? paso.tolDisparo : 5}
                 if BuscarPixel(tmpPaso, &xd, &yd) {
