@@ -162,6 +162,7 @@ pasosNormales.Push({ tipo:"pimg", nombre:"INTHEGAME1",    color:0x38373E, catego
 pasosNormales.Push({ tipo:"pimg", nombre:"INTHEGAME2",    color:0x38373E, categoria:4, accion:"c", hold:400, tolerancia:1, delayClick:30, delayTecla:80, cooldown:5000, bloqueoGlobal:170000, sp:true, lastUsed:0, x1:792, y1:488, x2:794, y2:496 })
 pasosNormales.Push({ tipo:"pimg", nombre:"creatingmap",   color:0x918D2D, categoria:4, tolerancia:2, hold:100, delayClick:500, delayTecla:500, cooldown:500, sp:true, lastUsed:0, x1:607, y1:243, x2:617, y2:254 })
 pasosNormales.Push({ tipo:"pimg", nombre:"detector",      color:0xFFFCFC, categoria:4, tolerancia:1, cooldown:500, tct:true, sp:true, lastUsed:0, x1:893, y1:483, x2:1025, y2:615, colorDisparo:0xBD4140, tolDisparo:5, detectorActivo:false })
+pasosNormales.Push({ tipo:"pimg", nombre:"detector",      color:0xFFFCFC, categoria:4, tolerancia:1, cooldown:500, dstv:true, lastUsed:0, x1:893, y1:483, x2:1025, y2:615, colorDisparo:0xBD4140, tolDisparo:7, detectorActivo:false })
 
 ; ─── FASE 5: PARTIDA TERMINADA (cat 1) ─────────────────────────────
 pasosNormales.Push({ tipo:"pimg", nombre:"gamedone1",     color:0x000033, categoria:1, accion:"c", hold:400, tolerancia:1, delayClick:30, delayTecla:80, cooldown:500, tct:true, sp:true, lastUsed:0, x1:941, y1:40, x2:959, y2:43 })
@@ -5952,9 +5953,10 @@ PasoActivoEnPerfil(paso) {
     global perfilActivo
     tieneTct := (paso.HasProp("tct") && paso.tct) || (paso.HasProp("p1") && paso.p1)
     tieneSp  := (paso.HasProp("sp")  && paso.sp)  || (paso.HasProp("p2") && paso.p2)
-    tieneFrt := paso.HasProp("frt") && paso.frt
+    tieneFrt  := paso.HasProp("frt") && paso.frt
+    tieneDstv := paso.HasProp("dstv") && paso.dstv
     ; Paso sin marcar = común a tct/sp pero NO a frt ni a dstv
-    if (!tieneTct && !tieneSp && !tieneFrt)
+    if (!tieneTct && !tieneSp && !tieneFrt && !tieneDstv)
         return (perfilActivo = 1 || perfilActivo = 2)
     if (perfilActivo = 1)
         return tieneTct
@@ -5962,7 +5964,8 @@ PasoActivoEnPerfil(paso) {
         return tieneSp
     if (perfilActivo = 3)
         return tieneFrt
-    ; perfilActivo = 4 (dstv): nunca hay pasos activos — perfil totalmente vacio
+    if (perfilActivo = 4)
+        return tieneDstv
     return false
 }
 
@@ -7194,8 +7197,10 @@ Iniciar(*) {
     ActualizarEstadoVisual()
     AnimarLucesEncendido()
 
-    ; dstv (perfil 4) = vacío total, solo visual (logo gira), sin timers ni lanzamiento
+    ; dstv (perfil 4) = solo detector, sin AFK ni Brawlhalla
     if (perfilActivo = 4) {
+        SetTimer(EjecutarMacro, 50)
+        SetTimer(ActualizarCooldowns, 100)
         IniciarTimer()
         EnviarWebhookEvento("iniciado")
         return
