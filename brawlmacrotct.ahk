@@ -2120,7 +2120,7 @@ historialGui.Opt("+Owner" miGui.Hwnd)
 historialGui.BackColor := colorVentanaHistorial
 historialGui.SetFont("s11 c" colorTextoPrincipal, "Segoe UI")
 
-barraHistorial := historialGui.Add("Text", "x0 y0 w270 h25 Background" colorBarra " Center", "Historial AFK Macro")
+barraHistorial := historialGui.Add("Text", "x0 y0 w270 h25 Background" colorBarra " Center", "Historial MacroSmart")
 barraHistorial.SetFont("s11 c" colorTextoBarra " Bold", "Segoe UI")
 ; Combinado: primero registra el click para el egg de Nika, LUEGO arrastra
 ; (si arrastra antes, el drag modal de Windows bloquea el segundo handler)
@@ -2220,7 +2220,7 @@ presetRendimiento := Integer(IniRead(configPath, "UI", "PresetRendimiento", "3")
 if (presetRendimiento < 1 || presetRendimiento > 4)
     presetRendimiento := 3
 
-barra := miGui.Add("Text", "x0 y0 w400 h25 Background" colorBarra " Center", "BrawlMacro V27")
+barra := miGui.Add("Text", "x0 y0 w400 h25 Background" colorBarra " Center", "MacroSmart V29")
 barra.SetFont("s13 c" colorTextoBarra " Bold", "Segoe UI Semibold")
 barra.OnEvent("Click", ArrastrarVentana)
 barra.OnEvent("DoubleClick", ClickTitulo)
