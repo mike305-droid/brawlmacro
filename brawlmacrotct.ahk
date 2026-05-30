@@ -161,6 +161,7 @@ pasosNormales.Push({ tipo:"pimg", nombre:"ingame...",     color:0x70C9D3, catego
 pasosNormales.Push({ tipo:"pimg", nombre:"INTHEGAME1",    color:0x38373E, categoria:4, accion:"c", hold:400, tolerancia:1, delayClick:30, delayTecla:80, cooldown:5000, bloqueoGlobal:170000, tct:true, lastUsed:0, x1:792, y1:488, x2:794, y2:496 })
 pasosNormales.Push({ tipo:"pimg", nombre:"INTHEGAME2",    color:0x38373E, categoria:4, accion:"c", hold:400, tolerancia:1, delayClick:30, delayTecla:80, cooldown:5000, bloqueoGlobal:170000, sp:true, lastUsed:0, x1:792, y1:488, x2:794, y2:496 })
 pasosNormales.Push({ tipo:"pimg", nombre:"creatingmap",   color:0x918D2D, categoria:4, tolerancia:2, hold:100, delayClick:500, delayTecla:500, cooldown:500, sp:true, lastUsed:0, x1:607, y1:243, x2:617, y2:254 })
+pasosNormales.Push({ tipo:"pimg", nombre:"detector",      color:0xFFFCFC, categoria:4, tolerancia:1, cooldown:500, tct:true, sp:true, lastUsed:0, x1:893, y1:483, x2:1025, y2:615, colorDisparo:0xBD4140, tolDisparo:5, detectorActivo:false })
 
 ; ─── FASE 5: PARTIDA TERMINADA (cat 1) ─────────────────────────────
 pasosNormales.Push({ tipo:"pimg", nombre:"gamedone1",     color:0x000033, categoria:1, accion:"c", hold:400, tolerancia:1, delayClick:30, delayTecla:80, cooldown:500, tct:true, sp:true, lastUsed:0, x1:941, y1:40, x2:959, y2:43 })
@@ -5954,6 +5955,50 @@ EjecutarMacro(*) {
             continue
 
         encontrado := BuscarPixel(paso, &x, &y)
+
+        ; ── Detector: vigila pixel blanco → Space cuando aparece rojo o desaparece blanco ──
+        if paso.HasProp("colorDisparo") {
+            if (encontrado) {
+                MouseMove(x, y, 5)
+                paso.detectorActivo := true
+                tmpPaso := {x1: paso.x1, y1: paso.y1, x2: paso.x2, y2: paso.y2, color: paso.colorDisparo, tolerancia: paso.HasProp("tolDisparo") ? paso.tolDisparo : 5}
+                if BuscarPixel(tmpPaso, &xd, &yd) {
+                    SendInput "{Space}"
+                    paso.lastUsed := A_TickCount
+                    paso.detectorActivo := false
+                    ultimaDeteccionReal := A_TickCount
+                    ultimoCambio := A_TickCount
+                    if (modoDestruccion) {
+                        modoDestruccion := false
+                        AgregarHistorial(Chr(0x2705) " Detección recuperada - saliendo de modo destrucción", "00CC44")
+                    }
+                    AgregarHistorial(paso.nombre " → Space (rojo)", paso.HasProp("categoria") ? ObtenerColorCategoria(paso.categoria) : "")
+                    LuzAccionFlash()
+                    OndaBarra()
+                    DespuesDeAccion(false)
+                }
+                accionEnCurso := false
+                return
+            } else if (paso.HasProp("detectorActivo") && paso.detectorActivo) {
+                SendInput "{Space}"
+                paso.lastUsed := A_TickCount
+                paso.detectorActivo := false
+                ultimaDeteccionReal := A_TickCount
+                ultimoCambio := A_TickCount
+                if (modoDestruccion) {
+                    modoDestruccion := false
+                    AgregarHistorial(Chr(0x2705) " Detección recuperada - saliendo de modo destrucción", "00CC44")
+                }
+                AgregarHistorial(paso.nombre " → Space (desaparecio)", paso.HasProp("categoria") ? ObtenerColorCategoria(paso.categoria) : "")
+                LuzAccionFlash()
+                OndaBarra()
+                DespuesDeAccion(false)
+                accionEnCurso := false
+                return
+            }
+            continue
+        }
+
         if (encontrado) {
             if paso.HasProp("tiempoNecesario") {
                 if !paso.HasProp("tiempoDetectando") || paso.tiempoDetectando = 0
