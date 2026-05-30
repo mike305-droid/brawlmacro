@@ -7495,6 +7495,13 @@ DescargarYActualizar(verRemota, lblEstado, btnAct) {
 
         ; Nueva versión → el egg COSMOS debe ganarse de nuevo
 
+        ; Guardar estado antes de reiniciar (perfil, stats, posiciones, etc.)
+        GuardarStats()
+        GuardarRGBs()
+        IniWrite(historialVisible ? 1 : 0, configPath, "UI", "HistorialVisible")
+        IniWrite(perfilActivo, configPath, "UI", "PerfilActivo")
+        GuardarPosiciones()
+
         lblEstado.Value := Chr(0x2728) "  Actualizado a v" verRemota " — reiniciando..."
         lblEstado.Opt("c00DD66")
         Sleep 1500
