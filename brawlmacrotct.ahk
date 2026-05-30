@@ -5007,6 +5007,7 @@ Cerrar(*) {
     GuardarStats()
     GuardarRGBs()
     IniWrite(historialVisible ? 1 : 0, configPath, "UI", "HistorialVisible")
+    IniWrite(perfilActivo, configPath, "UI", "PerfilActivo")
     GuardarPosiciones()
     ; Borrar heartbeat para que el watchdog externo NO nos reinicie (cierre intencionado)
     try FileDelete(heartbeatPath)
@@ -5038,6 +5039,7 @@ Reiniciar(*) {
     GuardarStats()
     GuardarRGBs()
     IniWrite(historialVisible ? 1 : 0, configPath, "UI", "HistorialVisible")
+    IniWrite(perfilActivo, configPath, "UI", "PerfilActivo")
     GuardarPosiciones()
     Reload()
 }
