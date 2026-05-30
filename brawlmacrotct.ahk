@@ -1,7 +1,7 @@
-﻿#Requires AutoHotkey v2.0
-#SingleInstance Force
-CoordMode("Pixel", "Screen")
-CoordMode("Mouse", "Screen")
+﻿Requires AutoHotkey v2.0
+SingleInstance Force
+oordMode("Pixel", "Screen")
+oordMode("Mouse", "Screen")
 
 ; ===== CONFIGURACION =====
 configPath := A_ScriptDir "\brawlmacro_config.ini"
