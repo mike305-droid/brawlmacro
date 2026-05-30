@@ -239,6 +239,7 @@ global rgbPreviewCtrl := ""
 global overlayPixeles := "", overlayVisible := false
 global miGui, barra, barraHistorial, logoMacro, tituloMacro, timerLabel
 global miniGui := "", modoMini := false, logoMacroMini := "", miniSubclassCb := 0
+global barraMini := "", miniBarraSubclassCb := 0
 global btnIniciar, btnParar, btnCodigo, btnReset, btnHistorial, btnTema, btnMin, btnClose, btnUpdate, btnOverlay, btnRGBBtn, btnStatsBtn, btnWebhook, btnLogros, btnPart, btnPerfil, btnMini
 global hoverAccent := "", hoverAnimStep := 0, hoverAccentTop := "", hoverAccentHist := ""
 global hoverAccentBot := "", hoverAccentRight := "", hoverAccentBotHist := "", hoverAccentRightHist := ""
@@ -1067,9 +1068,9 @@ InstalarSubclassMiniLogo() {
 }
 
 ToggleMiniMode(*) {
-    global modoMini, miGui, historialGui, historialVisible, miniGui, logoMacroMini
+    global modoMini, miGui, historialGui, historialVisible, miniGui, logoMacroMini, barraMini
     global colorFondoPrincipal, colorBarra, colorTextoBarra, colorBotonNormal, colorBtnTexto, colorLogoMacro
-    global overlayPartMain, overlayPartHist
+    global overlayPartMain, overlayPartHist, miniBarraSubclassCb
 
     if (modoMini) {
         ; ── Salir de mini mode ──
@@ -1077,6 +1078,7 @@ ToggleMiniMode(*) {
         try miniGui.Destroy()
         miniGui := ""
         logoMacroMini := ""
+        barraMini := ""
         miGui.Show()
         if (historialVisible)
             historialGui.Show()
@@ -1097,24 +1099,38 @@ ToggleMiniMode(*) {
     if (IsObject(overlayPartHist))
         try overlayPartHist.Hide()
 
+    CrearMiniGui(mx, my)
+}
+
+CrearMiniGui(posX, posY) {
+    global miniGui, logoMacroMini, barraMini, miniBarraSubclassCb
+    global colorFondoPrincipal, colorBarra, colorTextoBarra, colorLogoMacro
+
     miniGui := Gui("+AlwaysOnTop -Caption +ToolWindow")
     miniGui.BackColor := colorFondoPrincipal
 
-    ; Barra superior para arrastrar
-    miniBar := miniGui.Add("Text", "x0 y0 w100 h20 Background" colorBarra " Center", "")
-    miniBar.OnEvent("Click", ArrastrarMiniVentana)
+    ; Barra superior con texto "Smart" — 25px de alto, efecto ondas via subclass
+    barraMini := miniGui.Add("Text", "x0 y0 w110 h25 Background" colorBarra " Center +0x201", "Smart")
+    barraMini.SetFont("s11 c" colorTextoBarra " Bold", "Segoe UI Semibold")
+    barraMini.OnEvent("Click", ArrastrarMiniVentana)
 
-    ; Botón para restaurar (esquina derecha de la barra)
-    btnRestore := miniGui.Add("Text", "x76 y2 w20 h16 +0x201 Background" colorBarra " c" colorTextoBarra, Chr(0x2922))
+    ; Botón restaurar ⤳ arriba-derecha
+    btnRestore := miniGui.Add("Text", "x88 y3 w18 h18 +0x201 Center Background" colorBarra " c" colorTextoBarra, Chr(0x2922))
     btnRestore.SetFont("s10 c" colorTextoBarra " Bold", "Segoe UI Symbol")
     btnRestore.OnEvent("Click", ToggleMiniMode)
 
-    ; Logo giratorio
-    logoMacroMini := miniGui.Add("Text", "x10 y24 w80 h80 Center BackgroundTrans c" colorLogoMacro " +0x1", Chr(9881))
+    ; Logo giratorio centrado (110 - 80) / 2 = 15
+    logoMacroMini := miniGui.Add("Text", "x15 y29 w80 h80 Center BackgroundTrans c" colorLogoMacro " +0x1", Chr(9881))
     logoMacroMini.SetFont("s48 c" colorLogoMacro " Bold", "Segoe UI Symbol")
     InstalarSubclassMiniLogo()
 
-    miniGui.Show("x" mx " y" my " w100 h110")
+    ; Instalar subclass de ondas en la barra mini (mismo efecto que la barra principal)
+    if (miniBarraSubclassCb)
+        miniBarraSubclassCb := 0
+    miniBarraSubclassCb := CallbackCreate(BarraSubclassProc, "F", 6)
+    DllCall("Comctl32.dll\SetWindowSubclass", "Ptr", barraMini.Hwnd, "Ptr", miniBarraSubclassCb, "Ptr", 10, "Ptr", 0)
+
+    miniGui.Show("x" posX " y" posY " w110 h115")
     RedondearVentana(miniGui.Hwnd, 14)
 }
 
@@ -1394,7 +1410,7 @@ InstalarSubclassBarras() {
 }
 
 AnimarBarras() {
-    global barraGradPhase, barra, barraHistorial, activo, temaEnTransicion
+    global barraGradPhase, barra, barraHistorial, barraMini, modoMini, activo, temaEnTransicion
     if (temaEnTransicion)
         return
     vel := activo ? 0.013 : 0.005
@@ -1405,6 +1421,8 @@ AnimarBarras() {
         DllCall("InvalidateRect", "Ptr", barra.Hwnd, "Ptr", 0, "Int", 0)
     if (IsObject(barraHistorial))
         DllCall("InvalidateRect", "Ptr", barraHistorial.Hwnd, "Ptr", 0, "Int", 0)
+    if (modoMini && IsObject(barraMini))
+        DllCall("InvalidateRect", "Ptr", barraMini.Hwnd, "Ptr", 0, "Int", 0)
 }
 
 ; ===== PARTICULAS DE FONDO (GDI+) =====
@@ -4713,19 +4731,8 @@ AplicarTema(tema, guardar := true, fromTrans := false) {
         try miniGui.Destroy()
         miniGui := ""
         logoMacroMini := ""
-        ; Recrear sin tocar miGui/historialGui (ya están ocultos)
-        miniGui := Gui("+AlwaysOnTop -Caption +ToolWindow")
-        miniGui.BackColor := colorFondoPrincipal
-        miniBarT := miniGui.Add("Text", "x0 y0 w100 h20 Background" colorBarra " Center", "")
-        miniBarT.OnEvent("Click", ArrastrarMiniVentana)
-        btnRestoreT := miniGui.Add("Text", "x76 y2 w20 h16 +0x201 Background" colorBarra " c" colorTextoBarra, Chr(0x2922))
-        btnRestoreT.SetFont("s10 c" colorTextoBarra " Bold", "Segoe UI Symbol")
-        btnRestoreT.OnEvent("Click", ToggleMiniMode)
-        logoMacroMini := miniGui.Add("Text", "x10 y24 w80 h80 Center BackgroundTrans c" colorLogoMacro " +0x1", Chr(9881))
-        logoMacroMini.SetFont("s48 c" colorLogoMacro " Bold", "Segoe UI Symbol")
-        InstalarSubclassMiniLogo()
-        miniGui.Show("x" miniX " y" miniY " w100 h110")
-        RedondearVentana(miniGui.Hwnd, 14)
+        barraMini := ""
+        CrearMiniGui(miniX, miniY)
     }
     if (fromTrans) {
         ; Reactivar redraws y forzar un único repintado atómico — sin frame en blanco
