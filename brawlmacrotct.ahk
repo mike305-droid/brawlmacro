@@ -8,7 +8,7 @@ configPath := A_ScriptDir "\brawlmacro_config.ini"
 global eggsBackupPath := A_ScriptDir "\brawlmacro_eggs.txt"
 global heartbeatPath := A_ScriptDir "\brawlmacro_heartbeat.txt"
 global historialLogPath := A_ScriptDir "\brawlmacro_historial.log"
-global VERSION_ACTUAL := "29.2.7"
+global VERSION_ACTUAL := "29.2.8"
 
 ; ===== TEMAS =====
 temas := [
@@ -6103,7 +6103,7 @@ EjecutarMacro(*) {
     global ultimoPasoEjecutado
     global modoDestruccion, contadorDestruccion
     global tiempoUltimoLanzamiento
-    global ultimoAfkMove, ultimaDeteccionReal
+    global ultimoAfkMove, ultimaDeteccionReal, perfilActivo
     static PASOS_ENTRE_PRIO := 5   ; CheckPrioridad cada N pasos normales revisados
 
     ; Proof-of-life para el watchdog ANTES de cualquier return.
@@ -6178,10 +6178,40 @@ EjecutarMacro(*) {
 
         encontrado := BuscarPixel(paso, &x, &y)
 
-        ; ── Detector: vigila pixel blanco → Space cuando aparece rojo o desaparece blanco ──
+        ; ── Detector: vigila pixel blanco 2x2 → Space cuando aparece rojo o desaparece blanco ──
         if paso.HasProp("colorDisparo") {
             if (encontrado) {
-                MouseMove(x, y, 5)
+                ; Verificar bloque 2x2: comprobar pixel adyacente (x+1, y+1)
+                confirmado := false
+                try {
+                    PixelGetColor_x1 := x + 1
+                    PixelGetColor_y1 := y + 1
+                    c2 := PixelGetColor(PixelGetColor_x1, y)
+                    c3 := PixelGetColor(x, PixelGetColor_y1)
+                    c4 := PixelGetColor(PixelGetColor_x1, PixelGetColor_y1)
+                    ; Comparar con tolerancia — extraer RGB del color buscado
+                    bR := (paso.color >> 16) & 0xFF
+                    bG := (paso.color >> 8) & 0xFF
+                    bB := paso.color & 0xFF
+                    tol := paso.tolerancia
+                    ok2 := true
+                    for , cx in [c2, c3, c4] {
+                        cVal := Integer(cx)
+                        pR := (cVal >> 16) & 0xFF
+                        pG := (cVal >> 8) & 0xFF
+                        pB := cVal & 0xFF
+                        if (Abs(pR - bR) > tol || Abs(pG - bG) > tol || Abs(pB - bB) > tol) {
+                            ok2 := false
+                            break
+                        }
+                    }
+                    confirmado := ok2
+                }
+                if (!confirmado) {
+                    accionEnCurso := false
+                    continue
+                }
+                ; 2x2 confirmado — NO mover cursor, solo vigilar
                 paso.detectorActivo := true
                 tmpPaso := {x1: paso.x1, y1: paso.y1, x2: paso.x2, y2: paso.y2, color: paso.colorDisparo, tolerancia: paso.HasProp("tolDisparo") ? paso.tolDisparo : 5}
                 if BuscarPixel(tmpPaso, &xd, &yd) {
@@ -6190,10 +6220,6 @@ EjecutarMacro(*) {
                     paso.detectorActivo := false
                     ultimaDeteccionReal := A_TickCount
                     ultimoCambio := A_TickCount
-                    if (modoDestruccion) {
-                        modoDestruccion := false
-                        AgregarHistorial(Chr(0x2705) " Detección recuperada - saliendo de modo destrucción", "00CC44")
-                    }
                     AgregarHistorial(paso.nombre " → Space (rojo)", paso.HasProp("categoria") ? ObtenerColorCategoria(paso.categoria) : "")
                     LuzAccionFlash()
                     OndaBarra()
@@ -6207,10 +6233,6 @@ EjecutarMacro(*) {
                 paso.detectorActivo := false
                 ultimaDeteccionReal := A_TickCount
                 ultimoCambio := A_TickCount
-                if (modoDestruccion) {
-                    modoDestruccion := false
-                    AgregarHistorial(Chr(0x2705) " Detección recuperada - saliendo de modo destrucción", "00CC44")
-                }
                 AgregarHistorial(paso.nombre " → Space (desaparecio)", paso.HasProp("categoria") ? ObtenerColorCategoria(paso.categoria) : "")
                 LuzAccionFlash()
                 OndaBarra()
@@ -6304,6 +6326,11 @@ EjecutarMacro(*) {
     }
 
     accionEnCurso := false
+
+    ; dstv: sin anti-AFK, sin modo destrucción, sin MouseMove — solo detector
+    if (perfilActivo = 4)
+        return
+
     tiempoSinCambios := A_TickCount - ultimoCambio
 
     ; ===== MODO DESTRUCCION =====
