@@ -238,7 +238,8 @@ global colorRGBActual := colorBarra
 global rgbPreviewCtrl := ""
 global overlayPixeles := "", overlayVisible := false
 global miGui, barra, barraHistorial, logoMacro, tituloMacro, timerLabel
-global btnIniciar, btnParar, btnCodigo, btnReset, btnHistorial, btnTema, btnMin, btnClose, btnUpdate, btnOverlay, btnRGBBtn, btnStatsBtn, btnWebhook, btnLogros, btnPart, btnPerfil
+global miniGui := "", modoMini := false, logoMacroMini := "", miniSubclassCb := 0
+global btnIniciar, btnParar, btnCodigo, btnReset, btnHistorial, btnTema, btnMin, btnClose, btnUpdate, btnOverlay, btnRGBBtn, btnStatsBtn, btnWebhook, btnLogros, btnPart, btnPerfil, btnMini
 global hoverAccent := "", hoverAnimStep := 0, hoverAccentTop := "", hoverAccentHist := ""
 global hoverAccentBot := "", hoverAccentRight := "", hoverAccentBotHist := "", hoverAccentRightHist := ""
 global glowTitulo := "", sepEstado := "", sepAccion := ""  ; polish visual estático
@@ -974,7 +975,7 @@ PintarLogoEnDC(hdcDest) {
 
 ; Pinta vía GetDC (usado por el timer durante animación).
 PintarLogo() {
-    global logoMacro
+    global logoMacro, modoMini, logoMacroMini
     if (!IsObject(logoMacro))
         return
     hdc := DllCall("GetDC", "Ptr", logoMacro.Hwnd, "Ptr")
@@ -982,6 +983,14 @@ PintarLogo() {
         return
     PintarLogoEnDC(hdc)
     DllCall("ReleaseDC", "Ptr", logoMacro.Hwnd, "Ptr", hdc)
+    ; Pintar también el logo mini si está visible
+    if (modoMini && IsObject(logoMacroMini)) {
+        hdcMini := DllCall("GetDC", "Ptr", logoMacroMini.Hwnd, "Ptr")
+        if (hdcMini) {
+            PintarLogoMiniEnDC(hdcMini)
+            DllCall("ReleaseDC", "Ptr", logoMacroMini.Hwnd, "Ptr", hdcMini)
+        }
+    }
 }
 
 ; ── Subclass del control: intercepta WM_PAINT y WM_ERASEBKGND para que cuando Windows
@@ -1015,6 +1024,103 @@ InstalarSubclassLogo() {
     DllCall("Comctl32.dll\SetWindowSubclass", "Ptr", logoMacro.Hwnd, "Ptr", logoSubclassCb, "Ptr", 1, "Ptr", 0)
 }
 
+; ===== MINI MODE: logo compacto flotante =====
+PintarLogoMiniEnDC(hdc) {
+    global logoAngulo
+    memDC  := DllCall("CreateCompatibleDC",     "Ptr", hdc, "Ptr")
+    hbm    := DllCall("CreateCompatibleBitmap", "Ptr", hdc, "Int", 80, "Int", 80, "Ptr")
+    oldBmp := DllCall("SelectObject",           "Ptr", memDC, "Ptr", hbm, "Ptr")
+    DibujarGearEnDC(memDC, 80, 80, logoAngulo, ColorActualLogo(), FondoActualLogo())
+    DllCall("BitBlt", "Ptr", hdc, "Int", 0, "Int", 0, "Int", 80, "Int", 80, "Ptr", memDC, "Int", 0, "Int", 0, "UInt", 0x00CC0020)
+    DllCall("SelectObject", "Ptr", memDC, "Ptr", oldBmp)
+    DllCall("DeleteObject", "Ptr", hbm)
+    DllCall("DeleteDC",     "Ptr", memDC)
+}
+
+MiniLogoSubclassProc(hWnd, uMsg, wParam, lParam, idSubclass, refData) {
+    static WM_PAINT := 0x000F, WM_ERASEBKGND := 0x0014
+    if (uMsg = WM_ERASEBKGND)
+        return 1
+    if (uMsg = WM_PAINT) {
+        ps := Buffer(72, 0)
+        hdc := DllCall("BeginPaint", "Ptr", hWnd, "Ptr", ps, "Ptr")
+        if (hdc) {
+            PintarLogoMiniEnDC(hdc)
+            DllCall("EndPaint", "Ptr", hWnd, "Ptr", ps)
+        }
+        return 0
+    }
+    return DllCall("Comctl32.dll\DefSubclassProc", "Ptr", hWnd, "UInt", uMsg, "Ptr", wParam, "Ptr", lParam, "Ptr")
+}
+
+InstalarSubclassMiniLogo() {
+    global logoMacroMini, miniSubclassCb
+    if (!IsObject(logoMacroMini))
+        return
+    ; Limpiar callback anterior si existía
+    if (miniSubclassCb) {
+        try DllCall("Comctl32.dll\RemoveWindowSubclass", "Ptr", logoMacroMini.Hwnd, "Ptr", miniSubclassCb, "Ptr", 2)
+        miniSubclassCb := 0
+    }
+    miniSubclassCb := CallbackCreate(MiniLogoSubclassProc, "F", 6)
+    DllCall("Comctl32.dll\SetWindowSubclass", "Ptr", logoMacroMini.Hwnd, "Ptr", miniSubclassCb, "Ptr", 2, "Ptr", 0)
+}
+
+ToggleMiniMode(*) {
+    global modoMini, miGui, historialGui, historialVisible, miniGui, logoMacroMini
+    global colorFondoPrincipal, colorBarra, colorTextoBarra, colorBotonNormal, colorBtnTexto, colorLogoMacro
+    global overlayPartMain, overlayPartHist
+
+    if (modoMini) {
+        ; ── Salir de mini mode ──
+        modoMini := false
+        try miniGui.Destroy()
+        miniGui := ""
+        logoMacroMini := ""
+        miGui.Show()
+        if (historialVisible)
+            historialGui.Show()
+        if (IsObject(overlayPartMain))
+            try overlayPartMain.Show()
+        if (historialVisible && IsObject(overlayPartHist))
+            try overlayPartHist.Show()
+        return
+    }
+
+    ; ── Entrar en mini mode ──
+    modoMini := true
+    miGui.GetPos(&mx, &my)
+    miGui.Hide()
+    historialGui.Hide()
+    if (IsObject(overlayPartMain))
+        try overlayPartMain.Hide()
+    if (IsObject(overlayPartHist))
+        try overlayPartHist.Hide()
+
+    miniGui := Gui("+AlwaysOnTop -Caption +ToolWindow")
+    miniGui.BackColor := colorFondoPrincipal
+
+    ; Barra superior para arrastrar
+    miniBar := miniGui.Add("Text", "x0 y0 w100 h20 Background" colorBarra " Center", "")
+    miniBar.OnEvent("Click", ArrastrarMiniVentana)
+
+    ; Botón para restaurar (esquina derecha de la barra)
+    btnRestore := miniGui.Add("Text", "x76 y2 w20 h16 +0x201 Background" colorBarra " c" colorTextoBarra, Chr(0x2922))
+    btnRestore.SetFont("s10 c" colorTextoBarra " Bold", "Segoe UI Symbol")
+    btnRestore.OnEvent("Click", ToggleMiniMode)
+
+    ; Logo giratorio
+    logoMacroMini := miniGui.Add("Text", "x10 y24 w80 h80 Center BackgroundTrans c" colorLogoMacro " +0x1", Chr(9881))
+    logoMacroMini.SetFont("s48 c" colorLogoMacro " Bold", "Segoe UI Symbol")
+    InstalarSubclassMiniLogo()
+
+    miniGui.Show("x" mx " y" my " w100 h110")
+    RedondearVentana(miniGui.Hwnd, 14)
+}
+
+ArrastrarMiniVentana(*) {
+    PostMessage(0xA1, 2,,, "A")
+}
 
 ; Timer: actualiza velocidad/ángulo/pulso y pinta el logo directamente sobre su DC.
 ActualizarLogoAnimacion() {
@@ -2076,6 +2182,7 @@ btnTema      := miGui.Add("Text", "x240 y59 w26 h26 +0x201 Background" colorBoto
 btnRGBBtn    := miGui.Add("Text", "x272 y59 w26 h26 +0x201 Background" colorBotonNormal " c" colorBtnTexto, Chr(0x1F3A8))
 btnPart      := miGui.Add("Text", "x304 y59 w26 h26 +0x201 Background" colorBotonNormal " c" colorBtnTexto, Chr(0x2728))
 btnHistorial := miGui.Add("Text", "x336 y59 w26 h26 +0x201 Background" colorBotonNormal " c" colorBtnTexto, Chr(128203))
+btnMini      := miGui.Add("Text", "x368 y59 w26 h26 +0x201 Background" colorBotonNormal " c" colorBtnTexto, Chr(0x25A3))
 btnIniciar   := miGui.Add("Text", "x40 y178 w140 h36 +0x201 Background" colorBotonNormal " c" colorBtnTexto, Chr(9654) " Iniciar (F1)")
 btnParar     := miGui.Add("Text", "x220 y178 w140 h36 +0x201 Background" colorBotonNormal " c" colorBtnTexto, Chr(9632) " Parar (F2)")
 ; ── Polish visual: línea glow bajo título + separadores de sección ──
@@ -2102,6 +2209,8 @@ btnIniciar.OnEvent("Click", Iniciar)
 btnParar.OnEvent("Click", Parar)
 btnRGBBtn.OnEvent("Click", AbrirPanelRGB)
 btnPart.OnEvent("Click", AbrirPanelParticulas)
+btnMini.SetFont("s11 c" colorBtnTexto " Bold", "Segoe UI Symbol")
+btnMini.OnEvent("Click", ToggleMiniMode)
 
 ; ── Registro de hover para los botones principales ──
 RegistrarHover(btnIniciar,   () => (activo ? (rgbBotones ? colorRGBActual : colorBotonHover) : (rgbBotones ? colorRGBActual : colorBotonNormal)))
@@ -2120,6 +2229,7 @@ RegistrarHover(btnStatsBtn,  () => (rgbBotones ? colorRGBActual : colorBotonNorm
 RegistrarHover(btnWebhook,   () => (rgbBotones ? colorRGBActual : colorBotonNormal))
 RegistrarHover(btnLogros,    () => (rgbBotones ? colorRGBActual : colorBotonNormal))
 RegistrarHover(btnPart,      () => (rgbBotones ? colorRGBActual : colorBotonNormal))
+RegistrarHover(btnMini,      () => (rgbBotones ? colorRGBActual : colorBotonNormal))
 
 timerLabel := miGui.Add("Text", "x220 y130 w140 h25 Center Background" colorFondoPrincipal " c" colorTextoPrincipal, Chr(0x23F0) " 00:00")
 timerLabel.SetFont("s13 c" colorTextoPrincipal " Bold", "Segoe UI Semibold")
@@ -4361,7 +4471,7 @@ TransicionPaso() {
     }
 
     ; Botones — fondo + texto
-    for btn in [btnIniciar, btnParar, btnCodigo, btnReset, btnHistorial, btnTema, btnMin, btnClose, btnUpdate, btnOverlay, btnRGBBtn, btnStatsBtn, btnWebhook, btnLogros, btnPart] {
+    for btn in [btnIniciar, btnParar, btnCodigo, btnReset, btnHistorial, btnTema, btnMin, btnClose, btnUpdate, btnOverlay, btnRGBBtn, btnStatsBtn, btnWebhook, btnLogros, btnPart, btnMini] {
         if (IsObject(btn))
             btn.Opt("Background" cBoton " c" cBtnTexto)
     }
@@ -4571,7 +4681,7 @@ AplicarTema(tema, guardar := true, fromTrans := false) {
     luzAccion.Opt("Background" colorFondoPrincipal)
     luzApagado.Opt("Background" colorFondoPrincipal)
     SendMessage(0x0443, 0, HexToBGR(colorFondoHistorial), , "ahk_id " historialBox.Hwnd)
-    for btn in [btnIniciar, btnParar, btnCodigo, btnReset, btnHistorial, btnTema, btnMin, btnClose, btnUpdate, btnOverlay, btnRGBBtn, btnStatsBtn, btnWebhook, btnLogros, btnPart] {
+    for btn in [btnIniciar, btnParar, btnCodigo, btnReset, btnHistorial, btnTema, btnMin, btnClose, btnUpdate, btnOverlay, btnRGBBtn, btnStatsBtn, btnWebhook, btnLogros, btnPart, btnMini] {
         btn.Opt("Background" colorBotonNormal " c" colorBtnTexto)
         btn.SetFont("s11 c" colorBtnTexto " Bold", "Segoe UI Symbol")
         if (!fromTrans) {
@@ -4597,6 +4707,26 @@ AplicarTema(tema, guardar := true, fromTrans := false) {
     btnCodigo.SetFont("s10 c" colorBtnTexto " Bold", "Segoe UI Symbol")
     btnPerfil.SetFont("s11 c" colorBtnTexto " Bold", "Segoe UI Emoji")
     ActualizarEstadoVisual()
+    ; Actualizar mini mode si está activo — recrear con colores nuevos
+    if (modoMini && IsObject(miniGui)) {
+        miniGui.GetPos(&miniX, &miniY)
+        try miniGui.Destroy()
+        miniGui := ""
+        logoMacroMini := ""
+        ; Recrear sin tocar miGui/historialGui (ya están ocultos)
+        miniGui := Gui("+AlwaysOnTop -Caption +ToolWindow")
+        miniGui.BackColor := colorFondoPrincipal
+        miniBarT := miniGui.Add("Text", "x0 y0 w100 h20 Background" colorBarra " Center", "")
+        miniBarT.OnEvent("Click", ArrastrarMiniVentana)
+        btnRestoreT := miniGui.Add("Text", "x76 y2 w20 h16 +0x201 Background" colorBarra " c" colorTextoBarra, Chr(0x2922))
+        btnRestoreT.SetFont("s10 c" colorTextoBarra " Bold", "Segoe UI Symbol")
+        btnRestoreT.OnEvent("Click", ToggleMiniMode)
+        logoMacroMini := miniGui.Add("Text", "x10 y24 w80 h80 Center BackgroundTrans c" colorLogoMacro " +0x1", Chr(9881))
+        logoMacroMini.SetFont("s48 c" colorLogoMacro " Bold", "Segoe UI Symbol")
+        InstalarSubclassMiniLogo()
+        miniGui.Show("x" miniX " y" miniY " w100 h110")
+        RedondearVentana(miniGui.Hwnd, 14)
+    }
     if (fromTrans) {
         ; Reactivar redraws y forzar un único repintado atómico — sin frame en blanco
         DllCall("SendMessage", "Ptr", miGui.Hwnd,        "UInt", 0xB, "Ptr", 1, "Ptr", 0)
@@ -4797,13 +4927,16 @@ Minimizar(*) {
 }
 
 Cerrar(*) {
-    global miGui, historialGui, overlayPartMain, overlayPartHist, heartbeatPath
+    global miGui, historialGui, overlayPartMain, overlayPartHist, heartbeatPath, miniGui, modoMini
     GuardarStats()
     GuardarRGBs()
     IniWrite(historialVisible ? 1 : 0, configPath, "UI", "HistorialVisible")
     GuardarPosiciones()
     ; Borrar heartbeat para que el watchdog externo NO nos reinicie (cierre intencionado)
     try FileDelete(heartbeatPath)
+    ; Cerrar miniGui si está activa
+    if (modoMini && IsObject(miniGui))
+        try miniGui.Destroy()
     ; Ocultar los overlays de partículas para que no se vean flotando durante el fade
     if (IsObject(overlayPartMain))
         try overlayPartMain.Hide()
