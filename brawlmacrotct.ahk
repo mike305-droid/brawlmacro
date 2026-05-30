@@ -1119,20 +1119,18 @@ CrearMiniGui(posX, posY) {
 
     miniGui := Gui("+AlwaysOnTop -Caption +ToolWindow")
     miniGui.BackColor := colorFondoPrincipal
-    static BTN_W := 28
 
-    ; Barra superior con texto "Smart" — NO cubre el botón (acaba antes)
-    barraMini := miniGui.Add("Text", "x0 y0 w" (MINI_W - BTN_W) " h" BAR_H " Background" colorBarra " +0x201", "  Smart")
+    ; Barra superior completa con texto "Smart" y efecto ondas
+    barraMini := miniGui.Add("Text", "x0 y0 w" MINI_W " h" BAR_H " Background" colorBarra " Center +0x201", "Smart")
     barraMini.SetFont("s11 c" colorTextoBarra " Bold", "Segoe UI Semibold")
     barraMini.OnEvent("Click", ArrastrarMiniVentana)
 
-    ; Botón restaurar ⤳ — ocupa su propio espacio arriba-derecha, sin solapar la barra
-    btnRestore := miniGui.Add("Text", "x" (MINI_W - BTN_W) " y0 w" BTN_W " h" BAR_H " +0x201 Center Background" colorBotonNormal " c" colorBtnTexto, Chr(0x2922))
-    btnRestore.SetFont("s13 c" colorBtnTexto " Bold", "Segoe UI Symbol")
+    ; Botón restaurar — pequeño 5x5 justo debajo de la barra, arriba-derecha
+    btnRestore := miniGui.Add("Text", "x" (MINI_W - 10) " y" (BAR_H + 2) " w5 h5 +0x201 Background" colorBotonNormal, "")
     btnRestore.OnEvent("Click", ToggleMiniMode)
 
-    ; Logo giratorio — empujado a la derecha para centrar visualmente
-    logoMacroMini := miniGui.Add("Text", "x28 y" (BAR_H + 5) " w80 h80 Center BackgroundTrans c" colorLogoMacro " +0x1", Chr(9881))
+    ; Logo giratorio — posición original centrada a la izquierda
+    logoMacroMini := miniGui.Add("Text", "x15 y" (BAR_H + 5) " w80 h80 Center BackgroundTrans c" colorLogoMacro " +0x1", Chr(9881))
     logoMacroMini.SetFont("s48 c" colorLogoMacro " Bold", "Segoe UI Symbol")
     InstalarSubclassMiniLogo()
 
