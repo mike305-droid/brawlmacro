@@ -8,7 +8,7 @@ configPath := A_ScriptDir "\brawlmacro_config.ini"
 global eggsBackupPath := A_ScriptDir "\brawlmacro_eggs.txt"
 global heartbeatPath := A_ScriptDir "\brawlmacro_heartbeat.txt"
 global historialLogPath := A_ScriptDir "\brawlmacro_historial.log"
-global VERSION_ACTUAL := "29.3.1"
+global VERSION_ACTUAL := "30.0.1"
 
 ; ===== TEMAS =====
 temas := [
@@ -35,6 +35,13 @@ temas := [
     { nombre:"Naranja",    fondo:"FFE7CC", texto:"7A3B00", barra:"F28C28", textoBarra:"FFFFFF", historial:"FFF2E6", panel:"FFD9AD", cooldown:"CC3333", afk:"1D5BD7", boton:"F28C28", hover:"FFAA4D", logo:"4A2100", luzOn:"7A3600", luzAccion:"994700", luzOff:"4A2100",  btnTexto:"FFFFFF", histColor1:"7A3B00", histColor2:"994700", histColor3:"CC6600" },
     { nombre:"Desierto",   fondo:"F5E6CB", texto:"4A2E0E", barra:"D2691E", textoBarra:"FFF8E1", historial:"F9F0DC", panel:"EDD5A8", cooldown:"B22222", afk:"8B4513", boton:"D2691E", hover:"E07E2A", logo:"6B3410", luzOn:"A0522D", luzAccion:"CD853F", luzOff:"6B3410",  btnTexto:"FFF8E1", histColor1:"4A2E0E", histColor2:"A0522D", histColor3:"CD853F" },
     { nombre:"Vainilla",   fondo:"FFFCF2", texto:"6B5435", barra:"F4E1A6", textoBarra:"4A3A20", historial:"FFFEF7", panel:"F8EDC8", cooldown:"D87333", afk:"B89464", boton:"F4E1A6", hover:"F8E9BD", logo:"6B5435", luzOn:"B89464", luzAccion:"D8B470", luzOff:"6B5435",  btnTexto:"4A3A20", histColor1:"6B5435", histColor2:"B89464", histColor3:"D8B470" },
+    ; Nuevos claros — paletas únicas no duplicadas
+    { nombre:"Miel",       fondo:"FFF8E7", texto:"6B4D10", barra:"F0C040", textoBarra:"4A3500", historial:"FFFCF0", panel:"FFEEBB", cooldown:"D04030", afk:"C08520", boton:"F0C040", hover:"F5D060", logo:"6B4D10", luzOn:"C08520", luzAccion:"F0C040", luzOff:"6B4D10",  btnTexto:"4A3500", histColor1:"6B4D10", histColor2:"C08520", histColor3:"F0C040" },
+    { nombre:"Bambú",      fondo:"F5F5E8", texto:"3D4A2C", barra:"98C46A", textoBarra:"FFFFFF", historial:"F8F8F0", panel:"E8ECD8", cooldown:"D05040", afk:"6D9840", boton:"98C46A", hover:"AAD080", logo:"3D4A2C", luzOn:"6D9840", luzAccion:"98C46A", luzOff:"3D4A2C",  btnTexto:"FFFFFF", histColor1:"3D4A2C", histColor2:"6D9840", histColor3:"98C46A" },
+    { nombre:"Monocromo",  fondo:"F0F0F0", texto:"1A1A1A", barra:"808080", textoBarra:"FFFFFF", historial:"F5F5F5", panel:"E0E0E0", cooldown:"404040", afk:"606060", boton:"808080", hover:"A0A0A0", logo:"1A1A1A", luzOn:"606060", luzAccion:"808080", luzOff:"1A1A1A",  btnTexto:"FFFFFF", histColor1:"1A1A1A", histColor2:"606060", histColor3:"808080" },
+    { nombre:"Chicle",     fondo:"FFE0F5", texto:"4B0046", barra:"E91E63", textoBarra:"FFFFFF", historial:"FFEEF8", panel:"FFC1E0", cooldown:"00BFA5", afk:"7B1FA2", boton:"E91E63", hover:"F06292", logo:"4B0046", luzOn:"AD1457", luzAccion:"00BFA5", luzOff:"4B0046",  btnTexto:"FFFFFF", histColor1:"4B0046", histColor2:"00BFA5", histColor3:"E91E63" },
+    { nombre:"Mostaza",    fondo:"FFFDE7", texto:"5D4037", barra:"D4A017", textoBarra:"2C1810", historial:"FFFEF3", panel:"FFF59D", cooldown:"BF360C", afk:"6D4C41", boton:"D4A017", hover:"E5B82C", logo:"5D4037", luzOn:"795548", luzAccion:"D4A017", luzOff:"5D4037",  btnTexto:"2C1810", histColor1:"5D4037", histColor2:"795548", histColor3:"D4A017" },
+    { nombre:"Tropical",   fondo:"E0F7FA", texto:"006064", barra:"FF6F00", textoBarra:"FFFFFF", historial:"E8FAFC", panel:"B2EBF2", cooldown:"D81B60", afk:"00897B", boton:"FF6F00", hover:"FF9100", logo:"006064", luzOn:"00ACC1", luzAccion:"FF6F00", luzOff:"006064",  btnTexto:"FFFFFF", histColor1:"006064", histColor2:"FF6F00", histColor3:"00ACC1" },
     ; ─────────── OSCUROS ───────────
     ; Grises
     { nombre:"Ceniza",     fondo:"2C2C2C", texto:"BDBDBD", barra:"424242", textoBarra:"EEEEEE", historial:"242424", panel:"333333", cooldown:"EF5350", afk:"90A4AE", boton:"424242", hover:"555555", logo:"EEEEEE", luzOn:"9E9E9E", luzAccion:"BDBDBD", luzOff:"212121",  btnTexto:"EEEEEE", histColor1:"BDBDBD", histColor2:"9E9E9E", histColor3:"EEEEEE" },
@@ -58,11 +65,25 @@ temas := [
     { nombre:"Sangre",     fondo:"0A0000", texto:"F5DDD0", barra:"2A0000", textoBarra:"FFD0C0", historial:"060000", panel:"160000", cooldown:"FF0000", afk:"FF6644", boton:"1A0000", hover:"3A0000", logo:"FF2222", luzOn:"CC0000", luzAccion:"FF3322", luzOff:"0A0000",  btnTexto:"FFD0C0", histColor1:"F5DDD0", histColor2:"CC0000", histColor3:"FF3322" },
     { nombre:"Abismo",     fondo:"0A0010", texto:"D8C8FF", barra:"120020", textoBarra:"E0D0FF", historial:"0D0018", panel:"140025", cooldown:"FF4477", afk:"AA88FF", boton:"1A0030", hover:"280050", logo:"C8A8FF", luzOn:"9966FF", luzAccion:"BB88FF", luzOff:"1A0030",  btnTexto:"D8C8FF", histColor1:"D8C8FF", histColor2:"9966FF", histColor3:"BB88FF" },
     { nombre:"Electrico",  fondo:"0A0A1A", texto:"E040FB", barra:"4A148C", textoBarra:"EA80FC", historial:"080812", panel:"0D0D22", cooldown:"FF1744", afk:"7B1FA2", boton:"4A148C", hover:"6A1EB0", logo:"E040FB", luzOn:"AA00FF", luzAccion:"E040FB", luzOff:"1A0030",  btnTexto:"EA80FC", histColor1:"E040FB", histColor2:"AA00FF", histColor3:"CE93D8" },
+    ; Nuevos oscuros — paletas únicas no duplicadas
+    { nombre:"Glitch",     fondo:"050510", texto:"00FFFF", barra:"FF00FF", textoBarra:"00FFFF", historial:"030308", panel:"0A0A18", cooldown:"FFFF00", afk:"00FFFF", boton:"1A1A2A", hover:"FF00FF", logo:"00FFFF", luzOn:"FF00FF", luzAccion:"00FFFF", luzOff:"0A0A18",  btnTexto:"00FFFF", histColor1:"00FFFF", histColor2:"FF00FF", histColor3:"FFFF00" },
+    { nombre:"Tundra",     fondo:"0C1A22", texto:"AED9E0", barra:"4F8A8B", textoBarra:"E0F4F5", historial:"081218", panel:"152A35", cooldown:"FF6B6B", afk:"79EAD0", boton:"4F8A8B", hover:"6BA8A9", logo:"FBD46D", luzOn:"79EAD0", luzAccion:"FBD46D", luzOff:"0C1A22",  btnTexto:"E0F4F5", histColor1:"AED9E0", histColor2:"FBD46D", histColor3:"79EAD0" },
+    { nombre:"Veneno",     fondo:"0A1208", texto:"C8FF00", barra:"2A4505", textoBarra:"E5FF7A", historial:"060A04", panel:"131F0A", cooldown:"FF1493", afk:"00FF7F", boton:"2A4505", hover:"3D6010", logo:"C8FF00", luzOn:"7FFF00", luzAccion:"C8FF00", luzOff:"0A1208",  btnTexto:"E5FF7A", histColor1:"C8FF00", histColor2:"7FFF00", histColor3:"00FF7F" },
+    { nombre:"Cobre",      fondo:"180F0A", texto:"D97849", barra:"4A2818", textoBarra:"F2A878", historial:"100A08", panel:"261810", cooldown:"FFD700", afk:"B85C2E", boton:"4A2818", hover:"6B3A22", logo:"D97849", luzOn:"B85C2E", luzAccion:"FFD700", luzOff:"180F0A",  btnTexto:"F2A878", histColor1:"D97849", histColor2:"B85C2E", histColor3:"FFD700" },
+    { nombre:"Vino",       fondo:"180510", texto:"E8B7CC", barra:"5D0A2A", textoBarra:"F5D5DE", historial:"100308", panel:"260818", cooldown:"FF1744", afk:"D81B60", boton:"5D0A2A", hover:"7E1040", logo:"E8B7CC", luzOn:"AD1457", luzAccion:"E8B7CC", luzOff:"180510",  btnTexto:"F5D5DE", histColor1:"E8B7CC", histColor2:"AD1457", histColor3:"5D0A2A" },
+    { nombre:"Submarino",  fondo:"001A26", texto:"7DE2D1", barra:"023E5C", textoBarra:"B3F0E8", historial:"00121A", panel:"002838", cooldown:"FF6B35", afk:"FFA600", boton:"023E5C", hover:"045A82", logo:"FFA600", luzOn:"00BCD4", luzAccion:"FFA600", luzOff:"001A26",  btnTexto:"B3F0E8", histColor1:"7DE2D1", histColor2:"FFA600", histColor3:"00BCD4" },
+    ; ─────────── TEMÁTICOS ───────────
+    { nombre:"Discord",    fondo:"2C2F33", texto:"DCDDDE", barra:"5865F2", textoBarra:"FFFFFF", historial:"23272A", panel:"36393F", cooldown:"ED4245", afk:"57F287", boton:"40444B", hover:"5865F2", logo:"FFFFFF", luzOn:"5865F2", luzAccion:"57F287", luzOff:"2C2F33",  btnTexto:"FFFFFF", histColor1:"DCDDDE", histColor2:"5865F2", histColor3:"57F287" },
+    { nombre:"Spotify",    fondo:"121212", texto:"B3B3B3", barra:"1DB954", textoBarra:"FFFFFF", historial:"0A0A0A", panel:"1A1A1A", cooldown:"FF4444", afk:"1DB954", boton:"282828", hover:"1DB954", logo:"1DB954", luzOn:"1DB954", luzAccion:"1ED760", luzOff:"181818",  btnTexto:"FFFFFF", histColor1:"B3B3B3", histColor2:"1DB954", histColor3:"1ED760" },
+    { nombre:"Valorant",   fondo:"0F1923", texto:"ECE8E1", barra:"FF4655", textoBarra:"FFFFFF", historial:"0A1018", panel:"162030", cooldown:"FFFF00", afk:"BD3944", boton:"1A2A3A", hover:"FF4655", logo:"FF4655", luzOn:"FF4655", luzAccion:"ECE8E1", luzOff:"0F1923",  btnTexto:"FFFFFF", histColor1:"ECE8E1", histColor2:"FF4655", histColor3:"BD3944" },
+    { nombre:"Minecraft",  fondo:"3B2A1A", texto:"7CFC00", barra:"5D8A3C", textoBarra:"FFFFFF", historial:"2E2010", panel:"4A3620", cooldown:"FF3333", afk:"55FF55", boton:"5D8A3C", hover:"6FA04A", logo:"7CFC00", luzOn:"55FF55", luzAccion:"7CFC00", luzOff:"3B2A1A",  btnTexto:"FFFFFF", histColor1:"7CFC00", histColor2:"55FF55", histColor3:"5D8A3C" },
+    { nombre:"One Piece",  fondo:"0A2540", texto:"FFE066", barra:"FF8C42", textoBarra:"2C1810", historial:"071E33", panel:"103056", cooldown:"E63946", afk:"06D6A0", boton:"FF8C42", hover:"FFA866", logo:"FFE066", luzOn:"FF8C42", luzAccion:"06D6A0", luzOff:"0A2540",  btnTexto:"2C1810", histColor1:"FFE066", histColor2:"FF8C42", histColor3:"06D6A0" },
+    { nombre:"Naruto",     fondo:"1A1008", texto:"FF9020", barra:"FF6600", textoBarra:"FFFFFF", historial:"120A05", panel:"281A08", cooldown:"3366FF", afk:"4488FF", boton:"FF6600", hover:"FF8830", logo:"4488FF", luzOn:"FF6600", luzAccion:"4488FF", luzOff:"1A1008",  btnTexto:"FFFFFF", histColor1:"FF9020", histColor2:"FF6600", histColor3:"4488FF" },
+    { nombre:"Pokémon",    fondo:"FFFFFF", texto:"1C2B43", barra:"FF1A1A", textoBarra:"FFFFFF", historial:"F5F7FA", panel:"E8EDF5", cooldown:"FFC107", afk:"3F7CE6", boton:"FF1A1A", hover:"E60000", logo:"FFC107", luzOn:"FF1A1A", luzAccion:"FFC107", luzOff:"1C2B43",  btnTexto:"FFFFFF", histColor1:"1C2B43", histColor2:"FF1A1A", histColor3:"FFC107" },
     ; ─────────── SECRETOS — PACK GAMER ───────────
     { nombre:"★ Brawl",       secreto:true, unlock:"gamer", fondo:"000000", texto:"FFFFFF", barra:"0050D5", textoBarra:"FFFFFF", historial:"000000", panel:"0A1A30", cooldown:"FF4444", afk:"4FC3F7", boton:"0050D5", hover:"1976D2", logo:"FFFFFF", luzOn:"00B0FF", luzAccion:"FFFFFF", luzOff:"050E1C",  btnTexto:"FFFFFF", histColor1:"FFFFFF", histColor2:"00B0FF", histColor3:"0050D5" },
     { nombre:"◆ Cyberpunk",   secreto:true, unlock:"gamer", fondo:"0D0B1F", texto:"00FFFF", barra:"FF00AA", textoBarra:"FFFF00", historial:"070518", panel:"130E2E", cooldown:"FFFF00", afk:"00FFFF", boton:"FF00AA", hover:"FF33BB", logo:"FFFF00", luzOn:"FF00AA", luzAccion:"00FFFF", luzOff:"1A1240",  btnTexto:"FFFFFF", histColor1:"00FFFF", histColor2:"FF00AA", histColor3:"FFFF00" },
     { nombre:"☀ Retrowave",   secreto:true, unlock:"gamer", fondo:"1A0833", texto:"FF6EC7", barra:"7A1FA2", textoBarra:"00E5FF", historial:"0F051F", panel:"23104D", cooldown:"FF4081", afk:"FF8A50", boton:"7A1FA2", hover:"9C27B0", logo:"FF8A50", luzOn:"FF6EC7", luzAccion:"00E5FF", luzOff:"1A0833",  btnTexto:"FFFFFF", histColor1:"FF6EC7", histColor2:"00E5FF", histColor3:"FF8A50" },
-    { nombre:"⚔ Akuma",       secreto:true, unlock:"gamer", fondo:"0A0000", texto:"FFD700", barra:"8B0000", textoBarra:"FFD700", historial:"050000", panel:"110000", cooldown:"FFFFFF", afk:"FF4444", boton:"8B0000", hover:"B00000", logo:"FFD700", luzOn:"8B0000", luzAccion:"FFD700", luzOff:"0A0000",  btnTexto:"FFD700", histColor1:"FFD700", histColor2:"8B0000", histColor3:"FFFFFF" },
     { nombre:"☆ Sky",         secreto:true, unlock:"gamer", fondo:"E1F5FE", texto:"0277BD", barra:"FFFFFF", textoBarra:"0277BD", historial:"F0FAFE", panel:"B3E5FC", cooldown:"F06292", afk:"81D4FA", boton:"FFFFFF", hover:"F5F9FB", logo:"0277BD", luzOn:"81D4FA", luzAccion:"F8BBD9", luzOff:"0277BD",  btnTexto:"0277BD", histColor1:"0277BD", histColor2:"F06292", histColor3:"81D4FA" },
     { nombre:"▣ Matrix",      secreto:true, unlock:"gamer", fondo:"000000", texto:"00FF00", barra:"002200", textoBarra:"00FF00", historial:"000800", panel:"001100", cooldown:"FF0000", afk:"00FF00", boton:"002200", hover:"003800", logo:"00FF00", luzOn:"00FF00", luzAccion:"FFFFFF", luzOff:"001100",  btnTexto:"00FF00", histColor1:"00FF00", histColor2:"00FF88", histColor3:"FFFFFF" },
     ; Morados / magenta oscuros
@@ -143,7 +164,10 @@ pasosNormales.Push({ tipo:"pimg", nombre:"playwhite",     color:0xFFFFFF, catego
 pasosNormales.Push({ tipo:"pimg", nombre:"play",          color:0xF6F7F8, categoria:2, hold:400, tolerancia:1, delayClick:30,  delayTecla:80,  cooldown:200, sp:true,  lastUsed:0, x1:34, y1:526, x2:34, y2:532 })
 pasosNormales.Push({ tipo:"pimg", nombre:"playbob",       color:0xFED511, categoria:2, hold:100, tolerancia:1, delayClick:500, delayTecla:500, cooldown:100, sp:true,  lastUsed:0, x1:34, y1:526, x2:34, y2:532 })
 pasosNormales.Push({ tipo:"pimg", nombre:"playwhite",     color:0xFFFFFF, categoria:2, hold:400, tolerancia:1, delayClick:500, delayTecla:500, cooldown:200, sp:true,  lastUsed:0, x1:34, y1:526, x2:34, y2:532 })
-
+pasosNormales.Push({ tipo:"pimg", nombre:"dragonpurple",		   color:0x8B52FF, categoria:2, hold:400, tolerancia:1, delayClick:500, delayTecla:500, cooldown:200, sp:true,  lastUsed:0, x1:49, y1:271, x2:49, y2:271 })
+pasosNormales.Push({ tipo:"pimg", nombre:"dragonpurple",		   color:0x8B52FF, categoria:2, hold:400, tolerancia:1, delayClick:500, delayTecla:500, cooldown:200, tct:true,  lastUsed:0, x1:49, y1:271, x2:49, y2:271 })
+pasosNormales.Push({ tipo:"pimg", nombre:"dragonyellow",		   color:0xFFFF28, categoria:2, hold:400, tolerancia:1, delayClick:500, delayTecla:500, cooldown:200, tct:true,  lastUsed:0, x1:49, y1:271, x2:49, y2:271 })
+pasosNormales.Push({ tipo:"pimg", nombre:"dragonyellow",		   color:0xFFFF28, categoria:2, hold:400, tolerancia:1, delayClick:500, delayTecla:500, cooldown:200, sp:true,  lastUsed:0, x1:49, y1:271, x2:49, y2:271 })
 ; ─── FASE 2: NAVEGACION ENTRE PANTALLAS (cat 3) ────────────────────
 pasosNormales.Push({ tipo:"pimg", nombre:"enteringsp1",   color:0x15171A, categoria:3, hold:200, tolerancia:1, delayClick:500, delayTecla:500, cooldown:500, sp:true, lastUsed:0, x1:465, y1:471, x2:466, y2:476 })
 pasosNormales.Push({ tipo:"pimg", nombre:"enteringsp2",   color:0x9EA9BB, categoria:3, hold:200, tolerancia:1, delayClick:500, delayTecla:500, cooldown:500, sp:true, lastUsed:0, x1:734, y1:427, x2:738, y2:429 })
@@ -242,7 +266,7 @@ global miGui, barra, barraHistorial, logoMacro, tituloMacro, timerLabel
 global miniGui := "", modoMini := false, logoMacroMini := "", miniSubclassCb := 0
 global barraMini := "", miniBarraSubclassCb := 0
 global overlayPartMini := "", particulasMini := [], overlayDecoMini := "", overlayDecoMiniSubCb := 0
-global btnIniciar, btnParar, btnCodigo, btnReset, btnHistorial, btnTema, btnMin, btnClose, btnUpdate, btnOverlay, btnRGBBtn, btnStatsBtn, btnWebhook, btnLogros, btnPart, btnPerfil, btnMini
+global btnIniciar, btnParar, btnCodigo, btnReset, btnHistorial, btnTema, btnMin, btnClose, btnUpdate, btnOverlay, btnRGBBtn, btnStatsBtn, btnWebhook, btnLogros, btnPart, btnPerfil, btnMini, btnOptimizar
 global hoverAccent := "", hoverAnimStep := 0, hoverAccentTop := "", hoverAccentHist := ""
 global hoverAccentBot := "", hoverAccentRight := "", hoverAccentBotHist := "", hoverAccentRightHist := ""
 global glowTitulo := "", sepEstado := "", sepAccion := ""  ; polish visual estático
@@ -326,6 +350,18 @@ global afkAlertaFlash := false
 global typeRevealHwnd := 0, typeRevealTotal := 0, typeRevealPos := 0
 global typeRevealColor := "", typeRevealActivo := false
 global barraOndaOffset := 0.0
+
+; ===== OPTIMIZACION (toggles individuales de efectos visuales) =====
+global optHoverAccent    := true   ; franjas de color al pasar el ratón
+global optHoverBreath    := true   ; respiración animada del botón hover
+global optShimmerBarra   := true   ; gradiente animado en barras
+global optPulsoBarra     := true   ; onda en barra al detectar
+global optPulsoLogo      := true   ; pulso de brillo del logo
+global optLogoGiratorio  := true   ; animación del engranaje girando
+global optDecoraciones   := true   ; animaciones de los temas
+global optConfeti        := true   ; confeti en milestones
+global optTypeReveal     := true   ; revelado progresivo de texto
+global optGui := "", optGuiVisible := false
 
 ; ===== PRESETS DE RENDIMIENTO =====
 global presetRendimiento := 3
@@ -859,23 +895,33 @@ DibujarGearEnDC(hdc, w, h, angulo, colorHex, fondoHex) {
             }
 
             ; ── DIBUJO PRINCIPAL DEL ENGRANAJE ──
-            ; Si tenemos cache del color actual y NO estamos en modo especial (premium/glitch),
-            ; usar BitBlt del bitmap pre-renderizado en vez de hacer la rotación + dibujo cada frame.
+            ; Usar BitBlt del bitmap pre-renderizado SIEMPRE que sea posible.
+            ; El dibujo en vivo con GdipDrawString rotado introduce subpixel drift
+            ; entre frames → el logo se ve descentrado/oscilante.
+            ;
+            ; Cuando activo=true el color pulsa cada frame, pero invalidar el cache
+            ; cada tick es muy caro (rebuilds 32 bitmaps). Solución: cuando activo,
+            ; IGNORAMOS el pulso de color y usamos el cache con el color BASE.
+            ; El pulso visual ya se ve a través de la barra y las luces — el gear no
+            ; necesita pulsar de color, solo girar suavemente.
             global logoGearCache, logoGearCacheColor, logoGearCacheChar, LOGO_GEAR_CACHE_FRAMES, temaPremiumActivo
-            global activo, rgbLogo, temaEnTransicion
-            ; Solo usar cache cuando el color es ESTABLE entre frames:
-            ;  - activo=true → color pulsa con Sin() cada frame → invalidaría cache cada tick = malo
-            ;  - rgbLogo → color cicla con RGB cada frame
-            ;  - premium → anillos arcoíris animados
-            ;  - glitching → usa color rojo distinto
-            ;  - temaEnTransicion → colorLogoEnTransicion lerpea cada frame → reconstruir 32
-            ;    bitmaps por frame = parpadeo masivo. Pintar directo durante la transicion.
-            colorEsEstable := !activo && !rgbLogo && !temaPremiumActivo && !glitching && !temaEnTransicion
-            canUseCache := colorEsEstable && (logoGearCache.Length = LOGO_GEAR_CACHE_FRAMES) && (logoGearCacheColor = colorHex) && (logoGearCacheChar = charLogo)
+            global activo, rgbLogo, temaEnTransicion, colorLogoMacro
 
-            ; Si el color es estable pero cambió (o no hay cache), construirlo ahora
-            if (!canUseCache && colorEsEstable) {
-                if (ConstruirCacheGear(colorHex, w, h)) {
+            ; Solo bloqueamos el cache en modos VISUALMENTE incompatibles (color por
+            ; pixel distinto cada frame que no se puede pre-renderizar):
+            ;  - rgbLogo → color cicla con RGB cada frame
+            ;  - premium → anillos arcoíris animados encima del gear
+            ;  - glitching → desplazamiento + color rojo distinto cada glitch
+            ;  - temaEnTransicion → colorLogoEnTransicion lerpea cada frame
+            puedeCachear := !rgbLogo && !temaPremiumActivo && !glitching && !temaEnTransicion
+
+            ; Cuando activo, ignorar el pulso de color y cachear con el color base estable.
+            colorParaCache := activo ? colorLogoMacro : colorHex
+            canUseCache := puedeCachear && (logoGearCache.Length = LOGO_GEAR_CACHE_FRAMES) && (logoGearCacheColor = colorParaCache) && (logoGearCacheChar = charLogo)
+
+            ; Si podemos cachear pero el color cambió (o no hay cache), construirlo ahora
+            if (!canUseCache && puedeCachear) {
+                if (ConstruirCacheGear(colorParaCache, w, h)) {
                     canUseCache := true
                 }
             }
@@ -1171,11 +1217,15 @@ ArrastrarMiniVentana(*) {
 
 ; Timer: actualiza velocidad/ángulo/pulso y pinta el logo directamente sobre su DC.
 ActualizarLogoAnimacion() {
-    global activo, logoAngulo, logoVelActual, logoVelObjetivo, logoNeedsRedraw
+    global activo, logoAngulo, logoVelActual, logoVelObjetivo, logoNeedsRedraw, optLogoGiratorio
     global logosPulsoT, logosPulsoDir
     global modoDestruccion, logoGlitchActivo, logoGlitchHasta, logoGlitchOffX, logoGlitchOffY
     global logoTrailAngulos
 
+    if (!optLogoGiratorio) {
+        logoVelActual := 0
+        return
+    }
     ; Lerp suave de velocidad hacia el objetivo (aceleración/deceleración)
     diff := logoVelObjetivo - logoVelActual
     logoVelActual += diff * 0.06
@@ -1441,8 +1491,8 @@ InstalarSubclassBarras() {
 }
 
 AnimarBarras() {
-    global barraGradPhase, barra, barraHistorial, barraMini, modoMini, activo, temaEnTransicion
-    if (temaEnTransicion)
+    global barraGradPhase, barra, barraHistorial, barraMini, modoMini, activo, temaEnTransicion, optShimmerBarra
+    if (temaEnTransicion || !optShimmerBarra)
         return
     vel := activo ? 0.013 : 0.005
     barraGradPhase += vel
@@ -2127,9 +2177,10 @@ barraHistorial.SetFont("s11 c" colorTextoBarra " Bold", "Segoe UI")
 ; (si arrastra antes, el drag modal de Windows bloquea el segundo handler)
 barraHistorial.OnEvent("Click", (*) => (ClickBarraHistorialNika(), ArrastrarHistorial()))
 
-; Sin WS_VSCROLL (0x200000): el RichEdit no dibuja scrollbar nativa nunca,
-; ni al hacer wheel, ni al re-pintar, ni al reflowar el texto. El scroll por
-; mensajes (EM_SETSCROLLPOS) y la rueda siguen funcionando igual.
+; Sin WS_VSCROLL: el RichEdit no dibuja NINGUNA scrollbar nativa.
+; La rueda del ratón y las flechas se gestionan via hotkeys #HotIf más abajo,
+; que envían EM_LINESCROLL directamente. El scrollbar custom (scrollTrack/Thumb)
+; se actualiza por ActualizarScrollbarCustom().
 historialBox := historialGui.Add("Custom", "ClassRICHEDIT50W x10 y35 w250 h110 +0x4 +0x10 +0x40 +0x800 vHistorial")
 historialBox.Opt("+ReadOnly -TabStop")
 SendMessage(0x00CF, 0, 0, historialBox)
@@ -2163,26 +2214,29 @@ destruccionesLabel.Value := Chr(0x276E) "  Destrucciones: 0  " Chr(0x276F)
 ; egg Sukuna (4 brazos / 4 clicks) en destruccionesLabel
 destruccionesLabel.OnEvent("Click", ClickDestruccionesSukuna)
 
-; Grupos: Datos (Stats, Logros) · Sistema (Notas, Overlay, Webhook, Update)
-; Spacing 26 dentro del grupo, 32 entre grupos. Centrado en GUI de 270.
-btnStatsBtn := historialGui.Add("Text", "x56 y327 w22 h20 +0x201 Background" colorBotonNormal " c" colorBtnTexto, Chr(0x1F4CA))
+; Centrado: 7 botones × 22px + 6 gaps × 4px = 178px → x46 a x224 (centro de GUI 270)
+btnStatsBtn := historialGui.Add("Text", "x46 y327 w22 h20 +0x201 Background" colorBotonNormal " c" colorBtnTexto, Chr(0x1F4CA))
 btnStatsBtn.SetFont("s9 c" colorBtnTexto, "Segoe UI Emoji")
 btnStatsBtn.OnEvent("Click", MostrarEstadisticas)
-btnLogros := historialGui.Add("Text", "x82 y327 w22 h20 +0x201 Background" colorBotonNormal " c" colorBtnTexto, Chr(0x1F3C5))
+btnLogros := historialGui.Add("Text", "x72 y327 w22 h20 +0x201 Background" colorBotonNormal " c" colorBtnTexto, Chr(0x1F3C5))
 btnLogros.SetFont("s9 c" colorBtnTexto, "Segoe UI Emoji")
 btnLogros.OnEvent("Click", AbrirPanelLogros)
-btnCodigo := historialGui.Add("Text", "x114 y327 w22 h20 +0x201 Background" colorBotonNormal " c" colorBtnTexto, Chr(9000))
+btnCodigo := historialGui.Add("Text", "x98 y327 w22 h20 +0x201 Background" colorBotonNormal " c" colorBtnTexto, Chr(9000))
 btnCodigo.SetFont("s10 c" colorBtnTexto " Bold", "Segoe UI Symbol")
 btnCodigo.OnEvent("Click", AbrirCodigo)
-btnOverlay := historialGui.Add("Text", "x140 y327 w22 h20 +0x201 Background" colorBotonNormal " c" colorBtnTexto, Chr(0x1F441))
+btnOverlay := historialGui.Add("Text", "x124 y327 w22 h20 +0x201 Background" colorBotonNormal " c" colorBtnTexto, Chr(0x1F441))
 btnOverlay.SetFont("s9 c" colorBtnTexto, "Segoe UI Emoji")
 btnOverlay.OnEvent("Click", ToggleOverlayPixeles)
-btnWebhook := historialGui.Add("Text", "x166 y327 w22 h20 +0x201 Background" colorBotonNormal " c" colorBtnTexto, Chr(0x1F514))
+btnWebhook := historialGui.Add("Text", "x150 y327 w22 h20 +0x201 Background" colorBotonNormal " c" colorBtnTexto, Chr(0x1F514))
 btnWebhook.SetFont("s9 c" colorBtnTexto, "Segoe UI Emoji")
 btnWebhook.OnEvent("Click", AbrirPanelWebhook)
-btnUpdate := historialGui.Add("Text", "x192 y327 w22 h20 +0x201 Background" colorBotonNormal " c" colorBtnTexto, Chr(8593))
+btnUpdate := historialGui.Add("Text", "x176 y327 w22 h20 +0x201 Background" colorBotonNormal " c" colorBtnTexto, Chr(8593))
 btnUpdate.SetFont("s8 c" colorBtnTexto, "Segoe UI Symbol")
 btnUpdate.OnEvent("Click", AbrirVentanaActualizacion)
+global btnOptimizar
+btnOptimizar := historialGui.Add("Text", "x202 y327 w22 h20 +0x201 Background" colorBotonNormal " c" colorBtnTexto, Chr(0x2699))
+btnOptimizar.SetFont("s9 c" colorBtnTexto, "Segoe UI Symbol")
+btnOptimizar.OnEvent("Click", AbrirPanelOptimizacion)
 
 ; (btnPerfil ahora vive en miGui — se crea más abajo en la sección de miGui)
 ; Acentos hover para botones del historial (viven en historialGui)
@@ -2220,6 +2274,17 @@ particulasOpacidad  := Integer(IniRead(configPath, "Particulas", "Opacidad",   "
 presetRendimiento := Integer(IniRead(configPath, "UI", "PresetRendimiento", "3"))
 if (presetRendimiento < 1 || presetRendimiento > 4)
     presetRendimiento := 3
+
+; Cargar toggles de optimización
+optHoverAccent   := Integer(IniRead(configPath, "Optimizacion", "HoverAccent",   "1")) = 1
+optHoverBreath   := Integer(IniRead(configPath, "Optimizacion", "HoverBreath",   "1")) = 1
+optShimmerBarra  := Integer(IniRead(configPath, "Optimizacion", "ShimmerBarra",  "1")) = 1
+optPulsoBarra    := Integer(IniRead(configPath, "Optimizacion", "PulsoBarra",    "1")) = 1
+optPulsoLogo     := Integer(IniRead(configPath, "Optimizacion", "PulsoLogo",     "1")) = 1
+optLogoGiratorio := Integer(IniRead(configPath, "Optimizacion", "LogoGiratorio", "1")) = 1
+optDecoraciones  := Integer(IniRead(configPath, "Optimizacion", "Decoraciones",  "1")) = 1
+optConfeti       := Integer(IniRead(configPath, "Optimizacion", "Confeti",       "1")) = 1
+optTypeReveal    := Integer(IniRead(configPath, "Optimizacion", "TypeReveal",    "1")) = 1
 
 barra := miGui.Add("Text", "x0 y0 w400 h25 Background" colorBarra " Center", "MacroSmart V29")
 barra.SetFont("s13 c" colorTextoBarra " Bold", "Segoe UI Semibold")
@@ -2310,6 +2375,7 @@ RegistrarHover(btnRGBBtn,    () => (rgbBotones ? colorRGBActual : colorBotonNorm
 RegistrarHover(btnStatsBtn,  () => (rgbBotones ? colorRGBActual : colorBotonNormal))
 RegistrarHover(btnWebhook,   () => (rgbBotones ? colorRGBActual : colorBotonNormal))
 RegistrarHover(btnLogros,    () => (rgbBotones ? colorRGBActual : colorBotonNormal))
+RegistrarHover(btnOptimizar, () => (rgbBotones ? colorRGBActual : colorBotonNormal))
 RegistrarHover(btnPart,      () => (rgbBotones ? colorRGBActual : colorBotonNormal))
 RegistrarHover(btnMini,      () => (rgbBotones ? colorRGBActual : colorBotonNormal))
 
@@ -2540,10 +2606,9 @@ HoverPoll() {
 ; Pulso respiratorio del botón con hover — misma cadencia que PulsoBarraActivo
 HoverBreath() {
     global hoverActual, hoverBreathT, hoverBreathDir, hoverBreathBase
-    global rgbBotones, temaEnTransicion
+    global rgbBotones, temaEnTransicion, optHoverBreath
 
-    ; RGB no respira (se ve mal combinado con el ciclo de hue)
-    if (hoverActual = "" || hoverBreathBase = "" || temaEnTransicion || rgbBotones)
+    if (!optHoverBreath || hoverActual = "" || hoverBreathBase = "" || temaEnTransicion || rgbBotones)
         return
 
     hoverBreathT += 0.04 * hoverBreathDir
@@ -3577,6 +3642,171 @@ CerrarPanelParticulas() {
     }
 }
 
+; ═══════════════════════════════════════════════════════════════
+; PANEL DE OPTIMIZACIÓN — toggles individuales de efectos visuales
+; ═══════════════════════════════════════════════════════════════
+AbrirPanelOptimizacion(*) {
+    global optGui, optGuiVisible
+    global optHoverAccent, optHoverBreath, optShimmerBarra, optPulsoBarra
+    global optPulsoLogo, optLogoGiratorio, optDecoraciones, optConfeti, optTypeReveal
+    global colorFondoPrincipal, colorTextoPrincipal, colorBarra, colorTextoBarra
+    global colorBotonNormal, colorBotonHover, colorBtnTexto, configPath
+
+    if (optGuiVisible && IsObject(optGui)) {
+        try LimpiarHoverGui(optGui)
+        try optGui.Destroy()
+        optGuiVisible := false
+        return
+    }
+
+    optGui := Gui("+AlwaysOnTop -Caption +ToolWindow")
+    optGui.BackColor := colorFondoPrincipal
+    W := 270
+
+    barr := optGui.Add("Text", "x0 y0 w" W " h28 Background" colorBarra " Center +0x200",
+                       "  " Chr(0x2699) "  Optimización")
+    barr.SetFont("s10 c" colorTextoBarra " Bold", "Segoe UI Semibold")
+    barr.OnEvent("Click", (*) => PostMessage(0xA1, 2,,, "ahk_id " optGui.Hwnd))
+    barr.OnEvent("DoubleClick", (*) => CerrarPanelOptimizacion())
+
+    y := 38
+
+    toggles := [
+        {var: "optHoverAccent",   label: "Hover Accent",         desc: "Colores de efecto de los botones"},
+        {var: "optHoverBreath",   label: "Hover Breath",         desc: "Efecto de los botones"},
+        {var: "optShimmerBarra",  label: "Shimmer Barra",        desc: "Gradiente animado en barras"},
+        {var: "optPulsoBarra",    label: "Pulso Detección",      desc: "Onda en barra al detectar"},
+        {var: "optPulsoLogo",     label: "Pulso Logo",           desc: "Pulso de brillo del logo"},
+        {var: "optLogoGiratorio", label: "Logo Giratorio",       desc: "Animación del engranaje"},
+        {var: "optDecoraciones",  label: "Decoraciones",         desc: "Efectos los temas"},
+        {var: "optConfeti",       label: "Confeti",              desc: "Confeti en milestones"},
+        {var: "optTypeReveal",    label: "Type Reveal",          desc: "Revelado progresivo de texto"},
+    ]
+
+    for t in toggles {
+        val := OptGetValor(t.var)
+        chk := optGui.Add("CheckBox", "x16 y" y " w" (W - 32) " h20 c" colorTextoPrincipal " Background" colorFondoPrincipal,
+                          " " t.label)
+        chk.SetFont("s9 Bold", "Segoe UI")
+        chk.Value := val ? 1 : 0
+        varName := t.var
+        chk.OnEvent("Click", OptToggleCallback.Bind(varName))
+
+        optGui.Add("Text", "x32 y" (y + 20) " w" (W - 48) " h14 c" colorBarra " Background" colorFondoPrincipal, t.desc)
+            .SetFont("s7", "Segoe UI")
+        y += 38
+    }
+
+    y += 4
+    sep := optGui.Add("Text", "x16 y" y " w" (W - 32) " h1 Background" colorBarra, "")
+    y += 8
+
+    btnTodoOn := optGui.Add("Text", "x16 y" y " w110 h28 +0x201 Background" colorBotonNormal " c" colorBtnTexto " Center",
+                            Chr(0x2714) " Todo ON")
+    btnTodoOn.SetFont("s9 Bold", "Segoe UI Semibold")
+    btnTodoOn.OnEvent("Click", OptTodoOn)
+    RegistrarHover(btnTodoOn, () => colorBotonNormal)
+
+    btnTodoOff := optGui.Add("Text", "x" (W - 16 - 110) " y" y " w110 h28 +0x201 Background" colorBotonNormal " c" colorBtnTexto " Center",
+                             Chr(0x2716) " Todo OFF")
+    btnTodoOff.SetFont("s9 Bold", "Segoe UI Semibold")
+    btnTodoOff.OnEvent("Click", OptTodoOff)
+    RegistrarHover(btnTodoOff, () => colorBotonNormal)
+
+    y += 38
+    optGui.Show("w" W " h" y " Center")
+    RedondearVentana(optGui.Hwnd, 12)
+    optGuiVisible := true
+    RegistrarAutoCierre(optGui, CerrarPanelOptimizacion)
+}
+
+OptGetValor(varName) {
+    global optHoverAccent, optHoverBreath, optShimmerBarra, optPulsoBarra
+    global optPulsoLogo, optLogoGiratorio, optDecoraciones, optConfeti, optTypeReveal
+    switch varName {
+        case "optHoverAccent":   return optHoverAccent
+        case "optHoverBreath":   return optHoverBreath
+        case "optShimmerBarra":  return optShimmerBarra
+        case "optPulsoBarra":    return optPulsoBarra
+        case "optPulsoLogo":     return optPulsoLogo
+        case "optLogoGiratorio": return optLogoGiratorio
+        case "optDecoraciones":  return optDecoraciones
+        case "optConfeti":       return optConfeti
+        case "optTypeReveal":    return optTypeReveal
+    }
+    return false
+}
+
+OptToggleCallback(varName, ctrl, *) {
+    global configPath
+    global optHoverAccent, optHoverBreath, optShimmerBarra, optPulsoBarra
+    global optPulsoLogo, optLogoGiratorio, optDecoraciones, optConfeti, optTypeReveal
+    val := ctrl.Value = 1
+    switch varName {
+        case "optHoverAccent":   optHoverAccent   := val
+        case "optHoverBreath":   optHoverBreath   := val
+        case "optShimmerBarra":  optShimmerBarra  := val
+        case "optPulsoBarra":    optPulsoBarra    := val
+        case "optPulsoLogo":     optPulsoLogo     := val
+        case "optLogoGiratorio": optLogoGiratorio := val
+        case "optDecoraciones":  optDecoraciones  := val
+        case "optConfeti":       optConfeti       := val
+        case "optTypeReveal":    optTypeReveal    := val
+    }
+    iniKey := StrReplace(varName, "opt", "")
+    IniWrite(val ? 1 : 0, configPath, "Optimizacion", iniKey)
+}
+
+OptSetTodos(val) {
+    global configPath
+    global optHoverAccent, optHoverBreath, optShimmerBarra, optPulsoBarra
+    global optPulsoLogo, optLogoGiratorio, optDecoraciones, optConfeti, optTypeReveal
+    optHoverAccent   := val
+    optHoverBreath   := val
+    optShimmerBarra  := val
+    optPulsoBarra    := val
+    optPulsoLogo     := val
+    optLogoGiratorio := val
+    optDecoraciones  := val
+    optConfeti       := val
+    optTypeReveal    := val
+    v := val ? 1 : 0
+    IniWrite(v, configPath, "Optimizacion", "HoverAccent")
+    IniWrite(v, configPath, "Optimizacion", "HoverBreath")
+    IniWrite(v, configPath, "Optimizacion", "ShimmerBarra")
+    IniWrite(v, configPath, "Optimizacion", "PulsoBarra")
+    IniWrite(v, configPath, "Optimizacion", "PulsoLogo")
+    IniWrite(v, configPath, "Optimizacion", "LogoGiratorio")
+    IniWrite(v, configPath, "Optimizacion", "Decoraciones")
+    IniWrite(v, configPath, "Optimizacion", "Confeti")
+    IniWrite(v, configPath, "Optimizacion", "TypeReveal")
+}
+
+OptTodoOn(*) {
+    OptSetTodos(true)
+    try {
+        CerrarPanelOptimizacion()
+        AbrirPanelOptimizacion()
+    }
+}
+
+OptTodoOff(*) {
+    OptSetTodos(false)
+    try {
+        CerrarPanelOptimizacion()
+        AbrirPanelOptimizacion()
+    }
+}
+
+CerrarPanelOptimizacion() {
+    global optGui, optGuiVisible
+    if (optGuiVisible && IsObject(optGui)) {
+        try LimpiarHoverGui(optGui)
+        try optGui.Destroy()
+        optGuiVisible := false
+    }
+}
+
 AbrirPanelRGB(*) {
     global rgbGui, rgbGuiVisible, rgbBarra, rgbBotones, rgbLogo, rgbTexto
     global colorFondoPrincipal, colorTextoPrincipal, colorBarra, colorTextoBarra, colorBotonNormal, colorBtnTexto
@@ -4553,7 +4783,7 @@ TransicionPaso() {
     }
 
     ; Botones — fondo + texto
-    for btn in [btnIniciar, btnParar, btnCodigo, btnReset, btnHistorial, btnTema, btnMin, btnClose, btnUpdate, btnOverlay, btnRGBBtn, btnStatsBtn, btnWebhook, btnLogros, btnPart, btnMini] {
+    for btn in [btnIniciar, btnParar, btnCodigo, btnReset, btnHistorial, btnTema, btnMin, btnClose, btnUpdate, btnOverlay, btnRGBBtn, btnStatsBtn, btnWebhook, btnLogros, btnPart, btnMini, btnOptimizar] {
         if (IsObject(btn))
             btn.Opt("Background" cBoton " c" cBtnTexto)
     }
@@ -4763,7 +4993,7 @@ AplicarTema(tema, guardar := true, fromTrans := false) {
     luzAccion.Opt("Background" colorFondoPrincipal)
     luzApagado.Opt("Background" colorFondoPrincipal)
     SendMessage(0x0443, 0, HexToBGR(colorFondoHistorial), , "ahk_id " historialBox.Hwnd)
-    for btn in [btnIniciar, btnParar, btnCodigo, btnReset, btnHistorial, btnTema, btnMin, btnClose, btnUpdate, btnOverlay, btnRGBBtn, btnStatsBtn, btnWebhook, btnLogros, btnPart, btnMini] {
+    for btn in [btnIniciar, btnParar, btnCodigo, btnReset, btnHistorial, btnTema, btnMin, btnClose, btnUpdate, btnOverlay, btnRGBBtn, btnStatsBtn, btnWebhook, btnLogros, btnPart, btnMini, btnOptimizar] {
         btn.Opt("Background" colorBotonNormal " c" colorBtnTexto)
         btn.SetFont("s11 c" colorBtnTexto " Bold", "Segoe UI Symbol")
         if (!fromTrans) {
@@ -4780,6 +5010,7 @@ AplicarTema(tema, guardar := true, fromTrans := false) {
     for btn in [btnIniciar, btnParar]
         btn.SetFont("s10 c" colorBtnTexto " Bold", "Segoe UI Semibold")
     btnUpdate.SetFont("s8 c" colorBtnTexto, "Segoe UI Symbol")
+    btnOptimizar.SetFont("s9 c" colorBtnTexto, "Segoe UI Symbol")
     btnOverlay.SetFont("s9 c" colorBtnTexto, "Segoe UI Emoji")
     btnRGBBtn.SetFont("s9 c" colorBtnTexto, "Segoe UI Emoji")
     btnStatsBtn.SetFont("s9 c" colorBtnTexto, "Segoe UI Emoji")
@@ -4884,7 +5115,7 @@ ActualizarRGB(*) {
         if (IsObject(destruccionesLabel))
             destruccionesLabel.Opt("c" cTexto)
 
-        for btn in [btnIniciar, btnParar, btnCodigo, btnReset, btnHistorial, btnTema, btnMin, btnClose, btnUpdate, btnOverlay, btnRGBBtn, btnStatsBtn, btnWebhook, btnLogros, btnPart, btnPerfil]
+        for btn in [btnIniciar, btnParar, btnCodigo, btnReset, btnHistorial, btnTema, btnMin, btnClose, btnUpdate, btnOverlay, btnRGBBtn, btnStatsBtn, btnWebhook, btnLogros, btnPart, btnPerfil, btnMini, btnOptimizar]
             btn.Opt("Background" cBoton " c000000")
 
         ; Actualizar preview RGB si está abierto
@@ -4940,7 +5171,7 @@ ActualizarRGB(*) {
             destruccionesLabel.Opt("c" colorRGBActual)
     }
     if (rgbBotones) {
-        for btn in [btnIniciar, btnParar, btnCodigo, btnReset, btnHistorial, btnTema, btnMin, btnClose, btnUpdate, btnOverlay, btnRGBBtn, btnStatsBtn, btnWebhook, btnLogros, btnPart, btnPerfil]
+        for btn in [btnIniciar, btnParar, btnCodigo, btnReset, btnHistorial, btnTema, btnMin, btnClose, btnUpdate, btnOverlay, btnRGBBtn, btnStatsBtn, btnWebhook, btnLogros, btnPart, btnPerfil, btnMini, btnOptimizar]
             btn.Opt("Background" colorRGBActual " c000000")
     }
 
@@ -5209,10 +5440,10 @@ OndaBarra() {
 
 ; Pulso suave de la barra título mientras el macro está activo
 PulsoBarraActivo(*) {
-    global activo, temaEnTransicion, rgbBarra
+    global activo, temaEnTransicion, rgbBarra, optPulsoBarra
     global pulsoBrilloDir, pulsoBrilloT
     global barraOndaOffset, barraExtraBrillo
-    if (!activo || temaEnTransicion) {
+    if (!activo || temaEnTransicion || !optPulsoBarra) {
         barraOndaOffset := 0.0
         if (!activo)
             barraExtraBrillo := 0
@@ -5235,9 +5466,9 @@ PulsoBarraActivo(*) {
 
 ; Pulso de brillo del logo mientras el macro está activo
 PulsoLogoActivo(*) {
-    global activo, logoMacro, colorLogoMacro, temaEnTransicion
+    global activo, logoMacro, colorLogoMacro, temaEnTransicion, optPulsoLogo
     global logosPulsoDir, logosPulsoT
-    if (!activo || temaEnTransicion)
+    if (!activo || temaEnTransicion || !optPulsoLogo)
         return
     logosPulsoT += 0.05 * logosPulsoDir
     if (logosPulsoT >= 1.0) {
@@ -5463,9 +5694,9 @@ InvalidarOverlayDeco() {
 
 ; ── SUKUNA: cortes diagonales rojos al detectar ──
 LanzarSlashSukuna() {
-    global temas, temaActual, sukunaSlashFrame, presetDecoraciones
-    if (!presetDecoraciones)
-        return  ; preset Eco — sin decoraciones para ahorrar CPU
+    global temas, temaActual, sukunaSlashFrame, presetDecoraciones, optDecoraciones
+    if (!presetDecoraciones || !optDecoraciones)
+        return
     if (!temas[temaActual].HasProp("unlock") || temas[temaActual].unlock != "sukuna")
         return
     sukunaSlashFrame := 5
@@ -5486,9 +5717,9 @@ AnimarSlashSukuna() {
 
 ; ── GOJO: Hollow Purple cada 4s — Aka + Aoi convergen y explotan en morado ──
 TickAuraGojo() {
-    global temas, temaActual, gojoAuraFrame, presetDecoraciones
-    if (!presetDecoraciones)
-        return  ; preset Eco — sin decoraciones para ahorrar CPU
+    global temas, temaActual, gojoAuraFrame, presetDecoraciones, optDecoraciones
+    if (!presetDecoraciones || !optDecoraciones)
+        return
     if (!temas[temaActual].HasProp("unlock") || temas[temaActual].unlock != "gojo")
         return
     if (gojoAuraFrame > 0)
@@ -5691,21 +5922,21 @@ AgregarHistorial(texto, CH := "") {
     ; Asi se puede revisar despues que paso si Brawlhalla se cerro misteriosamente.
     GuardarHistorialLog(texto)
 
-    ; Limitar historial a ~500 líneas para evitar que el RichEdit colapse
-    ; tras muchas horas de uso. Cada ~100 entradas comprobamos y recortamos.
+    ; Limitar historial a ~5000 líneas para evitar que el RichEdit colapse
+    ; tras muchas horas de uso. Cada ~500 entradas comprobamos y recortamos.
     static contadorAddes := 0
     contadorAddes += 1
-    if (contadorAddes >= 100) {
+    if (contadorAddes >= 500) {
         contadorAddes := 0
         try {
             static EM_GETLINECOUNT := 0x00BA
             totalLines := SendMessage(EM_GETLINECOUNT, 0, 0, , "ahk_id " historialBox.Hwnd)
-            if (totalLines > 500) {
-                ; Borrar las líneas más antiguas (del final) dejando las 400 más recientes
+            if (totalLines > 5000) {
+                ; Borrar las líneas más antiguas (del final) dejando las 4000 más recientes
                 static EM_LINEINDEX := 0x00BB
                 static EM_SETSEL := 0x00B1
                 static EM_REPLACESEL := 0x00C2
-                cutFromLine := 400
+                cutFromLine := 4000
                 cutIdx := SendMessage(EM_LINEINDEX, cutFromLine, 0, , "ahk_id " historialBox.Hwnd)
                 totalLen := SendMessage(0x000E, 0, 0, , "ahk_id " historialBox.Hwnd)  ; WM_GETTEXTLENGTH
                 if (cutIdx > 0 && cutIdx < totalLen) {
@@ -6349,11 +6580,23 @@ EjecutarMacro(*) {
         }
 
         ; Esperar a que el proceso muera realmente (hasta 5s)
+        ; Abortar si el usuario para el macro durante la espera.
         cierreT0 := A_TickCount
-        while (ProcessExist("Brawlhalla.exe") && (A_TickCount - cierreT0) < 5000)
+        while (ProcessExist("Brawlhalla.exe") && (A_TickCount - cierreT0) < 5000) {
+            if (!activo)
+                return
             Sleep 200
+        }
 
-        Sleep 1500  ; dar tiempo al sistema antes de relanzar
+        ; Dar tiempo al sistema antes de relanzar, partido en chunks de 100ms
+        ; para poder abortar si el usuario para el macro.
+        Loop 15 {
+            if (!activo)
+                return
+            Sleep 100
+        }
+        if (!activo)
+            return  ; no relanzar si pararon
         LanzarBrawlhallaConFoco()
         tiempoUltimoLanzamiento := A_TickCount
     }
@@ -6362,10 +6605,14 @@ EjecutarMacro(*) {
     if (!modoDestruccion && tiempoSinCambios > 400000) {
         ultimoCambio := A_TickCount
         Loop 1 {
+            if (!activo)
+                return
             SendInput "{Esc}"
             Sleep 1500
         }
         Loop 2 {
+            if (!activo)
+                return
             SendInput "c"
             Sleep 1500
         }
@@ -6373,7 +6620,7 @@ EjecutarMacro(*) {
 
     ; ===== REINTENTO LANZAMIENTO =====
 
-    if (tiempoUltimoLanzamiento > 0 && (A_TickCount - tiempoUltimoLanzamiento) > 60000) {
+    if (activo && tiempoUltimoLanzamiento > 0 && (A_TickCount - tiempoUltimoLanzamiento) > 60000) {
         tiempoUltimoLanzamiento := A_TickCount
         ultimoCambio := A_TickCount
         AgregarHistorial("⚠️ Sin detección tras 2 min - relanzando secuencia Steam + Win + 'brawlhalla'", "FF8800")
@@ -6550,9 +6797,9 @@ MostrarToastCritico() {
 
 ; ───── CONFETI ─────
 LanzarConfeti() {
-    global confetiGui, confetiParticles, confetiActivo, miGui
+    global confetiGui, confetiParticles, confetiActivo, miGui, optConfeti
 
-    if (!IsObject(miGui))
+    if (!optConfeti || !IsObject(miGui))
         return
     if (confetiActivo) {
         ; Re-spawn — añadir más partículas al burst existente
@@ -7009,8 +7256,15 @@ RecolorRango(hRich, desde, hasta, hexColor) {
 
 IniciarTypingReveal(hRich, linea, colorHex) {
     global typeRevealHwnd, typeRevealTotal, typeRevealPos, typeRevealColor, typeRevealActivo
-    global colorFondoHistorial
+    global colorFondoHistorial, optTypeReveal
     static EM_GETSCROLLPOS := 0x04DD, EM_SETSCROLLPOS := 0x04DE
+    if (!optTypeReveal) {
+        if (typeRevealActivo && typeRevealPos < typeRevealTotal)
+            RecolorRango(typeRevealHwnd, typeRevealPos, typeRevealTotal, typeRevealColor)
+        typeRevealActivo := false
+        PrependRichSilent(hRich, linea, colorHex)
+        return
+    }
     ; Flush anterior si sigue en curso
     if (typeRevealActivo && typeRevealPos < typeRevealTotal)
         RecolorRango(typeRevealHwnd, typeRevealPos, typeRevealTotal, typeRevealColor)
@@ -7147,7 +7401,9 @@ LanzarJuegoDelPerfil() {
 ; 4. Si NO hubo deteccion → pulsa Windows + espera 5s + escribe "brawlhalla"
 ; Todo en timers encadenados (no bloquea el thread principal — heartbeat sigue vivo).
 LanzarBrawlhallaConFoco() {
-    global tiempoLanzamientoSteam
+    global tiempoLanzamientoSteam, activo
+    if (!activo)
+        return  ; macro parado — no lanzar
     AgregarHistorial(Chr(0x1F504) " Abriendo Brawlhalla por Steam...", "FF8800")
     try Run("steam://rungameid/291550")
     tiempoLanzamientoSteam := A_TickCount
@@ -7155,7 +7411,9 @@ LanzarBrawlhallaConFoco() {
 }
 
 LanzarBrawlhalla_CheckYEnfocar() {
-    global tiempoLanzamientoSteam, ultimaDeteccionReal
+    global tiempoLanzamientoSteam, ultimaDeteccionReal, activo
+    if (!activo)
+        return  ; macro parado — abortar cadena
     ; Si el macro detecto algo durante los 30s, Brawlhalla esta enfocado y funcionando.
     if (ultimaDeteccionReal > tiempoLanzamientoSteam) {
         AgregarHistorial(Chr(0x2705) " Detección ", "00CC44")
@@ -7167,7 +7425,12 @@ LanzarBrawlhalla_CheckYEnfocar() {
 }
 
 LanzarBrawlhalla_TypeName() {
-    global tiempoLanzamientoSteam, ultimaDeteccionReal
+    global tiempoLanzamientoSteam, ultimaDeteccionReal, activo
+    if (!activo) {
+        ; Macro parado — cerrar menú Inicio que abrimos con Win y abortar
+        try Send "{Escape}"
+        return
+    }
     ; Otra comprobacion: si en los ultimos 5s aparecio deteccion, abortar (cerrar menu Inicio)
     if (ultimaDeteccionReal > tiempoLanzamientoSteam) {
         AgregarHistorial(Chr(0x2705) " Detección recuperada — cerrando menú Inicio sin escribir", "00CC44")
@@ -7176,6 +7439,13 @@ LanzarBrawlhalla_TypeName() {
     }
     AgregarHistorial(Chr(0x2328) " Escribiendo 'brawlhalla' en Windows search...", "FF8800")
     try SendInput "brawlhalla"
+    Sleep 1000
+    if (!activo) {
+        ; Pararon durante el Sleep — abortar antes del Enter para no abrir el juego
+        try Send "{Escape}"
+        return
+    }
+    try SendInput "{Enter}"
 }
 
 CheckBrawlhallaMinimizado() {
@@ -7263,6 +7533,11 @@ Parar(*) {
     SetTimer(PulsoBarraActivo, 0)
     SetTimer(PulsoLogoActivo, 0)
     SetTimer(CheckBrawlhallaMinimizado, 0)
+    ; Cancelar timers encadenados de lanzamiento de Brawlhalla (pueden estar
+    ; programados para dispararse 30s/5s después y harían Win+typing aunque
+    ; el macro ya esté parado)
+    SetTimer(LanzarBrawlhalla_CheckYEnfocar, 0)
+    SetTimer(LanzarBrawlhalla_TypeName, 0)
     ActualizarTimersFrt()  ; apaga los timers de spam si estaban activos
     ; Restaurar colores del timer AFK
     afkAlertaFlash := false
@@ -7689,4 +7964,39 @@ F2::Parar()
 F3::CambiarPerfil()  ; Toggle perfil P1/P2 (zona de click invisible esta en esquina inf-izq)
 ^r::AbrirPanelRGB()
 !h::MostrarEstadisticas()
+
+; ═════ SCROLL DEL HISTORIAL POR TECLADO Y RUEDA ═════
+; Activos cuando el ratón está sobre la ventana del historial.
+#HotIf RatonSobreHistorial()
+WheelUp::ScrollHistorial(-3)
+WheelDown::ScrollHistorial(3)
+PgUp::ScrollHistorial(-5)
+PgDn::ScrollHistorial(5)
+Up::ScrollHistorial(-1)
+Down::ScrollHistorial(1)
+Home::ScrollHistorial(-9999)
+End::ScrollHistorial(9999)
+#HotIf
+
+RatonSobreHistorial() {
+    global historialGui, historialVisible
+    if (!historialVisible || !IsObject(historialGui))
+        return false
+    try {
+        MouseGetPos(&mx, &my,, &winHwnd)
+        return winHwnd = historialGui.Hwnd
+    }
+    return false
+}
+
+ScrollHistorial(lineas) {
+    global historialBox
+    if (!IsObject(historialBox))
+        return
+    static EM_LINESCROLL := 0x00B6
+    try {
+        SendMessage(EM_LINESCROLL, 0, lineas, , "ahk_id " historialBox.Hwnd)
+        ActualizarScrollbar()  ; refresca el thumb custom inmediatamente
+    }
+}
 
