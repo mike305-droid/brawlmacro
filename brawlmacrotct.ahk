@@ -8,7 +8,7 @@ configPath := A_ScriptDir "\brawlmacro_config.ini"
 global eggsBackupPath := A_ScriptDir "\brawlmacro_eggs.txt"
 global heartbeatPath := A_ScriptDir "\brawlmacro_heartbeat.txt"
 global historialLogPath := A_ScriptDir "\brawlmacro_historial.log"
-global VERSION_ACTUAL := "30.0.5"
+global VERSION_ACTUAL := "30.0.6"
 
 ; ===== TEMAS =====
 temas := [
@@ -5811,11 +5811,11 @@ PintarAnilloGojo(hdc, w, h) {
 
 PintarSlashSukunaEnHDC(hdc, w, h, frame) {
     ; ═══════════════════════════════════════════════════════════════════
-    ; DESMANTELAMIENTO (解) — la técnica firma de Sukuna.
-    ; 5 cortes paralelos finos y RECTOS que parten el GUI de lado a lado,
-    ; como si la realidad estuviera siendo rebanada. Núcleo blanco-incandescente
-    ; con halo rojo fino. Aparecen rápido (extensión) y desvanecen lento (linger).
-    ; Sin sparks radiales, sin halos circulares, sin explosiones. Solo CORTES.
+    ; CORTES SUKUNA — 4 barridos curvos tipo katana cruzando el GUI desde
+    ; ángulos asimétricos. Curvas bezier rasterizadas como pequeños SEGMENTOS
+    ; DE LÍNEA (no ellipses dotted, no sparks circulares, no halos en la
+    ; punta — esas cosas eran lo que parecía "explosión"). Solo la trayectoria
+    ; curva del filo + marcas perpendiculares cortas en el trazo.
     ; ═══════════════════════════════════════════════════════════════════
     static MAX_FRAME := 8
     static N_SLASHES := 5
@@ -5827,90 +5827,101 @@ PintarSlashSukunaEnHDC(hdc, w, h, frame) {
         return
     DllCall("gdiplus\GdipSetSmoothingMode", "Ptr", g, "Int", 4)
 
-    ; Ángulo común de todos los cortes (mismo barrido, como Dismantle real).
-    ; Alterna entre dos ángulos en llamadas sucesivas para variedad visual:
-    ; el contador estático rota cada vez que se llama con frame=MAX_FRAME (inicio).
-    static slashAngleDeg := -22.0
-    static lastFrame := 0
-    if (frame = MAX_FRAME && lastFrame != MAX_FRAME) {
-        ; Nueva secuencia → varía el ángulo entre -22 y +22 alternativamente
-        slashAngleDeg := (slashAngleDeg < 0) ? 22.0 : -22.0
-    }
-    lastFrame := frame
-    angRad := slashAngleDeg * 0.01745329
-    cosA := Cos(angRad)
-    sinA := Sin(angRad)
-    ; Vector perpendicular al corte (para offset paralelo entre cortes)
-    pX := -sinA
-    pY := cosA
-
     cx := w / 2.0
     cy := h / 2.0
-    halfLen := 280.0   ; cada corte se extiende lejos fuera del GUI
 
-    Loop N_SLASHES {
-        i := A_Index - Round((N_SLASHES + 1) / 2)   ; -2, -1, 0, 1, 2
-        offset := i * 22.0   ; separación perpendicular entre cortes paralelos
+    ; 4 cortes curvos con ángulos asimétricos cruzando el GUI. start fuera por
+    ; un lado, end fuera por el opuesto, ctrl point curva el barrido (arco
+    ; natural del katana).
+    cortes := [
+        { sx: -20.0,    sy: 20.0,     ex: w + 20.0, ey: h * 0.40, cx: w * 0.40, cy: h * 0.05 },
+        { sx: w + 20.0, sy: 40.0,     ex: -20.0,    ey: h * 0.70, cx: w * 0.50, cy: h * 0.20 },
+        { sx: -20.0,    sy: h - 10.0, ex: w + 20.0, ey: h * 0.55, cx: w * 0.45, cy: h * 0.95 },
+        { sx: w * 0.30, sy: -20.0,    ex: w * 0.60, ey: h + 20.0, cx: w * 0.60, cy: h * 0.50 }
+    ]
 
-        ; Stagger temporal: los cortes externos aparecen ligeramente más tarde
-        ; → efecto de "abanico" partiéndose, no todos los cortes al mismo tiempo
-        delay := Abs(i) * 0.04
-        st := (t - delay) / (1.0 - delay)
-        if (st <= 0)
-            continue
-        if (st > 1.0)
-            st := 1.0
-
-        ; FASE 1 (st 0 → 0.18): EXTENSIÓN — la línea crece desde un extremo
-        ; FASE 2 (st 0.18 → 1.0): LINGER — línea completa, alpha desvanece
-        if (st < 0.18) {
-            growth := st / 0.18
-            ; rampa rápida de alpha (entrada)
-            alphaF := growth
-        } else {
-            growth := 1.0
-            ; rampa lenta de fade-out
-            fadeT := (st - 0.18) / 0.82
-            alphaF := 1.0 - fadeT
+    ; Cada corte se rasteriza como segmentos de línea consecutivos a lo largo
+    ; de la curva bezier — visualmente continuo, sin "puntitos" tipo explosión.
+    Loop 4 {
+        c := cortes[A_Index]
+        pasos := 26
+        ; Calculamos todos los puntos de la curva una vez
+        pts := []
+        Loop pasos {
+            tc := (A_Index - 1) / (pasos - 1)
+            u := 1.0 - tc
+            x := u*u*c.sx + 2*u*tc*c.cx + tc*tc*c.ex
+            y := u*u*c.sy + 2*u*tc*c.cy + tc*tc*c.ey
+            pts.Push({ x: x, y: y, t: tc })
         }
-        alpha := Round(255 * alphaF)
-        if (alpha < 25)
-            continue
 
-        ; Centro de este corte paralelo (offset perpendicular respecto al centro del GUI)
-        scx := cx + pX * offset
-        scy := cy + pY * offset
+        ; Dibujamos los segmentos solo hasta el progreso t (avance del filo).
+        ; Alpha más alto en la PUNTA del barrido (donde el filo está cortando ahora),
+        ; degradado hacia la cola. Grosor también afina hacia la cola.
+        Loop pasos - 1 {
+            p1 := pts[A_Index]
+            p2 := pts[A_Index + 1]
+            if (p1.t > t)
+                break
+            distDesdePunta := t - p1.t
+            alphaF := 1.0 - distDesdePunta * 1.8
+            if (alphaF <= 0)
+                continue
+            grosorCore := 2.5 - p1.t * 1.3   ; filo más grueso, cola más fina
+            ; ── HALO rojo translúcido (filo de sangre) ──
+            alphaHalo := Round(255 * alphaF * 0.45)
+            if (alphaHalo >= 25) {
+                argbHalo := (alphaHalo << 24) | 0xFFFF2A2A
+                penHalo := 0
+                DllCall("gdiplus\GdipCreatePen1", "UInt", argbHalo, "Float", grosorCore + 2.0, "Int", 2, "Ptr*", &penHalo)
+                DllCall("gdiplus\GdipDrawLine", "Ptr", g, "Ptr", penHalo,
+                    "Float", p1.x, "Float", p1.y, "Float", p2.x, "Float", p2.y)
+                DllCall("gdiplus\GdipDeletePen", "Ptr", penHalo)
+            }
+            ; ── NÚCLEO BLANCO INCANDESCENTE (nitidez del filo) ──
+            alphaCore := Round(255 * alphaF)
+            argbCore := (alphaCore << 24) | 0xFFFFFFFF
+            penCore := 0
+            DllCall("gdiplus\GdipCreatePen1", "UInt", argbCore, "Float", grosorCore, "Int", 2, "Ptr*", &penCore)
+            DllCall("gdiplus\GdipDrawLine", "Ptr", g, "Ptr", penCore,
+                "Float", p1.x, "Float", p1.y, "Float", p2.x, "Float", p2.y)
+            DllCall("gdiplus\GdipDeletePen", "Ptr", penCore)
+        }
+    }
 
-        ; Endpoint inicial: fuera del GUI por el lado de entrada (sx, sy)
-        ; Endpoint final: al lado opuesto (en fase 1, escala con growth)
-        sx := scx - cosA * halfLen
-        sy := scy - sinA * halfLen
-        ex := scx + cosA * halfLen * growth
-        ey := scy + sinA * halfLen * growth
-
-        ; ── HALO ROJO EXTERIOR (fino y translúcido, da el toque "filo de sangre") ──
-        argbHalo := (Round(alpha * 0.35) << 24) | 0xFFFF2A2A
-        penHalo := 0
-        DllCall("gdiplus\GdipCreatePen1", "UInt", argbHalo, "Float", 4.0, "Int", 2, "Ptr*", &penHalo)
-        DllCall("gdiplus\GdipDrawLine", "Ptr", g, "Ptr", penHalo,
-            "Float", sx, "Float", sy, "Float", ex, "Float", ey)
-        DllCall("gdiplus\GdipDeletePen", "Ptr", penHalo)
-
-        ; ── HALO MEDIO (rojo más intenso, más fino) ──
-        argbMid := (Round(alpha * 0.70) << 24) | 0xFFFF4444
-        penMid := 0
-        DllCall("gdiplus\GdipCreatePen1", "UInt", argbMid, "Float", 2.2, "Int", 2, "Ptr*", &penMid)
-        DllCall("gdiplus\GdipDrawLine", "Ptr", g, "Ptr", penMid,
-            "Float", sx, "Float", sy, "Float", ex, "Float", ey)
-        DllCall("gdiplus\GdipDeletePen", "Ptr", penMid)
-
-        ; ── NÚCLEO BLANCO INCANDESCENTE (1px, máxima nitidez) ──
-        argbCore := (alpha << 24) | 0xFFFFFFFF
-        penCore := 0
-        DllCall("gdiplus\GdipCreatePen1", "UInt", argbCore, "Float", 1.0, "Int", 2, "Ptr*", &penCore)
-        DllCall("gdiplus\GdipDrawLine", "Ptr", g, "Ptr", penCore,
-            "Float", sx, "Float", sy, "Float", ex, "Float", ey)
-        DllCall("gdiplus\GdipDeletePen", "Ptr", penCore)
+    ; ── MARCAS PERPENDICULARES en el trazo (las "cicatrices" que deja el
+    ;    katana al morder la superficie) — perpendiculares a la dirección del
+    ;    filo en cada punto. La derivada de la bezier da la dirección. ──
+    if (frame <= 5 && frame > 0) {
+        Loop 4 {
+            c := cortes[A_Index]
+            Loop 3 {
+                ti := 0.30 + (A_Index - 1) * 0.20
+                if (ti > t)
+                    continue
+                u2 := 1.0 - ti
+                mpx := u2*u2*c.sx + 2*u2*ti*c.cx + ti*ti*c.ex
+                mpy := u2*u2*c.sy + 2*u2*ti*c.cy + ti*ti*c.ey
+                dx := 2*u2*(c.cx - c.sx) + 2*ti*(c.ex - c.cx)
+                dy := 2*u2*(c.cy - c.sy) + 2*ti*(c.ey - c.cy)
+                lenD := Sqrt(dx*dx + dy*dy)
+                if (lenD < 0.01)
+                    continue
+                px := -dy / lenD
+                py := dx / lenD
+                marcaLen := 3.0 + frame * 0.4
+                alphaMarca := Round(170 * (frame / 5.0))
+                if (alphaMarca < 30)
+                    continue
+                argbMarca := (alphaMarca << 24) | 0xFF1A1A
+                penMarca := 0
+                DllCall("gdiplus\GdipCreatePen1", "UInt", argbMarca, "Float", 1.0, "Int", 2, "Ptr*", &penMarca)
+                DllCall("gdiplus\GdipDrawLine", "Ptr", g, "Ptr", penMarca,
+                    "Float", mpx - px * marcaLen, "Float", mpy - py * marcaLen,
+                    "Float", mpx + px * marcaLen, "Float", mpy + py * marcaLen)
+                DllCall("gdiplus\GdipDeletePen", "Ptr", penMarca)
+            }
+        }
     }
 
     DllCall("gdiplus\GdipDeleteGraphics", "Ptr", g)
