@@ -8,7 +8,7 @@ configPath := A_ScriptDir "\brawlmacro_config.ini"
 global eggsBackupPath := A_ScriptDir "\brawlmacro_eggs.txt"
 global heartbeatPath := A_ScriptDir "\brawlmacro_heartbeat.txt"
 global historialLogPath := A_ScriptDir "\brawlmacro_historial.log"
-global VERSION_ACTUAL := "30.0.6"
+global VERSION_ACTUAL := "30.0.7"
 
 ; ===== TEMAS =====
 temas := [
@@ -326,6 +326,7 @@ global eggSukunaClicks := 0, eggSukunaUltimo := 0   ; 4 clicks (cuatro brazos) e
 ; ── Decoraciones tematicas (overlay topmost) ──
 global overlayDecoraciones := "", overlayDecoSubclassCb := 0
 global sukunaSlashFrame := 0     ; > 0 = pintando cortes Sukuna
+global sukunaCortesActuales := []  ; trayectorias aleatorias del slash actual (se regeneran por secuencia)
 global gojoAuraFrame := 0        ; > 0 = pintando anillo Gojo
 global DECO_COLORKEY_HEX := "010203"
 global DECO_COLORKEY_BGR := 0x030201
@@ -2461,10 +2462,10 @@ SetTimer(TickAuraGojo, 4000)
 ; ligero que 20fps. Solo invalida si el tema actual es Gojo o Sukuna.
 SetTimer(TickDecoracionesPermanentes, 80)
 ; Auto-Desmantelamiento (解): cuando el tema Sukuna está activo, dispara
-; un slash cada 1 segundo automáticamente — la presencia constante del Rey
+; un slash cada 4 segundos automáticamente — la presencia constante del Rey
 ; cortando la realidad. El timer corre siempre, pero solo dispara si Sukuna
 ; es el tema activo (chequeo barato dentro de la función).
-SetTimer(SukunaAutoDismantle, 1000)
+SetTimer(SukunaAutoDismantle, 4000)
 
 SetTimer(EscribirHeartbeat, 5000) ; cada 5 s escribe pid + timestamp en heartbeat.txt para el watchdog externo
 EscribirHeartbeat()              ; un primer write inmediato
@@ -5811,15 +5812,21 @@ PintarAnilloGojo(hdc, w, h) {
 
 PintarSlashSukunaEnHDC(hdc, w, h, frame) {
     ; ═══════════════════════════════════════════════════════════════════
-    ; CORTES SUKUNA — 4 barridos curvos tipo katana cruzando el GUI desde
-    ; ángulos asimétricos. Curvas bezier rasterizadas como pequeños SEGMENTOS
-    ; DE LÍNEA (no ellipses dotted, no sparks circulares, no halos en la
-    ; punta — esas cosas eran lo que parecía "explosión"). Solo la trayectoria
-    ; curva del filo + marcas perpendiculares cortas en el trazo.
+    ; CORTES SUKUNA — barridos curvos tipo katana en posiciones, ángulos y
+    ; curvaturas ALEATORIAS (generadas por GenerarCortesSukunaAleatorios al
+    ; inicio de cada secuencia). Curvas bezier rasterizadas como SEGMENTOS DE
+    ; LÍNEA continuos (no ellipses dotted, no sparks circulares, no halos en
+    ; la punta — eso parecía "explosión"). Solo la trayectoria del filo +
+    ; marcas perpendiculares cortas (las cicatrices del corte).
     ; ═══════════════════════════════════════════════════════════════════
+    global sukunaCortesActuales
     static MAX_FRAME := 8
-    static N_SLASHES := 5
     t := (MAX_FRAME - frame + 1) / MAX_FRAME   ; 0.125 → 1.0 (tiempo normalizado)
+
+    cortes := sukunaCortesActuales
+    if (!IsObject(cortes) || cortes.Length = 0)
+        return
+    nCortes := cortes.Length
 
     g := 0
     DllCall("gdiplus\GdipCreateFromHDC", "Ptr", hdc, "Ptr*", &g)
@@ -5827,22 +5834,9 @@ PintarSlashSukunaEnHDC(hdc, w, h, frame) {
         return
     DllCall("gdiplus\GdipSetSmoothingMode", "Ptr", g, "Int", 4)
 
-    cx := w / 2.0
-    cy := h / 2.0
-
-    ; 4 cortes curvos con ángulos asimétricos cruzando el GUI. start fuera por
-    ; un lado, end fuera por el opuesto, ctrl point curva el barrido (arco
-    ; natural del katana).
-    cortes := [
-        { sx: -20.0,    sy: 20.0,     ex: w + 20.0, ey: h * 0.40, cx: w * 0.40, cy: h * 0.05 },
-        { sx: w + 20.0, sy: 40.0,     ex: -20.0,    ey: h * 0.70, cx: w * 0.50, cy: h * 0.20 },
-        { sx: -20.0,    sy: h - 10.0, ex: w + 20.0, ey: h * 0.55, cx: w * 0.45, cy: h * 0.95 },
-        { sx: w * 0.30, sy: -20.0,    ex: w * 0.60, ey: h + 20.0, cx: w * 0.60, cy: h * 0.50 }
-    ]
-
     ; Cada corte se rasteriza como segmentos de línea consecutivos a lo largo
     ; de la curva bezier — visualmente continuo, sin "puntitos" tipo explosión.
-    Loop 4 {
+    Loop nCortes {
         c := cortes[A_Index]
         pasos := 26
         ; Calculamos todos los puntos de la curva una vez
@@ -5893,7 +5887,7 @@ PintarSlashSukunaEnHDC(hdc, w, h, frame) {
     ;    katana al morder la superficie) — perpendiculares a la dirección del
     ;    filo en cada punto. La derivada de la bezier da la dirección. ──
     if (frame <= 5 && frame > 0) {
-        Loop 4 {
+        Loop nCortes {
             c := cortes[A_Index]
             Loop 3 {
                 ti := 0.30 + (A_Index - 1) * 0.20
@@ -6024,18 +6018,68 @@ LanzarSlashSukuna() {
         return
     if (!temas[temaActual].HasProp("unlock") || temas[temaActual].unlock != "sukuna")
         return
+    GenerarCortesSukunaAleatorios()   ; ★ posiciones aleatorias nuevas cada secuencia
     sukunaSlashFrame := 8     ; +frames = animación más fluida y vistosa
     ReposicionarOverlayDeco()
     SetTimer(AnimarSlashSukuna, 30)
 }
 
-; Auto-Desmantelamiento (解): se llama cada 1s desde el timer global.
+; Genera 3-5 cortes con ángulos, posiciones y curvaturas ALEATORIAS que cruzan
+; todo el GUI. Se guarda en sukunaCortesActuales y se reutiliza durante todos
+; los frames de la secuencia (si se regenerara cada frame, saltarían caóticos).
+GenerarCortesSukunaAleatorios() {
+    global sukunaCortesActuales, overlayDecoraciones
+    ; Dimensiones del overlay (cae a 400x215 si aún no existe)
+    w := 400.0, h := 215.0
+    if (IsObject(overlayDecoraciones)) {
+        try {
+            overlayDecoraciones.GetPos(,, &ow, &oh)
+            if (ow > 0)
+                w := ow + 0.0
+            if (oh > 0)
+                h := oh + 0.0
+        }
+    }
+    cx := w / 2.0
+    cy := h / 2.0
+    diag := Sqrt(w*w + h*h)        ; longitud para garantizar cruce total
+    n := Random(3, 5)               ; cantidad aleatoria de cortes
+    cortes := []
+    Loop n {
+        ; Ángulo del corte: cualquier diagonal (evita exactamente vertical/horizontal puro)
+        ang := Random(0.0, 6.2831853)
+        dirX := Cos(ang)
+        dirY := Sin(ang)
+        ; Punto por el que pasa el corte: cerca del centro pero desplazado al azar
+        offX := Random(-w * 0.32, w * 0.32)
+        offY := Random(-h * 0.32, h * 0.32)
+        midX := cx + offX
+        midY := cy + offY
+        ; Extremos: bien fuera del GUI en ambos sentidos
+        sx := midX - dirX * diag
+        sy := midY - dirY * diag
+        ex := midX + dirX * diag
+        ey := midY + dirY * diag
+        ; Curvatura aleatoria: el control point se desvía perpendicular al corte
+        perpX := -dirY
+        perpY := dirX
+        curva := Random(-1.0, 1.0) * (diag * 0.10)   ; ±10% de curva (sutil, tipo katana)
+        ctrlX := midX + perpX * curva
+        ctrlY := midY + perpY * curva
+        cortes.Push({ sx: sx, sy: sy, ex: ex, ey: ey, cx: ctrlX, cy: ctrlY })
+    }
+    sukunaCortesActuales := cortes
+}
+
+; Auto-Desmantelamiento (解): se llama cada 4s desde el timer global.
 ; Solo dispara LanzarSlashSukuna si el tema actual ES Sukuna. Chequeo
 ; rapidísimo (1 lookup + 1 compare) → coste cero para otros temas.
 SukunaAutoDismantle() {
-    global temas, temaActual
+    global temas, temaActual, sukunaSlashFrame
     if (!temas[temaActual].HasProp("unlock") || temas[temaActual].unlock != "sukuna")
         return
+    if (sukunaSlashFrame > 0)
+        return  ; no encadenar si una secuencia sigue en marcha
     LanzarSlashSukuna()
 }
 
