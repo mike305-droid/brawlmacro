@@ -8,7 +8,7 @@ configPath := A_ScriptDir "\brawlmacro_config.ini"
 global eggsBackupPath := A_ScriptDir "\brawlmacro_eggs.txt"
 global heartbeatPath := A_ScriptDir "\brawlmacro_heartbeat.txt"
 global historialLogPath := A_ScriptDir "\brawlmacro_historial.log"
-global VERSION_ACTUAL := "30.0.9"
+global VERSION_ACTUAL := "30.1.0"
 
 ; ===== TEMAS =====
 temas := [
@@ -1168,7 +1168,7 @@ ToggleMiniMode(*) {
     global modoMini, miGui, historialGui, historialVisible, miniGui, logoMacroMini, barraMini
     global colorFondoPrincipal, colorBarra, colorTextoBarra, colorBotonNormal, colorBtnTexto, colorLogoMacro
     global overlayPartMain, overlayPartHist, miniBarraSubclassCb
-    global overlayPartMini, particulasMini, overlayDecoMini
+    global overlayPartMini, particulasMini, overlayDecoMini, overlayDecoraciones
 
     if (modoMini) {
         ; ── Salir de mini mode ──
@@ -1190,6 +1190,11 @@ ToggleMiniMode(*) {
             try overlayPartMain.Show()
         if (historialVisible && IsObject(overlayPartHist))
             try overlayPartHist.Show()
+        ; Re-mostrar y reposicionar el overlay de decoraciones principal
+        if (IsObject(overlayDecoraciones)) {
+            try overlayDecoraciones.Show("NoActivate")
+            ReposicionarOverlayDeco()
+        }
         return
     }
 
@@ -1202,6 +1207,10 @@ ToggleMiniMode(*) {
         try overlayPartMain.Hide()
     if (IsObject(overlayPartHist))
         try overlayPartHist.Hide()
+    ; ★ Ocultar el overlay de decoraciones PRINCIPAL — si no, se queda pintando
+    ;   los cortes/Six Eyes en el sitio donde estaba el macro grande.
+    if (IsObject(overlayDecoraciones))
+        try overlayDecoraciones.Hide()
 
     CrearMiniGui(mx, my)
 }
@@ -5614,8 +5623,11 @@ DecoOverlaySubclassProc(hWnd, uMsg, wParam, lParam, idSubclass, refData) {
             brushKey := DllCall("CreateSolidBrush", "UInt", DECO_COLORKEY_BGR, "Ptr")
             DllCall("FillRect", "Ptr", hdc, "Ptr", rc, "Ptr", brushKey)
             DllCall("DeleteObject", "Ptr", brushKey)
+            ; ¿Es el overlay del mini-modo? → coordenadas/escala distintas
+            global overlayDecoMini
+            esMini := (IsObject(overlayDecoMini) && hWnd = overlayDecoMini.Hwnd)
             ; Dibujar decoración según tema activo + estado de animación
-            PintarDecoracionesEnHDC(hdc, w, h)
+            PintarDecoracionesEnHDC(hdc, w, h, esMini)
             DllCall("EndPaint", "Ptr", hWnd, "Ptr", ps)
         }
         return 0
@@ -5623,26 +5635,38 @@ DecoOverlaySubclassProc(hWnd, uMsg, wParam, lParam, idSubclass, refData) {
     return DllCall("Comctl32.dll\DefSubclassProc", "Ptr", hWnd, "UInt", uMsg, "Ptr", wParam, "Ptr", lParam, "Ptr")
 }
 
-PintarDecoracionesEnHDC(hdc, w, h) {
+PintarDecoracionesEnHDC(hdc, w, h, esMini := false) {
     global temas, temaActual, sukunaSlashFrame, gojoAuraFrame
     if (!temas[temaActual].HasProp("unlock"))
         return
     unlock := temas[temaActual].unlock
 
+    ; Centro del logo EN COORDENADAS DEL OVERLAY (resta BAR_H=25 a la y del logo):
+    ;   Principal: logo x19 y31 w95 h95 en miGui → centro (66, 78) → overlay (66, 53)
+    ;   Mini:      logo x15 y30 w80 h80 en miniGui → centro (55, 70) → overlay (55, 45)
+    if (esMini) {
+        lcx := 55.0, lcy := 45.0
+        radioOjos := 40.0, radioAnillo := 33.0
+    } else {
+        lcx := 66.0, lcy := 53.0
+        radioOjos := 52.0, radioAnillo := 38.0
+    }
+
     ; ── DECORACIONES PERMANENTES (cada frame mientras el tema esté activo) ──
     if (unlock = "sukuna") {
-        PintarNombreSukuna(hdc, w, h)        ; 両面宿儺 vertical bien colocado
-        ; (Sin anillo — el usuario lo prefiere así, el logo respira solo)
+        ; El nombre 両面宿儺 solo en el GUI grande (en el mini no cabe bien)
+        if (!esMini)
+            PintarNombreSukuna(hdc, w, h)
     } else if (unlock = "gojo") {
-        PintarSixEyesGojo(hdc, w, h)         ; 6 ojos cyan orbitando el logo
-        PintarAnilloGojo(hdc, w, h)          ; anillo azul permanente
+        PintarSixEyesGojo(hdc, lcx, lcy, radioOjos)   ; 6 ojos orbitando el logo
+        PintarAnilloGojo(hdc, lcx, lcy, radioAnillo)  ; anillo Limitless
     }
 
     ; ── ANIMACIONES PUNTUALES (al detectar) ──
     if (unlock = "sukuna" && sukunaSlashFrame > 0) {
         PintarSlashSukunaEnHDC(hdc, w, h, sukunaSlashFrame)
     } else if (unlock = "gojo" && gojoAuraFrame > 0) {
-        PintarAuraGojoEnHDC(hdc, w, h, gojoAuraFrame, 14)
+        PintarAuraGojoEnHDC(hdc, lcx, lcy, gojoAuraFrame, 14)
     }
 }
 
@@ -5737,14 +5761,10 @@ PintarAnilloSukuna(hdc, w, h) {
 ; Six Eyes (六眼): 6 puntos cyan brillantes orbitando alrededor del logo.
 ; Representan los Six Eyes que dan a Gojo su capacidad de ver toda la
 ; energía maldita perfectamente.
-PintarSixEyesGojo(hdc, w, h) {
+PintarSixEyesGojo(hdc, cx, cy, radioOrbit) {
     ; Fase basada en TIEMPO REAL (no en nº de frames) → la velocidad de órbita
     ; es idéntica a 12fps o a 60fps, solo cambia la suavidad. ~0.45 rad/s.
     fase := Mod(A_TickCount / 1000.0 * 0.45, 6.2831853)
-
-    cx := 66.0          ; centro X del logo en miGui
-    cy := 53.0          ; centro Y del logo (78 - 25 barra)
-    radioOrbit := 52.0  ; radio de la órbita
 
     g := 0
     DllCall("gdiplus\GdipCreateFromHDC", "Ptr", hdc, "Ptr*", &g)
@@ -5783,12 +5803,10 @@ PintarSixEyesGojo(hdc, w, h) {
 
 ; Anillo Limitless: anillo azul claro pulsante alrededor del logo.
 ; Representa la barrera del Infinito que rodea a Gojo siempre.
-PintarAnilloGojo(hdc, w, h) {
+PintarAnilloGojo(hdc, cx, cy, radioBase) {
     ; Fase basada en tiempo real → independiente del framerate. ~0.7 rad/s.
     fase := Mod(A_TickCount / 1000.0 * 0.7, 6.2831853)
 
-    cx := 66.0
-    cy := 53.0
     ; Tres anillos concentricos con fases desfasadas → efecto de ondas
     g := 0
     DllCall("gdiplus\GdipCreateFromHDC", "Ptr", hdc, "Ptr*", &g)
@@ -5799,7 +5817,7 @@ PintarAnilloGojo(hdc, w, h) {
     Loop 3 {
         i := A_Index - 1
         ondaFase := fase + i * 2.0944  ; 120° desfase
-        radio := 38.0 + 4.0 * Sin(ondaFase)
+        radio := radioBase + 4.0 * Sin(ondaFase)
         alpha := Round(60 + 30 * Sin(ondaFase))
         if (alpha < 20)
             alpha := 20
@@ -5928,17 +5946,17 @@ PintarSlashSukunaEnHDC(hdc, w, h, frame) {
     DllCall("gdiplus\GdipDeleteGraphics", "Ptr", g)
 }
 
-PintarAuraGojoEnHDC(hdc, w, h, frame, maxFrame) {
+PintarAuraGojoEnHDC(hdc, cx, cy, frame, maxFrame) {
     ; ANIMACION HOLLOW PURPLE de Gojo. La técnica más icónica.
     ; Aka (rojo, atracción) + Aoi (azul, repulsión) chocan → Murasaki (morado).
+    ; cx, cy = centro del logo EN COORDENADAS DEL OVERLAY (lo pasa el llamador
+    ; según sea GUI principal o mini).
     ;
     ; Fases (frame va de maxFrame=14 → 0):
     ;   Fase 1 (14-11): aparecen Aka y Aoi en lados opuestos del logo
     ;   Fase 2 (10-7):  Aka y Aoi se acercan al centro
     ;   Fase 3 (6-5):   colisionan en el centro → flash blanco
     ;   Fase 4 (4-0):   onda Hollow Purple expande hacia afuera
-    cx := 66           ; centro del logo (en miGui)
-    cy := 78 - 25      ; -25 por offset de la overlay (debajo de la barra)
     static AKA_BGR  := 0x3030FF   ; FF3030 — rojo Aka (Reverse Cursed Technique)
     static AOI_BGR  := 0xFF8030   ; 3080FF — azul Aoi (Cursed Technique)
     static MOR_BGR  := 0xE22B8A   ; 8A2BE2 — morado Hollow Purple
@@ -6035,12 +6053,15 @@ LanzarSlashSukuna() {
 ; todo el GUI. Se guarda en sukunaCortesActuales y se reutiliza durante todos
 ; los frames de la secuencia (si se regenerara cada frame, saltarían caóticos).
 GenerarCortesSukunaAleatorios() {
-    global sukunaCortesActuales, overlayDecoraciones
-    ; Dimensiones del overlay (cae a 400x215 si aún no existe)
+    global sukunaCortesActuales, overlayDecoraciones, overlayDecoMini, modoMini
+    ; Usar el overlay ACTIVO (mini si está minimizado, principal si no).
+    ; Si generáramos con las dimensiones del principal pero pintáramos en el
+    ; mini, los cortes saldrían fuera de pantalla.
+    overlayAct := (modoMini && IsObject(overlayDecoMini)) ? overlayDecoMini : overlayDecoraciones
     w := 400.0, h := 215.0
-    if (IsObject(overlayDecoraciones)) {
+    if (IsObject(overlayAct)) {
         try {
-            overlayDecoraciones.GetPos(,, &ow, &oh)
+            overlayAct.GetPos(,, &ow, &oh)
             if (ow > 0)
                 w := ow + 0.0
             if (oh > 0)
@@ -6120,19 +6141,22 @@ TickAuraGojo() {
 ; marcas con pulso, kanji respirando, anillos del Infinito).
 TickDecoracionesPermanentes() {
     global temas, temaActual, presetDecoraciones, optDecoraciones
-    global overlayDecoraciones
+    global overlayDecoraciones, overlayDecoMini, modoMini
     if (!presetDecoraciones || !optDecoraciones)
-        return
-    if (!IsObject(overlayDecoraciones))
         return
     if (!temas[temaActual].HasProp("unlock"))
         return
     unlock := temas[temaActual].unlock
     if (unlock != "gojo" && unlock != "sukuna")
         return
-    ; Asegurar que el overlay esté posicionado (puede haberse movido el GUI)
-    ReposicionarOverlayDeco()
-    DllCall("InvalidateRect", "Ptr", overlayDecoraciones.Hwnd, "Ptr", 0, "Int", 1)
+    ; Invalidar el overlay ACTIVO (mini si está minimizado, principal si no).
+    if (modoMini) {
+        if (IsObject(overlayDecoMini))
+            DllCall("InvalidateRect", "Ptr", overlayDecoMini.Hwnd, "Ptr", 0, "Int", 1)
+    } else if (IsObject(overlayDecoraciones)) {
+        ReposicionarOverlayDeco()  ; asegura posición (el GUI pudo moverse)
+        DllCall("InvalidateRect", "Ptr", overlayDecoraciones.Hwnd, "Ptr", 0, "Int", 1)
+    }
 }
 
 AnimarAuraGojo() {
