@@ -8,7 +8,7 @@ configPath := A_ScriptDir "\brawlmacro_config.ini"
 global eggsBackupPath := A_ScriptDir "\brawlmacro_eggs.txt"
 global heartbeatPath := A_ScriptDir "\brawlmacro_heartbeat.txt"
 global historialLogPath := A_ScriptDir "\brawlmacro_historial.log"
-global VERSION_ACTUAL := "30.0.3"
+global VERSION_ACTUAL := "30.0.4"
 
 ; ===== TEMAS =====
 temas := [
@@ -301,8 +301,9 @@ global logoGearCacheColor := ""     ; color hex con el que está construido el c
 global logoGearCacheChar  := ""     ; char (∞/⛩/⚙) con el que está construido el cache
 global logoGearCacheW := 0          ; ancho del bitmap cacheado
 global logoGearCacheH := 0          ; alto del bitmap cacheado
-global LOGO_GEAR_CACHE_FRAMES := 32
-global logoGearCacheAngleSpan := 45.0  ; grados que cubre el cache (depende de la simetría del char)
+global LOGO_GEAR_CACHE_FRAMES := 32     ; base: frames para 45° (gear)
+global logoGearCacheFramesReales := 32  ; frames reales del cache actual (depende del char)
+global logoGearCacheAngleSpan := 45.0   ; grados que cubre el cache
 ; Font cacheado para kanji de Sukuna — crear/destruir cada frame era el motivo principal del lag.
 global sukunaFontFamily := 0, sukunaFont := 0
 global logoAngulo := 0.0, logoVelActual := 0.0, logoVelObjetivo := 0.0
@@ -622,6 +623,7 @@ ObtenerSpanLogo(char) {
 ConstruirCacheGear(colorHex, w, h) {
     global logoGearCache, logoGearCacheColor, logoGearCacheChar, logoGearCacheW, logoGearCacheH
     global logoFontFamily, logoGearFont, LOGO_GEAR_CACHE_FRAMES, logoGearCacheAngleSpan
+    global logoGearCacheFramesReales
 
     if (!logoFontFamily || !logoGearFont)
         return false
@@ -631,11 +633,18 @@ ConstruirCacheGear(colorHex, w, h) {
     spanAngle := ObtenerSpanLogo(charLogo)
     logoGearCacheAngleSpan := spanAngle
 
+    ; Escalamos N frames proporcionalmente al span para mantener ~1.4° por frame
+    ; (mismo "stride" que tenía el gear). Para ∞ (180°) → 128 frames. Para ⛩ (360°) → 256.
+    framesReales := Round(LOGO_GEAR_CACHE_FRAMES * spanAngle / 45.0)
+    if (framesReales < LOGO_GEAR_CACHE_FRAMES)
+        framesReales := LOGO_GEAR_CACHE_FRAMES
+    logoGearCacheFramesReales := framesReales
+
     cRgb := Integer("0x" colorHex)
     cArgb := 0xFF000000 | cRgb
 
-    Loop LOGO_GEAR_CACHE_FRAMES {
-        angle := (A_Index - 1) * (spanAngle / LOGO_GEAR_CACHE_FRAMES)
+    Loop framesReales {
+        angle := (A_Index - 1) * (spanAngle / framesReales)
 
         ; Crear bitmap GDI+ PARGB (alpha por pixel para preservar transparencia)
         static PixelFormat32bppPARGB := 0xE200B
@@ -947,7 +956,8 @@ DibujarGearEnDC(hdc, w, h, angulo, colorHex, fondoHex) {
 
             ; Cuando activo, ignorar el pulso de color y cachear con el color base estable.
             colorParaCache := activo ? colorLogoMacro : colorHex
-            canUseCache := puedeCachear && (logoGearCache.Length = LOGO_GEAR_CACHE_FRAMES) && (logoGearCacheColor = colorParaCache) && (logoGearCacheChar = charLogo)
+            global logoGearCacheFramesReales
+            canUseCache := puedeCachear && (logoGearCache.Length > 0) && (logoGearCache.Length = logoGearCacheFramesReales) && (logoGearCacheColor = colorParaCache) && (logoGearCacheChar = charLogo)
 
             ; Si podemos cachear pero el color cambió (o no hay cache), construirlo ahora
             if (!canUseCache && puedeCachear) {
@@ -958,15 +968,17 @@ DibujarGearEnDC(hdc, w, h, angulo, colorHex, fondoHex) {
 
             if (canUseCache) {
                 ; Calcular qué frame del cache usar — el span depende de la simetría del char.
-                ; ⚙ → 45° (8 dientes), ∞ → 180°, ⛩ → 360°.
+                ; ⚙ → 45° (32 frames), ∞ → 180° (128 frames), ⛩ → 360° (256 frames).
+                ; Mantenemos ~1.4° por frame en todos los casos para igual fluidez.
                 global logoGearCacheAngleSpan
                 span := logoGearCacheAngleSpan
                 if (span <= 0)
                     span := 45.0
+                nFrames := logoGearCacheFramesReales
                 angWrap := Mod(angulo, span)
                 if (angWrap < 0)
                     angWrap += span
-                idx := Mod(Round(angWrap * LOGO_GEAR_CACHE_FRAMES / span), LOGO_GEAR_CACHE_FRAMES) + 1
+                idx := Mod(Round(angWrap * nFrames / span), nFrames) + 1
                 hbmCached := logoGearCache[idx]
                 if (hbmCached) {
                     ; AlphaBlend respeta el alpha por pixel del bitmap PARGB
@@ -5602,7 +5614,7 @@ PintarDecoracionesEnHDC(hdc, w, h) {
     ; ── DECORACIONES PERMANENTES (cada frame mientras el tema esté activo) ──
     if (unlock = "sukuna") {
         PintarNombreSukuna(hdc, w, h)        ; 両面宿儺 vertical bien colocado
-        PintarAnilloSukuna(hdc, w, h)        ; anillo rojo oscuro alrededor del logo
+        ; (Sin anillo — el usuario lo prefiere así, el logo respira solo)
     } else if (unlock = "gojo") {
         PintarSixEyesGojo(hdc, w, h)         ; 6 ojos cyan orbitando el logo
         PintarAnilloGojo(hdc, w, h)          ; anillo azul permanente
@@ -5871,39 +5883,44 @@ PintarSlashSukunaEnHDC(hdc, w, h, frame) {
         }
     }
 
-    ; ── Sparks/partículas que vuelan del centro (impacto del corte cuádruple) ──
-    if (frame <= 3 && frame > 0) {
-        avance := (3 - frame) / 3.0   ; 0 → 1
-        Loop 14 {
-            i := A_Index - 1
-            angRad := (i * 25.7) * 0.01745329   ; 14 sparks en abanico
-            distancia := 15.0 + avance * 40.0
-            spx := cx + Cos(angRad) * distancia
-            spy := cy + Sin(angRad) * distancia
-            alphaSp := Round(220 * (1 - avance))
-            if (alphaSp < 20)
+    ; ── PEQUEÑAS MARCAS DE CORTE en el trazo (no explosión radial, sino "cicatrices"
+    ;    cortas perpendiculares a cada slash, como cuando un katana "muerde" la superficie) ──
+    if (frame <= 4 && frame > 0) {
+        Loop 4 {
+            c := cortes[A_Index]
+            ; Punto medio del corte (donde está el "mordisco" más fuerte)
+            tMid := 0.55
+            u := 1.0 - tMid
+            mx := u*u*c.sx + 2*u*tMid*c.cx + tMid*tMid*c.ex
+            my := u*u*c.sy + 2*u*tMid*c.cy + tMid*tMid*c.ey
+            ; Derivada de la bezier en tMid (dirección del corte)
+            dx := 2*u*(c.cx - c.sx) + 2*tMid*(c.ex - c.cx)
+            dy := 2*u*(c.cy - c.sy) + 2*tMid*(c.ey - c.cy)
+            len := Sqrt(dx*dx + dy*dy)
+            if (len < 0.01)
                 continue
-            argbSp := (alphaSp << 24) | 0xFF6060
-            brSp := 0
-            DllCall("gdiplus\GdipCreateSolidFill", "UInt", argbSp, "Ptr*", &brSp)
-            tamSp := 2.5 + (1 - avance) * 2.0
-            DllCall("gdiplus\GdipFillEllipse", "Ptr", g, "Ptr", brSp,
-                "Float", spx - tamSp/2, "Float", spy - tamSp/2, "Float", tamSp, "Float", tamSp)
-            DllCall("gdiplus\GdipDeleteBrush", "Ptr", brSp)
+            ; Vector perpendicular al corte
+            px := -dy / len
+            py := dx / len
+            ; 3 marcas perpendiculares cortas a lo largo del trazo
+            Loop 3 {
+                ti := 0.35 + (A_Index - 1) * 0.18
+                u2 := 1.0 - ti
+                mpx := u2*u2*c.sx + 2*u2*ti*c.cx + ti*ti*c.ex
+                mpy := u2*u2*c.sy + 2*u2*ti*c.cy + ti*ti*c.ey
+                marcaLen := 3.5 + frame * 0.4   ; las marcas se acortan con el tiempo
+                alphaMarca := Round(200 * (frame / 4.0))
+                if (alphaMarca < 30)
+                    continue
+                argbMarca := (alphaMarca << 24) | 0xFF1A1A
+                penMarca := 0
+                DllCall("gdiplus\GdipCreatePen1", "UInt", argbMarca, "Float", 1.2, "Int", 2, "Ptr*", &penMarca)
+                DllCall("gdiplus\GdipDrawLine", "Ptr", g, "Ptr", penMarca,
+                    "Float", mpx - px * marcaLen, "Float", mpy - py * marcaLen,
+                    "Float", mpx + px * marcaLen, "Float", mpy + py * marcaLen)
+                DllCall("gdiplus\GdipDeletePen", "Ptr", penMarca)
+            }
         }
-    }
-
-    ; ── Destello final en el centro donde los cortes convergen ──
-    if (frame <= 2 && frame > 0) {
-        radioCentro := (3 - frame) * 7.0
-        alphaCentro := Round(180 * (frame / 2.0))
-        argbCentro := (alphaCentro << 24) | 0xFFFFFFFF
-        brushCentro := 0
-        DllCall("gdiplus\GdipCreateSolidFill", "UInt", argbCentro, "Ptr*", &brushCentro)
-        DllCall("gdiplus\GdipFillEllipse", "Ptr", g, "Ptr", brushCentro,
-            "Float", cx - radioCentro, "Float", cy - radioCentro,
-            "Float", radioCentro * 2, "Float", radioCentro * 2)
-        DllCall("gdiplus\GdipDeleteBrush", "Ptr", brushCentro)
     }
 
     DllCall("gdiplus\GdipDeleteGraphics", "Ptr", g)
