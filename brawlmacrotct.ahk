@@ -8,7 +8,7 @@ configPath := A_ScriptDir "\brawlmacro_config.ini"
 global eggsBackupPath := A_ScriptDir "\brawlmacro_eggs.txt"
 global heartbeatPath := A_ScriptDir "\brawlmacro_heartbeat.txt"
 global historialLogPath := A_ScriptDir "\brawlmacro_historial.log"
-global VERSION_ACTUAL := "30.0.7"
+global VERSION_ACTUAL := "30.0.8"
 
 ; ===== TEMAS =====
 temas := [
@@ -382,6 +382,7 @@ global presetPulsoLogo := 50
 global presetRGB := 60
 global presetBarras := 33            ; intervalo de AnimarBarras (gradiente shimmer)
 global presetDecoraciones := true    ; pintar slashes Sukuna / aura Gojo
+global presetDecoFps := 50           ; intervalo de TickDecoracionesPermanentes (Six Eyes Gojo, etc.)
 global presetTrayIcon := 1000        ; intervalo de ActualizarTrayIcon
 global presetLogros := 5000          ; intervalo de VerificarLogros
 
@@ -2458,9 +2459,9 @@ SetTimer(GojoPulsoHollowPurple, 4000)
 ; Hollow Purple: Aka + Aoi convergen cada 4s y explotan en morado (solo GOJO)
 SetTimer(TickAuraGojo, 4000)
 ; Refresco de decoraciones permanentes (Six Eyes orbitando, kanji 両面宿儺,
-; anillos). 80ms = ~12fps, suficiente para animaciones lentas y mucho más
-; ligero que 20fps. Solo invalida si el tema actual es Gojo o Sukuna.
-SetTimer(TickDecoracionesPermanentes, 80)
+; anillos). El intervalo lo fija AplicarPreset (presetDecoFps): Eco ~8fps,
+; Normal ~30fps, Ultra ~60fps. Solo invalida si el tema es Gojo o Sukuna.
+; (AplicarPreset más abajo lo arranca; aquí no hace falta SetTimer fijo.)
 ; Auto-Desmantelamiento (解): cuando el tema Sukuna está activo, dispara
 ; un slash cada 4 segundos automáticamente — la presencia constante del Rey
 ; cortando la realidad. El timer corre siempre, pero solo dispara si Sukuna
@@ -2707,6 +2708,7 @@ AplicarPreset(p) {
     global presetRendimiento, presetHoverPoll, presetHoverBreath
     global presetParticulas, presetPulsoBar, presetPulsoLogo, presetRGB
     global presetBarras, presetDecoraciones, presetTrayIcon, presetLogros
+    global presetDecoFps
     global presetLabel, fpsLabel, particulasActivas, rgbActivo
     global activo, colorTextoPrincipal
 
@@ -2723,6 +2725,7 @@ AplicarPreset(p) {
             presetRGB := 500             ; lentisimo si esta on
             presetBarras := 200          ; AnimarBarras a 5fps (gradiente shimmer casi parado)
             presetDecoraciones := false  ; sin slashes/aura Gojo/Sukuna
+            presetDecoFps := 120         ; ~8fps (apenas se usa, decoraciones off)
             presetTrayIcon := 3000       ; cada 3s (era 1s)
             presetLogros := 15000        ; cada 15s (era 5s)
         case 2:
@@ -2734,6 +2737,7 @@ AplicarPreset(p) {
             presetRGB := 120
             presetBarras := 50
             presetDecoraciones := true
+            presetDecoFps := 50          ; ~20fps
             presetTrayIcon := 1500
             presetLogros := 8000
         case 3:
@@ -2745,6 +2749,7 @@ AplicarPreset(p) {
             presetRGB := 60
             presetBarras := 33
             presetDecoraciones := true
+            presetDecoFps := 33          ; ~30fps
             presetTrayIcon := 1000
             presetLogros := 5000
         case 4:
@@ -2756,6 +2761,7 @@ AplicarPreset(p) {
             presetRGB := 30
             presetBarras := 16
             presetDecoraciones := true
+            presetDecoFps := 16          ; ~60fps (Ultra — Six Eyes suaves)
             presetTrayIcon := 1000
             presetLogros := 5000
     }
@@ -2764,6 +2770,7 @@ AplicarPreset(p) {
     SetTimer(HoverBreath, presetHoverBreath > 0 ? presetHoverBreath : 0)
     SetTimer(ActualizarParticulas, presetParticulas > 0 ? presetParticulas : 0)
     SetTimer(AnimarBarras, presetBarras)
+    SetTimer(TickDecoracionesPermanentes, presetDecoFps)
     SetTimer(ActualizarTrayIcon, presetTrayIcon)
     SetTimer(VerificarLogros, presetLogros)
     if (rgbActivo)
@@ -5642,10 +5649,8 @@ PintarNombreSukuna(hdc, w, h) {
     global sukunaFont
     if (!sukunaFont)
         return
-    static fase := 0.0
-    fase += 0.025
-    if (fase > 6.28)
-        fase -= 6.28
+    ; Fase basada en tiempo real → respiración independiente del framerate.
+    fase := Mod(A_TickCount / 1000.0 * 0.9, 6.2831853)
     ; Respiración suave del alpha (0.55 - 1.0)
     alpha := Round(120 + 60 * Sin(fase))
 
@@ -5728,10 +5733,9 @@ PintarAnilloSukuna(hdc, w, h) {
 ; Representan los Six Eyes que dan a Gojo su capacidad de ver toda la
 ; energía maldita perfectamente.
 PintarSixEyesGojo(hdc, w, h) {
-    static fase := 0.0
-    fase += 0.025
-    if (fase > 6.28)
-        fase -= 6.28
+    ; Fase basada en TIEMPO REAL (no en nº de frames) → la velocidad de órbita
+    ; es idéntica a 12fps o a 60fps, solo cambia la suavidad. ~0.45 rad/s.
+    fase := Mod(A_TickCount / 1000.0 * 0.45, 6.2831853)
 
     cx := 66.0          ; centro X del logo en miGui
     cy := 53.0          ; centro Y del logo (78 - 25 barra)
@@ -5775,10 +5779,8 @@ PintarSixEyesGojo(hdc, w, h) {
 ; Anillo Limitless: anillo azul claro pulsante alrededor del logo.
 ; Representa la barrera del Infinito que rodea a Gojo siempre.
 PintarAnilloGojo(hdc, w, h) {
-    static fase := 0.0
-    fase += 0.04
-    if (fase > 6.28)
-        fase -= 6.28
+    ; Fase basada en tiempo real → independiente del framerate. ~0.7 rad/s.
+    fase := Mod(A_TickCount / 1000.0 * 0.7, 6.2831853)
 
     cx := 66.0
     cy := 53.0
@@ -7442,15 +7444,15 @@ AbrirPanelLogros(*) {
         return
     }
 
-    ; Layout 2 columnas para evitar que el panel crezca demasiado al añadir logros
-    cols    := 2
-    cellW   := 250
-    cellH   := 50
-    gap     := 6
-    padding := 12
+    ; Layout 3 columnas compacto — panel mucho más pequeño que el 2-col anterior
+    cols    := 3
+    cellW   := 158
+    cellH   := 40
+    gap     := 5
+    padding := 10
     W := padding * 2 + cols * cellW + (cols - 1) * gap
     filas := Ceil(logros.Length / cols)
-    H := 36 + padding + filas * (cellH + gap) - gap + padding
+    H := 30 + padding + filas * (cellH + gap) - gap + padding
 
     logrosGui := Gui("+AlwaysOnTop -Caption +ToolWindow")
     logrosGui.BackColor := colorFondoPrincipal
@@ -7460,12 +7462,12 @@ AbrirPanelLogros(*) {
         if (l.desbloqueado)
             desbloqueadosCount += 1
 
-    barr := logrosGui.Add("Text", "x0 y0 w" W " h32 Background" colorBarra " Center +0x200", Chr(0x1F3C5) "  Logros  " Chr(0x2022) "  " desbloqueadosCount "/" logros.Length)
-    barr.SetFont("s11 c" colorTextoBarra " Bold", "Segoe UI Semibold")
+    barr := logrosGui.Add("Text", "x0 y0 w" W " h30 Background" colorBarra " Center +0x200", Chr(0x1F3C5) "  Logros  " Chr(0x2022) "  " desbloqueadosCount "/" logros.Length)
+    barr.SetFont("s10 c" colorTextoBarra " Bold", "Segoe UI Semibold")
     barr.OnEvent("Click", (*) => (LimpiarHoverGui(logrosGui), logrosGui.Destroy(), logrosGuiVisible := false))
 
-    ; Layout en grid 2×N
-    startY := 32 + padding
+    ; Layout en grid 3×N compacto
+    startY := 30 + padding
     for i, l in logros {
         col := Mod(i - 1, cols)
         row := (i - 1) // cols
@@ -7484,14 +7486,14 @@ AbrirPanelLogros(*) {
         ; Fondo de la celda (un solo Text como contenedor del color)
         cell := logrosGui.Add("Text", "x" cx " y" cy " w" cellW " h" cellH " Background" cBg, "")
         ; Icono a la izquierda
-        lblIcon := logrosGui.Add("Text", "x" (cx + 6) " y" (cy + 6) " w32 h" (cellH - 12) " Center Background" cBg " c" iconC, l.icono)
-        lblIcon.SetFont("s16", "Segoe UI Emoji")
+        lblIcon := logrosGui.Add("Text", "x" (cx + 5) " y" (cy + 5) " w24 h" (cellH - 10) " Center Background" cBg " c" iconC, l.icono)
+        lblIcon.SetFont("s13", "Segoe UI Emoji")
         ; Nombre
-        lblName := logrosGui.Add("Text", "x" (cx + 42) " y" (cy + 4) " w" (cellW - 50) " h16 Background" cBg " c" cFg, l.nombre)
-        lblName.SetFont("s10 Bold", "Segoe UI Semibold")
+        lblName := logrosGui.Add("Text", "x" (cx + 33) " y" (cy + 4) " w" (cellW - 38) " h14 Background" cBg " c" cFg, l.nombre)
+        lblName.SetFont("s8 Bold", "Segoe UI Semibold")
         ; Descripción
-        lblDesc := logrosGui.Add("Text", "x" (cx + 42) " y" (cy + 22) " w" (cellW - 50) " h22 Background" cBg " c" cFg, l.desc)
-        lblDesc.SetFont("s7 Italic", "Segoe UI")
+        lblDesc := logrosGui.Add("Text", "x" (cx + 33) " y" (cy + 20) " w" (cellW - 38) " h18 Background" cBg " c" cFg, l.desc)
+        lblDesc.SetFont("s6 Italic", "Segoe UI")
     }
 
     logrosGui.Show("w" W " h" H " Center")
