@@ -22,6 +22,7 @@ global heartbeatPath := scriptDir "\brawlmacro_heartbeat.txt"
 global macroPath    := scriptDir "\brawlmacrotct.ahk"
 global logPath      := scriptDir "\brawlmacro_watchdog.log"
 global pidPath      := scriptDir "\brawlmacro_watchdog.pid"
+global configPath   := scriptDir "\brawlmacro_config.ini"
 
 global ultimoArranque := 0  ; timestamp del último restart automático (anti-loop)
 
@@ -116,13 +117,44 @@ VerificarMacro() {
     ; Log("OK — heartbeat hace " edad "s, PID " macroPid)
 }
 
+; Lee el 4º campo del heartbeat (estado activo). Devuelve 1 (activo), 0 (parado)
+; o -1 (desconocido / formato viejo). Debe llamarse ANTES de borrar el heartbeat.
+LeerActivoHeartbeat() {
+    global heartbeatPath
+    if (!FileExist(heartbeatPath))
+        return -1
+    try {
+        content := FileRead(heartbeatPath, "UTF-8")
+        parts := StrSplit(content, "|")
+        if (parts.Length >= 4)
+            return Integer(Trim(parts[4]))
+    }
+    return -1
+}
+
 Relanzar(razon) {
-    global macroPath, ultimoArranque, heartbeatPath
+    global macroPath, ultimoArranque, heartbeatPath, configPath
 
     ; Anti-bucle: si acabamos de reiniciar hace <30s, no insistir
     if (ultimoArranque && (A_TickCount - ultimoArranque < 30000)) {
         Log("Anti-bucle: salté reinicio porque acabamos de relanzar")
         return
+    }
+
+    ; ── CLAVE: leer si el macro estaba DETECTANDO antes de morir/colgarse ──
+    ; Si estaba activo (o no podemos saberlo), pedimos auto-arranque vía el
+    ; flag Watchdog/AutoStart del config — así el macro relanzado vuelve a
+    ; detectar en vez de quedarse parado (el bug de "lo encuentro desactivado").
+    activoPrev := LeerActivoHeartbeat()
+    if (activoPrev != 0) {
+        try {
+            IniWrite(1, configPath, "Watchdog", "AutoStart")
+            Log("AutoStart=1 escrito (macro estaba activo o estado desconocido: " activoPrev ")")
+        } catch as e {
+            Log("ERROR escribiendo AutoStart: " e.Message)
+        }
+    } else {
+        Log("Macro estaba parado intencionadamente (activo=0) — relanzo sin auto-arranque")
     }
 
     ; Borrar heartbeat viejo para que cuando arranque el nuevo proceso, el archivo sea fresco

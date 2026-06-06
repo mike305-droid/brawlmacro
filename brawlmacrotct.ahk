@@ -8,7 +8,7 @@ configPath := A_ScriptDir "\brawlmacro_config.ini"
 global eggsBackupPath := A_ScriptDir "\brawlmacro_eggs.txt"
 global heartbeatPath := A_ScriptDir "\brawlmacro_heartbeat.txt"
 global historialLogPath := A_ScriptDir "\brawlmacro_historial.log"
-global VERSION_ACTUAL := "30.0.8"
+global VERSION_ACTUAL := "30.0.9"
 
 ; ===== TEMAS =====
 temas := [
@@ -1724,15 +1724,17 @@ WatchdogAFK() {
 }
 
 ; ===== HEARTBEAT PARA WATCHDOG EXTERNO =====
-; Escribe en cada tick: <A_TickCount>|<PID actual>|<formato fecha legible>
+; Escribe en cada tick: <A_TickCount>|<PID actual>|<fecha legible>|<activo 1/0>
 ; El watchdog externo lee este archivo y verifica el mtime + PID. Si pasa >90s
 ; sin actualizarse y el PID sigue vivo (= colgado de verdad), lo mata y reinicia.
+; El 4º campo (activo) le dice al watchdog si debe RE-ARRANCAR el macro al
+; relanzarlo (si estaba detectando, debe volver a detectar — no quedarse parado).
 EscribirHeartbeat() {
-    global heartbeatPath
+    global heartbeatPath, activo
     try {
         f := FileOpen(heartbeatPath, "w", "UTF-8")
         if (f) {
-            f.Write(A_TickCount "|" ProcessExist() "|" FormatTime(, "yyyy-MM-dd HH:mm:ss"))
+            f.Write(A_TickCount "|" ProcessExist() "|" FormatTime(, "yyyy-MM-dd HH:mm:ss") "|" (activo ? 1 : 0))
             f.Close()
         }
     }
@@ -2471,6 +2473,9 @@ SetTimer(SukunaAutoDismantle, 4000)
 SetTimer(EscribirHeartbeat, 5000) ; cada 5 s escribe pid + timestamp en heartbeat.txt para el watchdog externo
 EscribirHeartbeat()              ; un primer write inmediato
 LanzarWatchdogSiNoEsta()         ; arrancar el watchdog externo en paralelo si no está corriendo
+; Re-chequeo periódico: si el watchdog externo se cierra/cuelga, el macro lo
+; revive. Supervisión mutua → si uno muere, el otro lo restaura.
+SetTimer(LanzarWatchdogSiNoEsta, 60000)  ; cada 60 s
 
 ; Marcar arranque del macro en el log persistente
 try {
@@ -7891,6 +7896,7 @@ Iniciar(*) {
         SetTimer(EjecutarMacro, 50)
         SetTimer(ActualizarCooldowns, 100)
         IniciarTimer()
+        EscribirHeartbeat()   ; capturar activo=1 al instante (no esperar 5s)
         EnviarWebhookEvento("iniciado")
         return
     }
@@ -7912,6 +7918,7 @@ Iniciar(*) {
     SetTimer(() => BarraShimmer(colorBarra), -1)
     IniciarTimer()
     ActualizarTimersFrt()  ; arranca timers de spam si perfilActivo=3
+    EscribirHeartbeat()   ; capturar activo=1 al instante (no esperar 5s)
     EnviarWebhookEvento("iniciado")
 }
 
@@ -7951,6 +7958,7 @@ Parar(*) {
     ; Shimmer de apagado y restaurar barra
     SetTimer(() => (BarraShimmer(colorBarra), barra.Opt("Background" colorBarra), barraHistorial.Opt("Background" colorBarra), DllCall("InvalidateRect", "Ptr", barra.Hwnd, "Ptr", 0, "Int", 1)), -1)
     PararTimer()
+    EscribirHeartbeat()   ; capturar activo=0 al instante (el watchdog no debe re-arrancar)
     EnviarWebhookEvento("parado")
 }
 
