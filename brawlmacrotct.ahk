@@ -8,7 +8,7 @@ configPath := A_ScriptDir "\brawlmacro_config.ini"
 global eggsBackupPath := A_ScriptDir "\brawlmacro_eggs.txt"
 global heartbeatPath := A_ScriptDir "\brawlmacro_heartbeat.txt"
 global historialLogPath := A_ScriptDir "\brawlmacro_historial.log"
-global VERSION_ACTUAL := "30.0.2"
+global VERSION_ACTUAL := "30.0.3"
 
 ; ===== TEMAS =====
 temas := [
@@ -303,6 +303,8 @@ global logoGearCacheW := 0          ; ancho del bitmap cacheado
 global logoGearCacheH := 0          ; alto del bitmap cacheado
 global LOGO_GEAR_CACHE_FRAMES := 32
 global logoGearCacheAngleSpan := 45.0  ; grados que cubre el cache (depende de la simetría del char)
+; Font cacheado para kanji de Sukuna — crear/destruir cada frame era el motivo principal del lag.
+global sukunaFontFamily := 0, sukunaFont := 0
 global logoAngulo := 0.0, logoVelActual := 0.0, logoVelObjetivo := 0.0
 global logoVelMax := 6.0  ; grados por tick @ ~30fps  →  ~180°/s (giro completo cada 2s)
 global logoNeedsRedraw := true
@@ -546,6 +548,7 @@ CerrarStatsGui(*) {
 ; ===== GDI+ + LOGO GIRATORIO =====
 InicializarGdip() {
     global gdipToken, gdipInited, logoFontFamily, logoStringFormat, logoGearFont
+    global sukunaFontFamily, sukunaFont
     if (gdipInited)
         return
     DllCall("LoadLibrary", "Str", "gdiplus.dll")
@@ -563,6 +566,16 @@ InicializarGdip() {
     DllCall("gdiplus\GdipCreateStringFormat", "Int", 0, "Int", 0, "Ptr*", &logoStringFormat)
     DllCall("gdiplus\GdipSetStringFormatAlign",     "Ptr", logoStringFormat, "Int", 0)  ; top-left (compatible con DibujarGearEnDC)
     DllCall("gdiplus\GdipSetStringFormatLineAlign", "Ptr", logoStringFormat, "Int", 0)
+    ; Font cacheado para kanji de Sukuna (decoración permanente del tema)
+    DllCall("gdiplus\GdipCreateFontFamilyFromName", "WStr", "Yu Mincho", "Ptr", 0, "Ptr*", &sukunaFontFamily)
+    if (!sukunaFontFamily)
+        DllCall("gdiplus\GdipCreateFontFamilyFromName", "WStr", "Yu Gothic", "Ptr", 0, "Ptr*", &sukunaFontFamily)
+    if (!sukunaFontFamily)
+        DllCall("gdiplus\GdipCreateFontFamilyFromName", "WStr", "Meiryo", "Ptr", 0, "Ptr*", &sukunaFontFamily)
+    if (!sukunaFontFamily)
+        DllCall("gdiplus\GdipCreateFontFamilyFromName", "WStr", "Segoe UI", "Ptr", 0, "Ptr*", &sukunaFontFamily)
+    if (sukunaFontFamily)
+        DllCall("gdiplus\GdipCreateFont", "Ptr", sukunaFontFamily, "Float", 16.0, "Int", 1, "Int", 0, "Ptr*", &sukunaFont)
     gdipInited := true
 }
 
@@ -2431,9 +2444,10 @@ SetTimer(WatchdogAFK, 30000)     ; cada 30 s; si activo && > 90 s sin AFK → Re
 SetTimer(GojoPulsoHollowPurple, 4000)
 ; Hollow Purple: Aka + Aoi convergen cada 4s y explotan en morado (solo GOJO)
 SetTimer(TickAuraGojo, 4000)
-; Refresco de decoraciones permanentes (Six Eyes orbitando, marcas Sukuna,
-; kanji flotantes). Solo invalida el overlay si el tema actual es Gojo o Sukuna.
-SetTimer(TickDecoracionesPermanentes, 50)
+; Refresco de decoraciones permanentes (Six Eyes orbitando, kanji 両面宿儺,
+; anillos). 80ms = ~12fps, suficiente para animaciones lentas y mucho más
+; ligero que 20fps. Solo invalida si el tema actual es Gojo o Sukuna.
+SetTimer(TickDecoracionesPermanentes, 80)
 
 SetTimer(EscribirHeartbeat, 5000) ; cada 5 s escribe pid + timestamp en heartbeat.txt para el watchdog externo
 EscribirHeartbeat()              ; un primer write inmediato
@@ -5587,8 +5601,8 @@ PintarDecoracionesEnHDC(hdc, w, h) {
 
     ; ── DECORACIONES PERMANENTES (cada frame mientras el tema esté activo) ──
     if (unlock = "sukuna") {
-        PintarMarcasSukuna(hdc, w, h)        ; 4 marcas/cicatrices en las esquinas
-        PintarSimbolosSukuna(hdc, w, h)      ; kanji "宿" / "伏" pulsantes
+        PintarNombreSukuna(hdc, w, h)        ; 両面宿儺 vertical bien colocado
+        PintarAnilloSukuna(hdc, w, h)        ; anillo rojo oscuro alrededor del logo
     } else if (unlock = "gojo") {
         PintarSixEyesGojo(hdc, w, h)         ; 6 ojos cyan orbitando el logo
         PintarAnilloGojo(hdc, w, h)          ; anillo azul permanente
@@ -5604,105 +5618,89 @@ PintarDecoracionesEnHDC(hdc, w, h) {
 
 ; ═══════════════════ DECORACIONES PERMANENTES SUKUNA ═══════════════════
 
-; Marcas/cicatrices rojas en las 4 esquinas — recuerdan a los 4 brazos del Rey
-; cortando. Líneas diagonales que apuntan al centro, semi-transparentes via GDI+.
-PintarMarcasSukuna(hdc, w, h) {
-    g := 0
-    DllCall("gdiplus\GdipCreateFromHDC", "Ptr", hdc, "Ptr*", &g)
-    if (!g)
+; "両面宿儺" (Ryomen Sukuna) escrito en columna vertical a la derecha del logo,
+; en zona vacía entre el título y los botones. Uso el font cacheado.
+PintarNombreSukuna(hdc, w, h) {
+    global sukunaFont
+    if (!sukunaFont)
         return
-    DllCall("gdiplus\GdipSetSmoothingMode", "Ptr", g, "Int", 4)
-    ; Pulso lento de intensidad (0.6 - 1.0)
-    static t := 0.0
-    t += 0.03
-    if (t > 6.28)
-        t -= 6.28
-    pulso := 0.7 + 0.3 * Sin(t)
-    alpha := Round(120 * pulso)            ; rojo translúcido
-    argbRojo := (alpha << 24) | 0xFF2A2A   ; FF2A2A rojo Sukuna
-    penRojo := 0
-    DllCall("gdiplus\GdipCreatePen1", "UInt", argbRojo, "Float", 2.5, "Int", 2, "Ptr*", &penRojo)
-
-    ; 4 esquinas → líneas diagonales hacia adentro (15-30px)
-    largo := 18
-    ; Esquina superior izquierda: dos líneas formando una "X" pequeña
-    DllCall("gdiplus\GdipDrawLine", "Ptr", g, "Ptr", penRojo, "Float", 4,       "Float", 4,       "Float", 4 + largo,   "Float", 4 + largo)
-    DllCall("gdiplus\GdipDrawLine", "Ptr", g, "Ptr", penRojo, "Float", 4 + largo, "Float", 4,     "Float", 4,           "Float", 4 + largo)
-    ; Esquina superior derecha
-    DllCall("gdiplus\GdipDrawLine", "Ptr", g, "Ptr", penRojo, "Float", w - 4,     "Float", 4,     "Float", w - 4 - largo, "Float", 4 + largo)
-    DllCall("gdiplus\GdipDrawLine", "Ptr", g, "Ptr", penRojo, "Float", w - 4 - largo, "Float", 4, "Float", w - 4,         "Float", 4 + largo)
-    ; Esquina inferior izquierda
-    DllCall("gdiplus\GdipDrawLine", "Ptr", g, "Ptr", penRojo, "Float", 4,       "Float", h - 4,     "Float", 4 + largo,   "Float", h - 4 - largo)
-    DllCall("gdiplus\GdipDrawLine", "Ptr", g, "Ptr", penRojo, "Float", 4 + largo, "Float", h - 4,   "Float", 4,           "Float", h - 4 - largo)
-    ; Esquina inferior derecha
-    DllCall("gdiplus\GdipDrawLine", "Ptr", g, "Ptr", penRojo, "Float", w - 4,     "Float", h - 4,   "Float", w - 4 - largo, "Float", h - 4 - largo)
-    DllCall("gdiplus\GdipDrawLine", "Ptr", g, "Ptr", penRojo, "Float", w - 4 - largo, "Float", h - 4, "Float", w - 4,       "Float", h - 4 - largo)
-
-    DllCall("gdiplus\GdipDeletePen", "Ptr", penRojo)
-    DllCall("gdiplus\GdipDeleteGraphics", "Ptr", g)
-}
-
-; Kanji 宿 (Sukuna) y 伏 (Domain Expansion: Malevolent Shrine) flotando en
-; posiciones random — aparecen y desvanecen como si fueran maldiciones.
-PintarSimbolosSukuna(hdc, w, h) {
     static fase := 0.0
-    fase += 0.015
-    if (fase > 1.0)
-        fase -= 1.0
-    ; Alpha tipo "respiración" — sube y baja
-    alpha := Round(140 * Sin(fase * 3.14159))
-    if (alpha < 30)
-        return  ; no pintar cuando esta casi invisible
+    fase += 0.025
+    if (fase > 6.28)
+        fase -= 6.28
+    ; Respiración suave del alpha (0.55 - 1.0)
+    alpha := Round(120 + 60 * Sin(fase))
+
     g := 0
     DllCall("gdiplus\GdipCreateFromHDC", "Ptr", hdc, "Ptr*", &g)
     if (!g)
         return
     DllCall("gdiplus\GdipSetTextRenderingHint", "Ptr", g, "Int", 4)
 
-    ; Familia japonesa con fallback
-    family := 0
-    DllCall("gdiplus\GdipCreateFontFamilyFromName", "WStr", "Yu Gothic", "Ptr", 0, "Ptr*", &family)
-    if (!family)
-        DllCall("gdiplus\GdipCreateFontFamilyFromName", "WStr", "Meiryo", "Ptr", 0, "Ptr*", &family)
-    if (!family)
-        DllCall("gdiplus\GdipCreateFontFamilyFromName", "WStr", "Segoe UI", "Ptr", 0, "Ptr*", &family)
-    if (!family) {
-        DllCall("gdiplus\GdipDeleteGraphics", "Ptr", g)
-        return
-    }
-    font := 0
-    DllCall("gdiplus\GdipCreateFont", "Ptr", family, "Float", 22.0, "Int", 1, "Int", 0, "Ptr*", &font)
-    if (!font) {
-        DllCall("gdiplus\GdipDeleteFontFamily", "Ptr", family)
-        DllCall("gdiplus\GdipDeleteGraphics", "Ptr", g)
-        return
-    }
-
-    argbCol := (alpha << 24) | 0xB30000      ; rojo Sukuna
+    argbCol := (alpha << 24) | 0xB30000   ; rojo sangre Sukuna
     brush := 0
     DllCall("gdiplus\GdipCreateSolidFill", "UInt", argbCol, "Ptr*", &brush)
     fmt := 0
     DllCall("gdiplus\GdipCreateStringFormat", "Int", 0, "Int", 0, "Ptr*", &fmt)
+    DllCall("gdiplus\GdipSetStringFormatAlign",     "Ptr", fmt, "Int", 1)  ; centro horizontal
+    DllCall("gdiplus\GdipSetStringFormatLineAlign", "Ptr", fmt, "Int", 0)  ; top
 
-    ; Kanji 宿 (esquina sup-der) y 伏 (esquina inf-izq)
-    rc1 := Buffer(16, 0)
-    NumPut("Float", w - 38.0, rc1, 0)
-    NumPut("Float", 14.0,     rc1, 4)
-    NumPut("Float", 32.0,     rc1, 8)
-    NumPut("Float", 32.0,     rc1, 12)
-    DllCall("gdiplus\GdipDrawString", "Ptr", g, "WStr", Chr(0x5BBF), "Int", 1, "Ptr", font, "Ptr", rc1, "Ptr", fmt, "Ptr", brush)
-
-    rc2 := Buffer(16, 0)
-    NumPut("Float", 8.0,      rc2, 0)
-    NumPut("Float", h - 38.0, rc2, 4)
-    NumPut("Float", 32.0,     rc2, 8)
-    NumPut("Float", 32.0,     rc2, 12)
-    DllCall("gdiplus\GdipDrawString", "Ptr", g, "WStr", Chr(0x4F0F), "Int", 1, "Ptr", font, "Ptr", rc2, "Ptr", fmt, "Ptr", brush)
+    ; Columna vertical "両面宿儺" en una zona libre — esquina inferior izq del overlay,
+    ; debajo del logo. Cada char en su propia caja de 18px de alto.
+    static chars := [Chr(0x4E21), Chr(0x9762), Chr(0x5BBF), Chr(0x5132)]  ; 両 面 宿 儺
+    baseX := 8.0
+    baseY := h - 78.0   ; arriba de los botones inferiores
+    Loop 4 {
+        rc := Buffer(16, 0)
+        NumPut("Float", baseX,                 rc, 0)
+        NumPut("Float", baseY + (A_Index - 1) * 17.0, rc, 4)
+        NumPut("Float", 18.0,                  rc, 8)
+        NumPut("Float", 18.0,                  rc, 12)
+        DllCall("gdiplus\GdipDrawString", "Ptr", g, "WStr", chars[A_Index], "Int", 1, "Ptr", sukunaFont, "Ptr", rc, "Ptr", fmt, "Ptr", brush)
+    }
 
     DllCall("gdiplus\GdipDeleteStringFormat", "Ptr", fmt)
     DllCall("gdiplus\GdipDeleteBrush", "Ptr", brush)
-    DllCall("gdiplus\GdipDeleteFont", "Ptr", font)
-    DllCall("gdiplus\GdipDeleteFontFamily", "Ptr", family)
+    DllCall("gdiplus\GdipDeleteGraphics", "Ptr", g)
+}
+
+; Anillo de aura roja oscura alrededor del logo — la presencia siniestra
+; constante del Rey de las Maldiciones. Similar al anillo de Gojo pero
+; rojo y con doble anillo (los 2 pares de ojos / brazos).
+PintarAnilloSukuna(hdc, w, h) {
+    static fase := 0.0
+    fase += 0.05
+    if (fase > 6.28)
+        fase -= 6.28
+
+    cx := 66.0
+    cy := 53.0
+    g := 0
+    DllCall("gdiplus\GdipCreateFromHDC", "Ptr", hdc, "Ptr*", &g)
+    if (!g)
+        return
+    DllCall("gdiplus\GdipSetSmoothingMode", "Ptr", g, "Int", 4)
+
+    ; Dos anillos rojos contrarrotantes con pulso desfasado
+    Loop 2 {
+        i := A_Index - 1
+        signo := (i = 0) ? 1 : -1
+        ondaFase := fase * signo + i * 3.14159
+        radio := 36.0 + 3.0 * Sin(ondaFase)
+        alpha := Round(50 + 40 * Sin(ondaFase))
+        if (alpha < 25)
+            alpha := 25
+        ; Tono rojo profundo, ligeramente variable
+        cR := 200 + Round(40 * Sin(ondaFase * 0.5))
+        cG := 30
+        cB := 40
+        argbRing := (alpha << 24) | (cR << 16) | (cG << 8) | cB
+        pen := 0
+        DllCall("gdiplus\GdipCreatePen1", "UInt", argbRing, "Float", 1.5, "Int", 2, "Ptr*", &pen)
+        DllCall("gdiplus\GdipDrawEllipse", "Ptr", g, "Ptr", pen, "Float", cx - radio, "Float", cy - radio, "Float", radio * 2.0, "Float", radio * 2.0)
+        DllCall("gdiplus\GdipDeletePen", "Ptr", pen)
+    }
+
     DllCall("gdiplus\GdipDeleteGraphics", "Ptr", g)
 }
 
@@ -5795,39 +5793,120 @@ PintarAnilloGojo(hdc, w, h) {
 }
 
 PintarSlashSukunaEnHDC(hdc, w, h, frame) {
-    ; 4 cortes desde las 4 esquinas convergiendo al centro → los 4 brazos del Rey cortando.
-    ; Cada corte va de la esquina hacia el centro, su longitud progresa con el frame.
-    static MAX_FRAME := 5
-    t := (MAX_FRAME - frame + 1) / MAX_FRAME    ; 0.2 → 1.0 (el corte se extiende)
-    grosor := Max(2, 7 - frame)                  ; arranca grueso, mas fino al final
-    rojoBGR := 0x2A2AFF                           ; FF2A2A
-    hPen := DllCall("CreatePen", "Int", 0, "Int", grosor, "UInt", rojoBGR, "Ptr")
-    oldPen := DllCall("SelectObject", "Ptr", hdc, "Ptr", hPen)
+    ; CORTES MEJORADOS: 4 arcos curvos tipo katana cruzando el GUI desde
+    ; ángulos asimétricos, con degradado de alpha (grueso al inicio, fino al final),
+    ; sparks de partículas y flash final. Cada corte sigue una curva bezier
+    ; para simular el barrido natural de una hoja, no líneas rectas rígidas.
+    static MAX_FRAME := 8
+    t := (MAX_FRAME - frame + 1) / MAX_FRAME    ; 0.125 → 1.0 (avance del corte)
+
+    g := 0
+    DllCall("gdiplus\GdipCreateFromHDC", "Ptr", hdc, "Ptr*", &g)
+    if (!g)
+        return
+    DllCall("gdiplus\GdipSetSmoothingMode", "Ptr", g, "Int", 4)
+
     cx := w / 2.0
     cy := h / 2.0
-    ; Cada corte parte de una esquina y se acerca al centro proporcionalmente a t
-    esquinas := [[0,0], [w,0], [w,h], [0,h]]
-    for esq in esquinas {
-        ex := esq[1], ey := esq[2]
-        tx := Round(ex + (cx - ex) * t)
-        ty := Round(ey + (cy - ey) * t)
-        ; Inicio del corte: empieza un poco fuera de la esquina (efecto entrada)
-        sx := Round(ex - (cx - ex) * 0.05)
-        sy := Round(ey - (cy - ey) * 0.05)
-        DllCall("MoveToEx", "Ptr", hdc, "Int", sx, "Int", sy, "Ptr", 0)
-        DllCall("LineTo",   "Ptr", hdc, "Int", tx, "Int", ty)
+
+    ; 4 cortes con ángulos asimétricos (no simétricos como el código antiguo).
+    ; Cada uno: { startX, startY, endX, endY, ctrlX, ctrlY } — start fuera del GUI,
+    ; end al lado opuesto, ctrl point para curvar el barrido.
+    cortes := [
+        { sx: -20.0,     sy: 20.0,    ex: w + 20.0, ey: h * 0.4, cx: w * 0.4, cy: h * 0.05 },
+        { sx: w + 20.0,  sy: 40.0,    ex: -20.0,    ey: h * 0.7, cx: w * 0.5, cy: h * 0.2 },
+        { sx: -20.0,     sy: h - 10.0, ex: w + 20.0, ey: h * 0.55, cx: w * 0.45, cy: h * 0.95 },
+        { sx: w * 0.3,   sy: -20.0,    ex: w * 0.6, ey: h + 20.0, cx: w * 0.6, cy: h * 0.5 }
+    ]
+
+    Loop 4 {
+        c := cortes[A_Index]
+        ; Cada corte se "barre" — solo la parte hasta progreso t es visible
+        ; Calculamos puntos a lo largo de la curva bezier cuadrática
+        pasos := 18
+        ; Color: rojo brillante en el filo, casi blanco en la "chispa" del corte
+        Loop pasos {
+            i := A_Index - 1
+            tCurve := i / (pasos - 1)
+            if (tCurve > t)
+                break
+            ; Bezier cuadrática
+            u := 1.0 - tCurve
+            x := u*u*c.sx + 2*u*tCurve*c.cx + tCurve*tCurve*c.ex
+            y := u*u*c.sy + 2*u*tCurve*c.cy + tCurve*tCurve*c.ey
+            ; Grosor que decrece a lo largo del corte (filo grueso → cola fina)
+            grosor := 6.0 - tCurve * 4.5
+            ; Alpha también degrada (más opaco en la "punta" del barrido)
+            distFromTip := Abs(tCurve - t)
+            alphaF := 1.0 - distFromTip * 2.5
+            if (alphaF < 0)
+                alphaF := 0
+            alpha := Round(255 * alphaF)
+            if (alpha < 20)
+                continue
+            argbRojo := (alpha << 24) | 0xFF2A2A
+            brush := 0
+            DllCall("gdiplus\GdipCreateSolidFill", "UInt", argbRojo, "Ptr*", &brush)
+            DllCall("gdiplus\GdipFillEllipse", "Ptr", g, "Ptr", brush,
+                "Float", x - grosor/2, "Float", y - grosor/2, "Float", grosor, "Float", grosor)
+            DllCall("gdiplus\GdipDeleteBrush", "Ptr", brush)
+        }
+        ; SPARK en la punta del corte (el "filo" que está cortando ahora)
+        if (t > 0 && t < 1) {
+            u := 1.0 - t
+            tipX := u*u*c.sx + 2*u*t*c.cx + t*t*c.ex
+            tipY := u*u*c.sy + 2*u*t*c.cy + t*t*c.ey
+            ; Punto blanco brillante
+            brushSpark := 0
+            DllCall("gdiplus\GdipCreateSolidFill", "UInt", 0xFFFFFFFF, "Ptr*", &brushSpark)
+            DllCall("gdiplus\GdipFillEllipse", "Ptr", g, "Ptr", brushSpark,
+                "Float", tipX - 4.0, "Float", tipY - 4.0, "Float", 8.0, "Float", 8.0)
+            DllCall("gdiplus\GdipDeleteBrush", "Ptr", brushSpark)
+            ; Halo rojo claro alrededor
+            brushHalo := 0
+            DllCall("gdiplus\GdipCreateSolidFill", "UInt", 0x60FF4040, "Ptr*", &brushHalo)
+            DllCall("gdiplus\GdipFillEllipse", "Ptr", g, "Ptr", brushHalo,
+                "Float", tipX - 9.0, "Float", tipY - 9.0, "Float", 18.0, "Float", 18.0)
+            DllCall("gdiplus\GdipDeleteBrush", "Ptr", brushHalo)
+        }
     }
-    DllCall("SelectObject", "Ptr", hdc, "Ptr", oldPen)
-    DllCall("DeleteObject", "Ptr", hPen)
-    ; Al final, un destello rojo en el centro (el punto donde convergen los 4 cortes)
-    if (frame <= 2) {
-        radioCentro := (3 - frame) * 4
-        brushCentro := DllCall("CreateSolidBrush", "UInt", rojoBGR, "Ptr")
-        oldBrushC := DllCall("SelectObject", "Ptr", hdc, "Ptr", brushCentro)
-        DllCall("Ellipse", "Ptr", hdc, "Int", Round(cx - radioCentro), "Int", Round(cy - radioCentro), "Int", Round(cx + radioCentro), "Int", Round(cy + radioCentro))
-        DllCall("SelectObject", "Ptr", hdc, "Ptr", oldBrushC)
-        DllCall("DeleteObject", "Ptr", brushCentro)
+
+    ; ── Sparks/partículas que vuelan del centro (impacto del corte cuádruple) ──
+    if (frame <= 3 && frame > 0) {
+        avance := (3 - frame) / 3.0   ; 0 → 1
+        Loop 14 {
+            i := A_Index - 1
+            angRad := (i * 25.7) * 0.01745329   ; 14 sparks en abanico
+            distancia := 15.0 + avance * 40.0
+            spx := cx + Cos(angRad) * distancia
+            spy := cy + Sin(angRad) * distancia
+            alphaSp := Round(220 * (1 - avance))
+            if (alphaSp < 20)
+                continue
+            argbSp := (alphaSp << 24) | 0xFF6060
+            brSp := 0
+            DllCall("gdiplus\GdipCreateSolidFill", "UInt", argbSp, "Ptr*", &brSp)
+            tamSp := 2.5 + (1 - avance) * 2.0
+            DllCall("gdiplus\GdipFillEllipse", "Ptr", g, "Ptr", brSp,
+                "Float", spx - tamSp/2, "Float", spy - tamSp/2, "Float", tamSp, "Float", tamSp)
+            DllCall("gdiplus\GdipDeleteBrush", "Ptr", brSp)
+        }
     }
+
+    ; ── Destello final en el centro donde los cortes convergen ──
+    if (frame <= 2 && frame > 0) {
+        radioCentro := (3 - frame) * 7.0
+        alphaCentro := Round(180 * (frame / 2.0))
+        argbCentro := (alphaCentro << 24) | 0xFFFFFFFF
+        brushCentro := 0
+        DllCall("gdiplus\GdipCreateSolidFill", "UInt", argbCentro, "Ptr*", &brushCentro)
+        DllCall("gdiplus\GdipFillEllipse", "Ptr", g, "Ptr", brushCentro,
+            "Float", cx - radioCentro, "Float", cy - radioCentro,
+            "Float", radioCentro * 2, "Float", radioCentro * 2)
+        DllCall("gdiplus\GdipDeleteBrush", "Ptr", brushCentro)
+    }
+
+    DllCall("gdiplus\GdipDeleteGraphics", "Ptr", g)
 }
 
 PintarAuraGojoEnHDC(hdc, w, h, frame, maxFrame) {
@@ -5927,9 +6006,9 @@ LanzarSlashSukuna() {
         return
     if (!temas[temaActual].HasProp("unlock") || temas[temaActual].unlock != "sukuna")
         return
-    sukunaSlashFrame := 5
+    sukunaSlashFrame := 8     ; +frames = animación más fluida y vistosa
     ReposicionarOverlayDeco()
-    SetTimer(AnimarSlashSukuna, 40)
+    SetTimer(AnimarSlashSukuna, 30)
 }
 
 AnimarSlashSukuna() {
