@@ -8,7 +8,7 @@ configPath := A_ScriptDir "\brawlmacro_config.ini"
 global eggsBackupPath := A_ScriptDir "\brawlmacro_eggs.txt"
 global heartbeatPath := A_ScriptDir "\brawlmacro_heartbeat.txt"
 global historialLogPath := A_ScriptDir "\brawlmacro_historial.log"
-global VERSION_ACTUAL := "30.1.0"
+global VERSION_ACTUAL := "30.1.1"
 
 ; ===== TEMAS =====
 temas := [
@@ -954,7 +954,10 @@ DibujarGearEnDC(hdc, w, h, angulo, colorHex, fondoHex) {
             ;  - premium → anillos arcoíris animados encima del gear
             ;  - glitching → desplazamiento + color rojo distinto cada glitch
             ;  - temaEnTransicion → colorLogoEnTransicion lerpea cada frame
-            puedeCachear := !rgbLogo && !temaPremiumActivo && !glitching && !temaEnTransicion
+            ;  - noRota → ∞/⛩ no giran nunca, no tiene sentido cachear 128/256
+            ;    bitmaps que nunca se usan: se dibuja directo (1 GdipDrawString/frame).
+            noRota := (charLogo = Chr(0x221E) || charLogo = Chr(0x26E9))
+            puedeCachear := !rgbLogo && !temaPremiumActivo && !glitching && !temaEnTransicion && !noRota
 
             ; Cuando activo, ignorar el pulso de color y cachear con el color base estable.
             colorParaCache := activo ? colorLogoMacro : colorHex
@@ -1017,7 +1020,59 @@ DibujarGearEnDC(hdc, w, h, angulo, colorHex, fondoHex) {
         if (fontWasLocal && family)
             DllCall("gdiplus\GdipDeleteFontFamily", "Ptr", family)
     }
+
+    ; ── GOJO: punto de luz viajando por el ∞ (Limitless) ──
+    ; Se pinta encima del glifo estático. Solo cuando el logo es ∞.
+    if (charLogo = Chr(0x221E))
+        PintarInfinityTraveler(g, w, h)
+
     DllCall("gdiplus\GdipDeleteGraphics", "Ptr", g)
+}
+
+; Punto de luz (con estela) que recorre la lemniscata ∞ de Gerono, escalada
+; al glifo del logo. Da vida al logo de Gojo sin girarlo — como energía
+; maldita recorriendo el Infinito. Fase basada en tiempo real (framerate-indep).
+PintarInfinityTraveler(g, w, h) {
+    cx := w / 2.0
+    cy := h / 2.0
+    A  := w * 0.23    ; semi-ancho del 8 (ajustado al glifo ∞)
+    B  := h * 0.125   ; semi-alto del 8
+    base := A_TickCount / 1000.0 * 1.6   ; velocidad de recorrido (rad/s)
+
+    ; Estela: varios puntos detrás de la cabeza, alpha/tamaño decreciente.
+    nTrail := 9
+    Loop nTrail {
+        k := A_Index - 1
+        t := base - k * 0.085
+        ; Lemniscata de Gerono (figura-8 horizontal = ∞)
+        px := cx + A * Cos(t)
+        py := cy + B * Sin(t) * Cos(t)
+        if (k = 0) {
+            ; Cabeza: glow cyan + núcleo blanco brillante
+            argbGlow := (110 << 24) | 0x4FC3F7
+            brG := 0
+            DllCall("gdiplus\GdipCreateSolidFill", "UInt", argbGlow, "Ptr*", &brG)
+            rg := 6.5
+            DllCall("gdiplus\GdipFillEllipse", "Ptr", g, "Ptr", brG, "Float", px - rg, "Float", py - rg, "Float", rg * 2, "Float", rg * 2)
+            DllCall("gdiplus\GdipDeleteBrush", "Ptr", brG)
+            brC := 0
+            DllCall("gdiplus\GdipCreateSolidFill", "UInt", 0xFFFFFFFF, "Ptr*", &brC)
+            rc := 2.8
+            DllCall("gdiplus\GdipFillEllipse", "Ptr", g, "Ptr", brC, "Float", px - rc, "Float", py - rc, "Float", rc * 2, "Float", rc * 2)
+            DllCall("gdiplus\GdipDeleteBrush", "Ptr", brC)
+        } else {
+            frac := 1.0 - k / nTrail
+            alpha := Round(170 * frac)
+            if (alpha < 15)
+                continue
+            argb := (alpha << 24) | 0x4FC3F7
+            br := 0
+            DllCall("gdiplus\GdipCreateSolidFill", "UInt", argb, "Ptr*", &br)
+            r := 1.2 + 2.3 * frac
+            DllCall("gdiplus\GdipFillEllipse", "Ptr", g, "Ptr", br, "Float", px - r, "Float", py - r, "Float", r * 2, "Float", r * 2)
+            DllCall("gdiplus\GdipDeleteBrush", "Ptr", br)
+        }
+    }
 }
 
 ; Calcula el color final del engranaje para el frame actual (base + pulso + flash + transición/RGB).
@@ -1284,6 +1339,32 @@ ActualizarLogoAnimacion() {
         logoVelActual := 0
         return
     }
+
+    ; ── Logos que NO giran: ∞ (Gojo) y ⛩ (Sukuna) ──
+    ; En vez de girar, se quedan estáticos. Gojo muestra un punto de luz que
+    ; viaja por el infinito (se pinta en DibujarGearEnDC). Seguimos pintando
+    ; cada tick para animar ese traveler + el pulso de brillo.
+    charLogo := ObtenerCharLogo()
+    if (charLogo = Chr(0x221E) || charLogo = Chr(0x26E9)) {
+        logoVelObjetivo := 0
+        logoVelActual := 0
+        logoAngulo := 0
+        ; Pulso de brillo sigue activo para que el logo "respire" al iniciar
+        if (activo) {
+            logosPulsoT += 0.05 * logosPulsoDir
+            if (logosPulsoT >= 1.0) {
+                logosPulsoT := 1.0
+                logosPulsoDir := -1
+            } else if (logosPulsoT <= 0.0) {
+                logosPulsoT := 0.0
+                logosPulsoDir := 1
+            }
+        }
+        PintarLogo()
+        logoNeedsRedraw := false
+        return
+    }
+
     ; Lerp suave de velocidad hacia el objetivo (aceleración/deceleración)
     diff := logoVelObjetivo - logoVelActual
     logoVelActual += diff * 0.06
