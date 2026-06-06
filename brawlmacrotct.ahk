@@ -8,7 +8,7 @@ configPath := A_ScriptDir "\brawlmacro_config.ini"
 global eggsBackupPath := A_ScriptDir "\brawlmacro_eggs.txt"
 global heartbeatPath := A_ScriptDir "\brawlmacro_heartbeat.txt"
 global historialLogPath := A_ScriptDir "\brawlmacro_historial.log"
-global VERSION_ACTUAL := "30.1.1"
+global VERSION_ACTUAL := "30.2.0"
 
 ; ===== TEMAS =====
 temas := [
@@ -72,21 +72,20 @@ temas := [
     { nombre:"Cobre",      fondo:"180F0A", texto:"D97849", barra:"4A2818", textoBarra:"F2A878", historial:"100A08", panel:"261810", cooldown:"FFD700", afk:"B85C2E", boton:"4A2818", hover:"6B3A22", logo:"D97849", luzOn:"B85C2E", luzAccion:"FFD700", luzOff:"180F0A",  btnTexto:"F2A878", histColor1:"D97849", histColor2:"B85C2E", histColor3:"FFD700" },
     { nombre:"Vino",       fondo:"180510", texto:"E8B7CC", barra:"5D0A2A", textoBarra:"F5D5DE", historial:"100308", panel:"260818", cooldown:"FF1744", afk:"D81B60", boton:"5D0A2A", hover:"7E1040", logo:"E8B7CC", luzOn:"AD1457", luzAccion:"E8B7CC", luzOff:"180510",  btnTexto:"F5D5DE", histColor1:"E8B7CC", histColor2:"AD1457", histColor3:"5D0A2A" },
     { nombre:"Submarino",  fondo:"001A26", texto:"7DE2D1", barra:"023E5C", textoBarra:"B3F0E8", historial:"00121A", panel:"002838", cooldown:"FF6B35", afk:"FFA600", boton:"023E5C", hover:"045A82", logo:"FFA600", luzOn:"00BCD4", luzAccion:"FFA600", luzOff:"001A26",  btnTexto:"B3F0E8", histColor1:"7DE2D1", histColor2:"FFA600", histColor3:"00BCD4" },
-    ; ─────────── TEMÁTICOS ───────────
-    { nombre:"Discord",    fondo:"2C2F33", texto:"DCDDDE", barra:"5865F2", textoBarra:"FFFFFF", historial:"23272A", panel:"36393F", cooldown:"ED4245", afk:"57F287", boton:"40444B", hover:"5865F2", logo:"FFFFFF", luzOn:"5865F2", luzAccion:"57F287", luzOff:"2C2F33",  btnTexto:"FFFFFF", histColor1:"DCDDDE", histColor2:"5865F2", histColor3:"57F287" },
-    { nombre:"Spotify",    fondo:"121212", texto:"B3B3B3", barra:"1DB954", textoBarra:"FFFFFF", historial:"0A0A0A", panel:"1A1A1A", cooldown:"FF4444", afk:"1DB954", boton:"282828", hover:"1DB954", logo:"1DB954", luzOn:"1DB954", luzAccion:"1ED760", luzOff:"181818",  btnTexto:"FFFFFF", histColor1:"B3B3B3", histColor2:"1DB954", histColor3:"1ED760" },
-    { nombre:"Valorant",   fondo:"0F1923", texto:"ECE8E1", barra:"FF4655", textoBarra:"FFFFFF", historial:"0A1018", panel:"162030", cooldown:"FFFF00", afk:"BD3944", boton:"1A2A3A", hover:"FF4655", logo:"FF4655", luzOn:"FF4655", luzAccion:"ECE8E1", luzOff:"0F1923",  btnTexto:"FFFFFF", histColor1:"ECE8E1", histColor2:"FF4655", histColor3:"BD3944" },
-    { nombre:"Minecraft",  fondo:"3B2A1A", texto:"7CFC00", barra:"5D8A3C", textoBarra:"FFFFFF", historial:"2E2010", panel:"4A3620", cooldown:"FF3333", afk:"55FF55", boton:"5D8A3C", hover:"6FA04A", logo:"7CFC00", luzOn:"55FF55", luzAccion:"7CFC00", luzOff:"3B2A1A",  btnTexto:"FFFFFF", histColor1:"7CFC00", histColor2:"55FF55", histColor3:"5D8A3C" },
-    { nombre:"One Piece",  fondo:"0A2540", texto:"FFE066", barra:"FF8C42", textoBarra:"2C1810", historial:"071E33", panel:"103056", cooldown:"E63946", afk:"06D6A0", boton:"FF8C42", hover:"FFA866", logo:"FFE066", luzOn:"FF8C42", luzAccion:"06D6A0", luzOff:"0A2540",  btnTexto:"2C1810", histColor1:"FFE066", histColor2:"FF8C42", histColor3:"06D6A0" },
-    { nombre:"Naruto",     fondo:"1A1008", texto:"FF9020", barra:"FF6600", textoBarra:"FFFFFF", historial:"120A05", panel:"281A08", cooldown:"3366FF", afk:"4488FF", boton:"FF6600", hover:"FF8830", logo:"4488FF", luzOn:"FF6600", luzAccion:"4488FF", luzOff:"1A1008",  btnTexto:"FFFFFF", histColor1:"FF9020", histColor2:"FF6600", histColor3:"4488FF" },
-    { nombre:"Pokémon",    fondo:"FFFFFF", texto:"1C2B43", barra:"FF1A1A", textoBarra:"FFFFFF", historial:"F5F7FA", panel:"E8EDF5", cooldown:"FFC107", afk:"3F7CE6", boton:"FF1A1A", hover:"E60000", logo:"FFC107", luzOn:"FF1A1A", luzAccion:"FFC107", luzOff:"1C2B43",  btnTexto:"FFFFFF", histColor1:"1C2B43", histColor2:"FF1A1A", histColor3:"FFC107" },
     ; ─────────── SECRETOS — PACK GAMER ───────────
     { nombre:"★ Brawl",       secreto:true, unlock:"gamer", fondo:"000000", texto:"FFFFFF", barra:"0050D5", textoBarra:"FFFFFF", historial:"000000", panel:"0A1A30", cooldown:"FF4444", afk:"4FC3F7", boton:"0050D5", hover:"1976D2", logo:"FFFFFF", luzOn:"00B0FF", luzAccion:"FFFFFF", luzOff:"050E1C",  btnTexto:"FFFFFF", histColor1:"FFFFFF", histColor2:"00B0FF", histColor3:"0050D5" },
     { nombre:"◆ Cyberpunk",   secreto:true, unlock:"gamer", fondo:"0D0B1F", texto:"00FFFF", barra:"FF00AA", textoBarra:"FFFF00", historial:"070518", panel:"130E2E", cooldown:"FFFF00", afk:"00FFFF", boton:"FF00AA", hover:"FF33BB", logo:"FFFF00", luzOn:"FF00AA", luzAccion:"00FFFF", luzOff:"1A1240",  btnTexto:"FFFFFF", histColor1:"00FFFF", histColor2:"FF00AA", histColor3:"FFFF00" },
     { nombre:"☀ Retrowave",   secreto:true, unlock:"gamer", fondo:"1A0833", texto:"FF6EC7", barra:"7A1FA2", textoBarra:"00E5FF", historial:"0F051F", panel:"23104D", cooldown:"FF4081", afk:"FF8A50", boton:"7A1FA2", hover:"9C27B0", logo:"FF8A50", luzOn:"FF6EC7", luzAccion:"00E5FF", luzOff:"1A0833",  btnTexto:"FFFFFF", histColor1:"FF6EC7", histColor2:"00E5FF", histColor3:"FF8A50" },
-    { nombre:"☆ Sky",         secreto:true, unlock:"gamer", fondo:"E1F5FE", texto:"0277BD", barra:"FFFFFF", textoBarra:"0277BD", historial:"F0FAFE", panel:"B3E5FC", cooldown:"F06292", afk:"81D4FA", boton:"FFFFFF", hover:"F5F9FB", logo:"0277BD", luzOn:"81D4FA", luzAccion:"F8BBD9", luzOff:"0277BD",  btnTexto:"0277BD", histColor1:"0277BD", histColor2:"F06292", histColor3:"81D4FA" },
-    { nombre:"▣ Matrix",      secreto:true, unlock:"gamer", fondo:"000000", texto:"00FF00", barra:"002200", textoBarra:"00FF00", historial:"000800", panel:"001100", cooldown:"FF0000", afk:"00FF00", boton:"002200", hover:"003800", logo:"00FF00", luzOn:"00FF00", luzAccion:"FFFFFF", luzOff:"001100",  btnTexto:"00FF00", histColor1:"00FF00", histColor2:"00FF88", histColor3:"FFFFFF" },
-    ; Morados / magenta oscuros
+    { nombre:"🎮 Discord",    secreto:true, unlock:"gamer", fondo:"2C2F33", texto:"DCDDDE", barra:"5865F2", textoBarra:"FFFFFF", historial:"23272A", panel:"36393F", cooldown:"ED4245", afk:"57F287", boton:"40444B", hover:"5865F2", logo:"FFFFFF", luzOn:"5865F2", luzAccion:"57F287", luzOff:"2C2F33",  btnTexto:"FFFFFF", histColor1:"DCDDDE", histColor2:"5865F2", histColor3:"57F287" },
+    { nombre:"🎵 Spotify",    secreto:true, unlock:"gamer", fondo:"121212", texto:"B3B3B3", barra:"1DB954", textoBarra:"FFFFFF", historial:"0A0A0A", panel:"1A1A1A", cooldown:"FF4444", afk:"1DB954", boton:"282828", hover:"1DB954", logo:"1DB954", luzOn:"1DB954", luzAccion:"1ED760", luzOff:"181818",  btnTexto:"FFFFFF", histColor1:"B3B3B3", histColor2:"1DB954", histColor3:"1ED760" },
+    { nombre:"⌖ Valorant",    secreto:true, unlock:"gamer", fondo:"0F1923", texto:"ECE8E1", barra:"FF4655", textoBarra:"FFFFFF", historial:"0A1018", panel:"162030", cooldown:"FFFF00", afk:"BD3944", boton:"1A2A3A", hover:"FF4655", logo:"FF4655", luzOn:"FF4655", luzAccion:"ECE8E1", luzOff:"0F1923",  btnTexto:"FFFFFF", histColor1:"ECE8E1", histColor2:"FF4655", histColor3:"BD3944" },
+    { nombre:"⛏ Minecraft",   secreto:true, unlock:"gamer", fondo:"3B2A1A", texto:"7CFC00", barra:"5D8A3C", textoBarra:"FFFFFF", historial:"2E2010", panel:"4A3620", cooldown:"FF3333", afk:"55FF55", boton:"5D8A3C", hover:"6FA04A", logo:"7CFC00", luzOn:"55FF55", luzAccion:"7CFC00", luzOff:"3B2A1A",  btnTexto:"FFFFFF", histColor1:"7CFC00", histColor2:"55FF55", histColor3:"5D8A3C" },
+    ; ─────────── SECRETOS — PACK LEYENDAS ───────────
+    { nombre:"☆ Sky",         secreto:true, unlock:"leyendas", fondo:"E1F5FE", texto:"0277BD", barra:"FFFFFF", textoBarra:"0277BD", historial:"F0FAFE", panel:"B3E5FC", cooldown:"F06292", afk:"81D4FA", boton:"FFFFFF", hover:"F5F9FB", logo:"0277BD", luzOn:"81D4FA", luzAccion:"F8BBD9", luzOff:"0277BD",  btnTexto:"0277BD", histColor1:"0277BD", histColor2:"F06292", histColor3:"81D4FA" },
+    { nombre:"▣ Matrix",      secreto:true, unlock:"leyendas", fondo:"000000", texto:"00FF00", barra:"002200", textoBarra:"00FF00", historial:"000800", panel:"001100", cooldown:"FF0000", afk:"00FF00", boton:"002200", hover:"003800", logo:"00FF00", luzOn:"00FF00", luzAccion:"FFFFFF", luzOff:"001100",  btnTexto:"00FF00", histColor1:"00FF00", histColor2:"00FF88", histColor3:"FFFFFF" },
+    { nombre:"◓ Pokémon",     secreto:true, unlock:"leyendas", fondo:"FFFFFF", texto:"1C2B43", barra:"FF1A1A", textoBarra:"FFFFFF", historial:"F5F7FA", panel:"E8EDF5", cooldown:"FFC107", afk:"3F7CE6", boton:"FF1A1A", hover:"E60000", logo:"FFC107", luzOn:"FF1A1A", luzAccion:"FFC107", luzOff:"1C2B43",  btnTexto:"FFFFFF", histColor1:"1C2B43", histColor2:"FF1A1A", histColor3:"FFC107" },
+    { nombre:"➰ Naruto",      secreto:true, unlock:"leyendas", fondo:"1A1008", texto:"FF9020", barra:"FF6600", textoBarra:"FFFFFF", historial:"120A05", panel:"281A08", cooldown:"3366FF", afk:"4488FF", boton:"FF6600", hover:"FF8830", logo:"4488FF", luzOn:"FF6600", luzAccion:"4488FF", luzOff:"1A1008",  btnTexto:"FFFFFF", histColor1:"FF9020", histColor2:"FF6600", histColor3:"4488FF" },
+    { nombre:"⚓ One Piece",   secreto:true, unlock:"leyendas", fondo:"0A2540", texto:"FFE066", barra:"FF8C42", textoBarra:"2C1810", historial:"071E33", panel:"103056", cooldown:"E63946", afk:"06D6A0", boton:"FF8C42", hover:"FFA866", logo:"FFE066", luzOn:"FF8C42", luzAccion:"06D6A0", luzOff:"0A2540",  btnTexto:"2C1810", histColor1:"FFE066", histColor2:"FF8C42", histColor3:"06D6A0" },
     ; ─────────── SECRETOS — PACK ORIGINAL ───────────
     { nombre:"✦ E C L I P S E ✦", secreto:true, unlock:"shadow",  fondo:"050508", texto:"C8A060", barra:"0D0A20", textoBarra:"FFB347", historial:"030306", panel:"0A0818", cooldown:"FF2244", afk:"00FFCC", boton:"14102A", hover:"221840", logo:"FFB347", luzOn:"FF6600", luzAccion:"FFD700", luzOff:"080520",  btnTexto:"FFB347", histColor1:"FFD700", histColor2:"FF6600", histColor3:"00FFCC" },
     { nombre:"✦ C O S M O S ✦",   secreto:true, unlock:"cosmos",  fondo:"03000F", texto:"E2C9FF", barra:"180040", textoBarra:"FFD700", historial:"020008", panel:"0D001E", cooldown:"FF1493", afk:"00E5FF", boton:"12002E", hover:"1E0050", logo:"FFD700", luzOn:"BF00FF", luzAccion:"FF69B4", luzOff:"080020",  btnTexto:"FFD700", histColor1:"FF69B4", histColor2:"BF00FF", histColor3:"00E5FF" },
@@ -320,6 +319,7 @@ global luzSeq := [], luzSeqUltimo := 0
 global nikaHistClicks := 0, nikaHistUltimo := 0
 global eggPremiumClicks := 0, eggPremiumUltimo := 0
 global eggGamerClicks := 0, eggGamerUltimo := 0
+global eggLeyendasClicks := 0, eggLeyendasUltimo := 0  ; 8 clicks rapidos en el medidor ⚡ preset
 global eggGojoClicks := 0, eggGojoUltimo := 0       ; 6 clicks (Six Eyes) en secuenciasLabel
 global eggSukunaClicks := 0, eggSukunaUltimo := 0   ; 4 clicks (cuatro brazos) en destruccionesLabel
 
@@ -2455,7 +2455,7 @@ tituloMacro.SetFont("s13 Bold", "Segoe UI Semibold")
 
 presetLabel := miGui.Add("Text", "x125 y155 w80 h14 +0x201 Background" colorFondoPrincipal " c" colorTextoPrincipal, Chr(0x26A1) " " NombrePreset(presetRendimiento))
 presetLabel.SetFont("s8 c" colorTextoPrincipal, "Segoe UI Semibold")
-presetLabel.OnEvent("Click", CiclarPreset)
+presetLabel.OnEvent("Click", ClickPresetLeyendas)  ; cicla preset + egg secreto Pack Leyendas
 fpsLabel := miGui.Add("Text", "x335 y155 w55 h14 +0x201 Background" colorFondoPrincipal " c" colorTextoPrincipal, "-- fps")
 fpsLabel.SetFont("s8 c" colorTextoPrincipal, "Segoe UI")
 
@@ -3165,7 +3165,7 @@ ClickDestruccionesSukuna(*) {
 CargarEggsBackup() {
     global eggDesbloqueado, eggVoidDesbloqueado, eggShadowDesbloqueado
     global eggSolarDesbloqueado, eggBlancoDesbloqueado, eggPremiumDesbloqueado, eggGamerDesbloqueado, eggsBackupPath
-    global eggGojoDesbloqueado, eggSukunaDesbloqueado
+    global eggGojoDesbloqueado, eggSukunaDesbloqueado, eggLeyendasDesbloqueado
     if (!FileExist(eggsBackupPath))
         return
     try {
@@ -3184,6 +3184,8 @@ CargarEggsBackup() {
             eggPremiumDesbloqueado := true
         if (InStr(txt, "gamer"))
             eggGamerDesbloqueado := true
+        if (InStr(txt, "leyendas"))
+            eggLeyendasDesbloqueado := true
         if (InStr(txt, "gojo"))
             eggGojoDesbloqueado := true
         if (InStr(txt, "sukuna"))
@@ -3194,7 +3196,7 @@ CargarEggsBackup() {
 GuardarEggsBackup() {
     global eggDesbloqueado, eggVoidDesbloqueado, eggShadowDesbloqueado
     global eggSolarDesbloqueado, eggBlancoDesbloqueado, eggPremiumDesbloqueado, eggGamerDesbloqueado, eggsBackupPath
-    global eggGojoDesbloqueado, eggSukunaDesbloqueado
+    global eggGojoDesbloqueado, eggSukunaDesbloqueado, eggLeyendasDesbloqueado
     txt := ""
     if (eggDesbloqueado)
         txt .= "cosmos`n"
@@ -3210,6 +3212,8 @@ GuardarEggsBackup() {
         txt .= "premium`n"
     if (eggGamerDesbloqueado)
         txt .= "gamer`n"
+    if (eggLeyendasDesbloqueado)
+        txt .= "leyendas`n"
     if (eggGojoDesbloqueado)
         txt .= "gojo`n"
     if (eggSukunaDesbloqueado)
@@ -3222,21 +3226,22 @@ GuardarEggsBackup() {
 PuedeUsarTema(t) {
     global eggDesbloqueado, eggVoidDesbloqueado, eggShadowDesbloqueado
     global eggSolarDesbloqueado, eggBlancoDesbloqueado, eggPremiumDesbloqueado, eggGamerDesbloqueado
-    global eggGojoDesbloqueado, eggSukunaDesbloqueado
+    global eggGojoDesbloqueado, eggSukunaDesbloqueado, eggLeyendasDesbloqueado
     if (!t.HasProp("secreto") || !t.secreto)
         return true
     if (!t.HasProp("unlock"))
         return false
     switch t.unlock {
-        case "shadow":  return eggShadowDesbloqueado
-        case "cosmos":  return eggDesbloqueado
-        case "void":    return eggVoidDesbloqueado
-        case "solar":   return eggSolarDesbloqueado
-        case "blanco":  return eggBlancoDesbloqueado
-        case "premium": return eggPremiumDesbloqueado
-        case "gamer":   return eggGamerDesbloqueado
-        case "gojo":    return eggGojoDesbloqueado
-        case "sukuna":  return eggSukunaDesbloqueado
+        case "shadow":   return eggShadowDesbloqueado
+        case "cosmos":   return eggDesbloqueado
+        case "void":     return eggVoidDesbloqueado
+        case "solar":    return eggSolarDesbloqueado
+        case "blanco":   return eggBlancoDesbloqueado
+        case "premium":  return eggPremiumDesbloqueado
+        case "gamer":    return eggGamerDesbloqueado
+        case "leyendas": return eggLeyendasDesbloqueado
+        case "gojo":     return eggGojoDesbloqueado
+        case "sukuna":   return eggSukunaDesbloqueado
     }
     return false
 }
@@ -3254,7 +3259,7 @@ BuscarTemaPorUnlock(unlockId) {
 LeerTemaGuardado() {
     global configPath, temas, eggDesbloqueado, eggVoidDesbloqueado, eggShadowDesbloqueado
     global eggSolarDesbloqueado, eggBlancoDesbloqueado, eggPremiumDesbloqueado, eggGamerDesbloqueado, VERSION_ACTUAL
-    global eggGojoDesbloqueado, eggSukunaDesbloqueado
+    global eggGojoDesbloqueado, eggSukunaDesbloqueado, eggLeyendasDesbloqueado
     eggDesbloqueado        := Integer(IniRead(configPath, "Egg",        "Desbloqueado", "0")) = 1
     eggVoidDesbloqueado    := Integer(IniRead(configPath, "EggVoid",    "Desbloqueado", "0")) = 1
     eggShadowDesbloqueado  := Integer(IniRead(configPath, "EggShadow",  "Desbloqueado", "0")) = 1
@@ -3262,6 +3267,7 @@ LeerTemaGuardado() {
     eggBlancoDesbloqueado  := Integer(IniRead(configPath, "EggBlanco",  "Desbloqueado", "0")) = 1
     eggPremiumDesbloqueado := Integer(IniRead(configPath, "EggPremium", "Desbloqueado", "0")) = 1
     eggGamerDesbloqueado   := Integer(IniRead(configPath, "EggGamer",   "Desbloqueado", "0")) = 1
+    eggLeyendasDesbloqueado := Integer(IniRead(configPath, "EggLeyendas", "Desbloqueado", "0")) = 1
     eggGojoDesbloqueado    := Integer(IniRead(configPath, "EggGojo",    "Desbloqueado", "0")) = 1
     eggSukunaDesbloqueado  := Integer(IniRead(configPath, "EggSukuna",  "Desbloqueado", "0")) = 1
     ; Fallback: si el .ini está corrupto o en UTF-16, leer del backup UTF-8
@@ -4506,10 +4512,10 @@ DesbloquearGamer() {
     popup.SetFont("s13 c00FFFF Bold", "Segoe UI")
     popup.Add("Text", "x0 y0 w340 h30 Background130E2E Center cFFFF00", "  ★ PACK SECRETO DESBLOQUEADO ★  ")
     popup.SetFont("s11 cFFFFFF", "Segoe UI")
-    popup.Add("Text", "x10 y40 w320 h20 Center cFF00AA", "★ ─ ◆ ─ ☀ ─ ⚔ ─ ☆ ─ ▣")
+    popup.Add("Text", "x10 y40 w320 h20 Center cFF00AA", "★ ─ ◆ ─ ☀ ─ 🎮 ─ 🎵 ─ ⌖ ─ ⛏")
     popup.Add("Text", "x10 y64 w320 h22 Center c00FFFF", "Has desbloqueado el PACK GAMER")
-    popup.Add("Text", "x10 y90 w320 h20 Center cFFFF00", "6 temas nuevos en el selector")
-    popup.Add("Text", "x10 y112 w320 h20 Center cFF00AA", "★ ─ ◆ ─ ☀ ─ ⚔ ─ ☆ ─ ▣")
+    popup.Add("Text", "x10 y90 w320 h20 Center cFFFF00", "7 temas nuevos en el selector")
+    popup.Add("Text", "x10 y112 w320 h20 Center cFF00AA", "★ ─ ◆ ─ ☀ ─ 🎮 ─ 🎵 ─ ⌖ ─ ⛏")
     popup.Show("w340 h140 Center")
     RedondearVentana(popup.Hwnd, 14)
     SetTimer(() => popup.Destroy(), -4500)
@@ -4533,6 +4539,59 @@ ClickSecuenciasGamer(*) {
     if (eggGamerClicks >= 10) {
         eggGamerClicks := 0
         DesbloquearGamer()
+    }
+}
+
+DesbloquearLeyendas() {
+    global temas, temaActual, eggLeyendasDesbloqueado, configPath, logros
+
+    eggLeyendasDesbloqueado := true
+    temaActual := BuscarTemaPorUnlock("leyendas")   ; cambia al primero (Sky)
+    if (temaActual > 0)
+        TransicionTema(temas[temaActual])
+    GuardarTema()
+    IniWrite(1, configPath, "EggLeyendas", "Desbloqueado")
+    GuardarEggsBackup()
+
+    ; Marcar el logro
+    for l in logros {
+        if (l.id = "leyendaspack" && !l.desbloqueado) {
+            l.desbloqueado := true
+            GuardarLogro("leyendaspack")
+            break
+        }
+    }
+
+    popup := Gui("+AlwaysOnTop -Caption +ToolWindow")
+    popup.BackColor := "0A0A18"
+    popup.SetFont("s13 cFFD700 Bold", "Segoe UI")
+    popup.Add("Text", "x0 y0 w340 h30 Background141430 Center cFFD700", "  ✦ PACK SECRETO DESBLOQUEADO ✦  ")
+    popup.SetFont("s11 cFFFFFF", "Segoe UI")
+    popup.Add("Text", "x10 y40 w320 h20 Center c00E5FF", "☆ ─ ▣ ─ ◓ ─ ➰ ─ ⚓")
+    popup.Add("Text", "x10 y64 w320 h22 Center cFFD700", "Has desbloqueado el PACK LEYENDAS")
+    popup.Add("Text", "x10 y90 w320 h20 Center c00E5FF", "5 temas nuevos en el selector")
+    popup.Add("Text", "x10 y112 w320 h20 Center cFF69B4", "☆ ─ ▣ ─ ◓ ─ ➰ ─ ⚓")
+    popup.Show("w340 h140 Center")
+    RedondearVentana(popup.Hwnd, 14)
+    SetTimer(() => popup.Destroy(), -4500)
+}
+
+; Trigger LEYENDAS: click ×8 sobre el medidor ⚡ de rendimiento en 4 segundos.
+; CiclarPreset sigue funcionando (cada click cicla el preset); como 8 % 4 = 0,
+; acabas en el mismo preset donde empezaste. Original y no muy difícil.
+ClickPresetLeyendas(*) {
+    global eggLeyendasClicks, eggLeyendasUltimo, eggLeyendasDesbloqueado
+    CiclarPreset()   ; comportamiento normal: ciclar Eco/Ligero/Normal/Ultra
+    if (eggLeyendasDesbloqueado)
+        return
+    if (A_TickCount - eggLeyendasUltimo < 4000)
+        eggLeyendasClicks += 1
+    else
+        eggLeyendasClicks := 1
+    eggLeyendasUltimo := A_TickCount
+    if (eggLeyendasClicks >= 8) {
+        eggLeyendasClicks := 0
+        DesbloquearLeyendas()
     }
 }
 
@@ -7480,6 +7539,7 @@ DefinirLogros() {
         { id: "themeBlanco",  nombre: "Pureza absoluta",       desc: "??? (el historial guarda un secreto AFK)",              icono: Chr(0x2728), desbloqueado: false },
         { id: "themePremium", nombre: "El elegido",            desc: "??? (consigue TODOS los demás secretos primero)",             icono: Chr(0x1F48E), desbloqueado: false },
         { id: "gamerpack",    nombre: "Pack Gamer",            desc: "??? (Las SECUENCIAS son el camino)",     icono: Chr(0x1F3AE), desbloqueado: false },
+        { id: "leyendaspack", nombre: "Pack Leyendas",         desc: "??? (el medidor ⚡ gira en bucle... no pares de tocarlo)", icono: Chr(0x1F4FA), desbloqueado: false },
         ; ── Logros de cifra ──────────────────────────────────────────
         { id: "kiko",         nombre: "kiko",                  desc: "Llega a 67 secuencias",            icono: Chr(0x1F60E), desbloqueado: false },
         { id: "jbs",          nombre: "JBS",                   desc: "Llega a 5000 secuencias",          icono: Chr(0x1F3C6), desbloqueado: false }
@@ -7502,7 +7562,7 @@ VerificarLogros() {
     global totalSecuenciasGuardadas, contadorSecuencias
     global totalHorasGuardadas, totalDestruccionGuardada, contadorDestruccion
     global streakMax, tiempoAcumulado, tiempoInicio, timerActivo, totalCriticos
-    global eggDesbloqueado, eggVoidDesbloqueado, eggShadowDesbloqueado, eggSolarDesbloqueado, eggBlancoDesbloqueado, eggPremiumDesbloqueado, eggGamerDesbloqueado
+    global eggDesbloqueado, eggVoidDesbloqueado, eggShadowDesbloqueado, eggSolarDesbloqueado, eggBlancoDesbloqueado, eggPremiumDesbloqueado, eggGamerDesbloqueado, eggLeyendasDesbloqueado
 
     totalSecs := totalSecuenciasGuardadas + contadorSecuencias
     totalDestru := totalDestruccionGuardada + contadorDestruccion
@@ -7511,7 +7571,7 @@ VerificarLogros() {
         sesionHoras += (A_TickCount - tiempoInicio) / 3600000.0
     eggsCount := (eggDesbloqueado ? 1 : 0) + (eggVoidDesbloqueado ? 1 : 0) + (eggShadowDesbloqueado ? 1 : 0)
                  + (eggSolarDesbloqueado ? 1 : 0) + (eggBlancoDesbloqueado ? 1 : 0) + (eggPremiumDesbloqueado ? 1 : 0)
-                 + (eggGamerDesbloqueado ? 1 : 0)
+                 + (eggGamerDesbloqueado ? 1 : 0) + (eggLeyendasDesbloqueado ? 1 : 0)
     cumplidos := Map(
         "primera",       totalSecs >= 1,
         "centurion",     totalSecs >= 100,
@@ -7525,8 +7585,9 @@ VerificarLogros() {
         "lucky",         totalCriticos >= 1,
         "luckyMax",      totalCriticos >= 50,
         "coleccionista", eggsCount >= 3,
-        "godmode",       eggsCount >= 7,
+        "godmode",       eggsCount >= 8,
         "gamerpack",     eggGamerDesbloqueado,
+        "leyendaspack",  eggLeyendasDesbloqueado,
         "themeShadow",   eggShadowDesbloqueado,
         "themeCosmos",   eggDesbloqueado,
         "themeVoid",     eggVoidDesbloqueado,
