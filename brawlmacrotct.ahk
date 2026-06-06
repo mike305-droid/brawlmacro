@@ -8,7 +8,7 @@ configPath := A_ScriptDir "\brawlmacro_config.ini"
 global eggsBackupPath := A_ScriptDir "\brawlmacro_eggs.txt"
 global heartbeatPath := A_ScriptDir "\brawlmacro_heartbeat.txt"
 global historialLogPath := A_ScriptDir "\brawlmacro_historial.log"
-global VERSION_ACTUAL := "30.0.1"
+global VERSION_ACTUAL := "30.0.2"
 
 ; ===== TEMAS =====
 temas := [
@@ -302,6 +302,7 @@ global logoGearCacheChar  := ""     ; char (∞/⛩/⚙) con el que está constr
 global logoGearCacheW := 0          ; ancho del bitmap cacheado
 global logoGearCacheH := 0          ; alto del bitmap cacheado
 global LOGO_GEAR_CACHE_FRAMES := 32
+global logoGearCacheAngleSpan := 45.0  ; grados que cubre el cache (depende de la simetría del char)
 global logoAngulo := 0.0, logoVelActual := 0.0, logoVelObjetivo := 0.0
 global logoVelMax := 6.0  ; grados por tick @ ~30fps  →  ~180°/s (giro completo cada 2s)
 global logoNeedsRedraw := true
@@ -588,24 +589,40 @@ ObtenerCharLogo() {
     return Chr(9881)
 }
 
+; Devuelve el ángulo (en grados) que cubre el cache para el char actual,
+; según su simetría rotacional:
+;   ⚙ (9881)  → 45°  (gear de 8 dientes — simetría 8-fold)
+;   ∞ (0x221E) → 180° (infinito — simetría 2-fold)
+;   ⛩ (0x26E9) → 360° (torii — sin simetría rotacional)
+;   resto      → 360° (asumir sin simetría = seguro)
+ObtenerSpanLogo(char) {
+    if (char = Chr(9881))
+        return 45.0
+    if (char = Chr(0x221E))
+        return 180.0
+    return 360.0
+}
+
 ; Pre-renderiza 32 bitmaps del engranaje (uno por cada ~1.4° en el rango 0-45°)
 ; en el color dado. El engranaje tiene 8 dientes → simetría rotacional de 45° → con 32 frames
 ; en ese rango se ve perfectamente fluido cubriendo cualquier ángulo (se hace modulo 45).
 ConstruirCacheGear(colorHex, w, h) {
     global logoGearCache, logoGearCacheColor, logoGearCacheChar, logoGearCacheW, logoGearCacheH
-    global logoFontFamily, logoGearFont, LOGO_GEAR_CACHE_FRAMES
+    global logoFontFamily, logoGearFont, LOGO_GEAR_CACHE_FRAMES, logoGearCacheAngleSpan
 
     if (!logoFontFamily || !logoGearFont)
         return false
 
     LiberarCacheGear()
     charLogo := ObtenerCharLogo()
+    spanAngle := ObtenerSpanLogo(charLogo)
+    logoGearCacheAngleSpan := spanAngle
 
     cRgb := Integer("0x" colorHex)
     cArgb := 0xFF000000 | cRgb
 
     Loop LOGO_GEAR_CACHE_FRAMES {
-        angle := (A_Index - 1) * (45.0 / LOGO_GEAR_CACHE_FRAMES)
+        angle := (A_Index - 1) * (spanAngle / LOGO_GEAR_CACHE_FRAMES)
 
         ; Crear bitmap GDI+ PARGB (alpha por pixel para preservar transparencia)
         static PixelFormat32bppPARGB := 0xE200B
@@ -927,11 +944,16 @@ DibujarGearEnDC(hdc, w, h, angulo, colorHex, fondoHex) {
             }
 
             if (canUseCache) {
-                ; Calcular qué frame del cache usar (engranaje tiene simetría de 45°)
-                angWrap := Mod(angulo, 45.0)
+                ; Calcular qué frame del cache usar — el span depende de la simetría del char.
+                ; ⚙ → 45° (8 dientes), ∞ → 180°, ⛩ → 360°.
+                global logoGearCacheAngleSpan
+                span := logoGearCacheAngleSpan
+                if (span <= 0)
+                    span := 45.0
+                angWrap := Mod(angulo, span)
                 if (angWrap < 0)
-                    angWrap += 45.0
-                idx := Mod(Round(angWrap * LOGO_GEAR_CACHE_FRAMES / 45.0), LOGO_GEAR_CACHE_FRAMES) + 1
+                    angWrap += span
+                idx := Mod(Round(angWrap * LOGO_GEAR_CACHE_FRAMES / span), LOGO_GEAR_CACHE_FRAMES) + 1
                 hbmCached := logoGearCache[idx]
                 if (hbmCached) {
                     ; AlphaBlend respeta el alpha por pixel del bitmap PARGB
@@ -2409,6 +2431,9 @@ SetTimer(WatchdogAFK, 30000)     ; cada 30 s; si activo && > 90 s sin AFK → Re
 SetTimer(GojoPulsoHollowPurple, 4000)
 ; Hollow Purple: Aka + Aoi convergen cada 4s y explotan en morado (solo GOJO)
 SetTimer(TickAuraGojo, 4000)
+; Refresco de decoraciones permanentes (Six Eyes orbitando, marcas Sukuna,
+; kanji flotantes). Solo invalida el overlay si el tema actual es Gojo o Sukuna.
+SetTimer(TickDecoracionesPermanentes, 50)
 
 SetTimer(EscribirHeartbeat, 5000) ; cada 5 s escribe pid + timestamp en heartbeat.txt para el watchdog externo
 EscribirHeartbeat()              ; un primer write inmediato
@@ -5559,11 +5584,214 @@ PintarDecoracionesEnHDC(hdc, w, h) {
     if (!temas[temaActual].HasProp("unlock"))
         return
     unlock := temas[temaActual].unlock
+
+    ; ── DECORACIONES PERMANENTES (cada frame mientras el tema esté activo) ──
+    if (unlock = "sukuna") {
+        PintarMarcasSukuna(hdc, w, h)        ; 4 marcas/cicatrices en las esquinas
+        PintarSimbolosSukuna(hdc, w, h)      ; kanji "宿" / "伏" pulsantes
+    } else if (unlock = "gojo") {
+        PintarSixEyesGojo(hdc, w, h)         ; 6 ojos cyan orbitando el logo
+        PintarAnilloGojo(hdc, w, h)          ; anillo azul permanente
+    }
+
+    ; ── ANIMACIONES PUNTUALES (al detectar) ──
     if (unlock = "sukuna" && sukunaSlashFrame > 0) {
         PintarSlashSukunaEnHDC(hdc, w, h, sukunaSlashFrame)
     } else if (unlock = "gojo" && gojoAuraFrame > 0) {
         PintarAuraGojoEnHDC(hdc, w, h, gojoAuraFrame, 14)
     }
+}
+
+; ═══════════════════ DECORACIONES PERMANENTES SUKUNA ═══════════════════
+
+; Marcas/cicatrices rojas en las 4 esquinas — recuerdan a los 4 brazos del Rey
+; cortando. Líneas diagonales que apuntan al centro, semi-transparentes via GDI+.
+PintarMarcasSukuna(hdc, w, h) {
+    g := 0
+    DllCall("gdiplus\GdipCreateFromHDC", "Ptr", hdc, "Ptr*", &g)
+    if (!g)
+        return
+    DllCall("gdiplus\GdipSetSmoothingMode", "Ptr", g, "Int", 4)
+    ; Pulso lento de intensidad (0.6 - 1.0)
+    static t := 0.0
+    t += 0.03
+    if (t > 6.28)
+        t -= 6.28
+    pulso := 0.7 + 0.3 * Sin(t)
+    alpha := Round(120 * pulso)            ; rojo translúcido
+    argbRojo := (alpha << 24) | 0xFF2A2A   ; FF2A2A rojo Sukuna
+    penRojo := 0
+    DllCall("gdiplus\GdipCreatePen1", "UInt", argbRojo, "Float", 2.5, "Int", 2, "Ptr*", &penRojo)
+
+    ; 4 esquinas → líneas diagonales hacia adentro (15-30px)
+    largo := 18
+    ; Esquina superior izquierda: dos líneas formando una "X" pequeña
+    DllCall("gdiplus\GdipDrawLine", "Ptr", g, "Ptr", penRojo, "Float", 4,       "Float", 4,       "Float", 4 + largo,   "Float", 4 + largo)
+    DllCall("gdiplus\GdipDrawLine", "Ptr", g, "Ptr", penRojo, "Float", 4 + largo, "Float", 4,     "Float", 4,           "Float", 4 + largo)
+    ; Esquina superior derecha
+    DllCall("gdiplus\GdipDrawLine", "Ptr", g, "Ptr", penRojo, "Float", w - 4,     "Float", 4,     "Float", w - 4 - largo, "Float", 4 + largo)
+    DllCall("gdiplus\GdipDrawLine", "Ptr", g, "Ptr", penRojo, "Float", w - 4 - largo, "Float", 4, "Float", w - 4,         "Float", 4 + largo)
+    ; Esquina inferior izquierda
+    DllCall("gdiplus\GdipDrawLine", "Ptr", g, "Ptr", penRojo, "Float", 4,       "Float", h - 4,     "Float", 4 + largo,   "Float", h - 4 - largo)
+    DllCall("gdiplus\GdipDrawLine", "Ptr", g, "Ptr", penRojo, "Float", 4 + largo, "Float", h - 4,   "Float", 4,           "Float", h - 4 - largo)
+    ; Esquina inferior derecha
+    DllCall("gdiplus\GdipDrawLine", "Ptr", g, "Ptr", penRojo, "Float", w - 4,     "Float", h - 4,   "Float", w - 4 - largo, "Float", h - 4 - largo)
+    DllCall("gdiplus\GdipDrawLine", "Ptr", g, "Ptr", penRojo, "Float", w - 4 - largo, "Float", h - 4, "Float", w - 4,       "Float", h - 4 - largo)
+
+    DllCall("gdiplus\GdipDeletePen", "Ptr", penRojo)
+    DllCall("gdiplus\GdipDeleteGraphics", "Ptr", g)
+}
+
+; Kanji 宿 (Sukuna) y 伏 (Domain Expansion: Malevolent Shrine) flotando en
+; posiciones random — aparecen y desvanecen como si fueran maldiciones.
+PintarSimbolosSukuna(hdc, w, h) {
+    static fase := 0.0
+    fase += 0.015
+    if (fase > 1.0)
+        fase -= 1.0
+    ; Alpha tipo "respiración" — sube y baja
+    alpha := Round(140 * Sin(fase * 3.14159))
+    if (alpha < 30)
+        return  ; no pintar cuando esta casi invisible
+    g := 0
+    DllCall("gdiplus\GdipCreateFromHDC", "Ptr", hdc, "Ptr*", &g)
+    if (!g)
+        return
+    DllCall("gdiplus\GdipSetTextRenderingHint", "Ptr", g, "Int", 4)
+
+    ; Familia japonesa con fallback
+    family := 0
+    DllCall("gdiplus\GdipCreateFontFamilyFromName", "WStr", "Yu Gothic", "Ptr", 0, "Ptr*", &family)
+    if (!family)
+        DllCall("gdiplus\GdipCreateFontFamilyFromName", "WStr", "Meiryo", "Ptr", 0, "Ptr*", &family)
+    if (!family)
+        DllCall("gdiplus\GdipCreateFontFamilyFromName", "WStr", "Segoe UI", "Ptr", 0, "Ptr*", &family)
+    if (!family) {
+        DllCall("gdiplus\GdipDeleteGraphics", "Ptr", g)
+        return
+    }
+    font := 0
+    DllCall("gdiplus\GdipCreateFont", "Ptr", family, "Float", 22.0, "Int", 1, "Int", 0, "Ptr*", &font)
+    if (!font) {
+        DllCall("gdiplus\GdipDeleteFontFamily", "Ptr", family)
+        DllCall("gdiplus\GdipDeleteGraphics", "Ptr", g)
+        return
+    }
+
+    argbCol := (alpha << 24) | 0xB30000      ; rojo Sukuna
+    brush := 0
+    DllCall("gdiplus\GdipCreateSolidFill", "UInt", argbCol, "Ptr*", &brush)
+    fmt := 0
+    DllCall("gdiplus\GdipCreateStringFormat", "Int", 0, "Int", 0, "Ptr*", &fmt)
+
+    ; Kanji 宿 (esquina sup-der) y 伏 (esquina inf-izq)
+    rc1 := Buffer(16, 0)
+    NumPut("Float", w - 38.0, rc1, 0)
+    NumPut("Float", 14.0,     rc1, 4)
+    NumPut("Float", 32.0,     rc1, 8)
+    NumPut("Float", 32.0,     rc1, 12)
+    DllCall("gdiplus\GdipDrawString", "Ptr", g, "WStr", Chr(0x5BBF), "Int", 1, "Ptr", font, "Ptr", rc1, "Ptr", fmt, "Ptr", brush)
+
+    rc2 := Buffer(16, 0)
+    NumPut("Float", 8.0,      rc2, 0)
+    NumPut("Float", h - 38.0, rc2, 4)
+    NumPut("Float", 32.0,     rc2, 8)
+    NumPut("Float", 32.0,     rc2, 12)
+    DllCall("gdiplus\GdipDrawString", "Ptr", g, "WStr", Chr(0x4F0F), "Int", 1, "Ptr", font, "Ptr", rc2, "Ptr", fmt, "Ptr", brush)
+
+    DllCall("gdiplus\GdipDeleteStringFormat", "Ptr", fmt)
+    DllCall("gdiplus\GdipDeleteBrush", "Ptr", brush)
+    DllCall("gdiplus\GdipDeleteFont", "Ptr", font)
+    DllCall("gdiplus\GdipDeleteFontFamily", "Ptr", family)
+    DllCall("gdiplus\GdipDeleteGraphics", "Ptr", g)
+}
+
+; ═══════════════════ DECORACIONES PERMANENTES GOJO ═══════════════════
+
+; Six Eyes (六眼): 6 puntos cyan brillantes orbitando alrededor del logo.
+; Representan los Six Eyes que dan a Gojo su capacidad de ver toda la
+; energía maldita perfectamente.
+PintarSixEyesGojo(hdc, w, h) {
+    static fase := 0.0
+    fase += 0.025
+    if (fase > 6.28)
+        fase -= 6.28
+
+    cx := 66.0          ; centro X del logo en miGui
+    cy := 53.0          ; centro Y del logo (78 - 25 barra)
+    radioOrbit := 52.0  ; radio de la órbita
+
+    g := 0
+    DllCall("gdiplus\GdipCreateFromHDC", "Ptr", hdc, "Ptr*", &g)
+    if (!g)
+        return
+    DllCall("gdiplus\GdipSetSmoothingMode", "Ptr", g, "Int", 4)
+
+    Loop 6 {
+        i := A_Index - 1
+        ang := fase + (i * 1.0472)   ; 60° entre ojos
+        ox := cx + Cos(ang) * radioOrbit
+        oy := cy + Sin(ang) * radioOrbit
+        ; Cada ojo: brillo individual (parpadeo desfasado)
+        intensidad := 0.5 + 0.5 * Sin(fase * 2 + i * 0.8)
+        alpha := Round(180 + 75 * intensidad)
+        ; Color azul cielo de Limitless con un toque cyan
+        cR := 79, cG := 195, cB := 247
+        argbOjo := (alpha << 24) | (cR << 16) | (cG << 8) | cB
+        ; Ojo grande exterior (glow)
+        brushExt := 0
+        argbGlow := (Round(40 * intensidad) << 24) | (cR << 16) | (cG << 8) | cB
+        DllCall("gdiplus\GdipCreateSolidFill", "UInt", argbGlow, "Ptr*", &brushExt)
+        rExt := 6.0
+        DllCall("gdiplus\GdipFillEllipse", "Ptr", g, "Ptr", brushExt, "Float", ox - rExt, "Float", oy - rExt, "Float", rExt * 2, "Float", rExt * 2)
+        DllCall("gdiplus\GdipDeleteBrush", "Ptr", brushExt)
+        ; Ojo interior brillante
+        brushOjo := 0
+        DllCall("gdiplus\GdipCreateSolidFill", "UInt", argbOjo, "Ptr*", &brushOjo)
+        rInt := 2.5 + intensidad * 1.0
+        DllCall("gdiplus\GdipFillEllipse", "Ptr", g, "Ptr", brushOjo, "Float", ox - rInt, "Float", oy - rInt, "Float", rInt * 2, "Float", rInt * 2)
+        DllCall("gdiplus\GdipDeleteBrush", "Ptr", brushOjo)
+    }
+
+    DllCall("gdiplus\GdipDeleteGraphics", "Ptr", g)
+}
+
+; Anillo Limitless: anillo azul claro pulsante alrededor del logo.
+; Representa la barrera del Infinito que rodea a Gojo siempre.
+PintarAnilloGojo(hdc, w, h) {
+    static fase := 0.0
+    fase += 0.04
+    if (fase > 6.28)
+        fase -= 6.28
+
+    cx := 66.0
+    cy := 53.0
+    ; Tres anillos concentricos con fases desfasadas → efecto de ondas
+    g := 0
+    DllCall("gdiplus\GdipCreateFromHDC", "Ptr", hdc, "Ptr*", &g)
+    if (!g)
+        return
+    DllCall("gdiplus\GdipSetSmoothingMode", "Ptr", g, "Int", 4)
+
+    Loop 3 {
+        i := A_Index - 1
+        ondaFase := fase + i * 2.0944  ; 120° desfase
+        radio := 38.0 + 4.0 * Sin(ondaFase)
+        alpha := Round(60 + 30 * Sin(ondaFase))
+        if (alpha < 20)
+            alpha := 20
+        ; Azul cielo con toque de morado Hollow Purple
+        cR := 100 + Round(50 * Sin(ondaFase * 0.7))
+        cG := 150
+        cB := 240
+        argbRing := (alpha << 24) | (cR << 16) | (cG << 8) | cB
+        pen := 0
+        DllCall("gdiplus\GdipCreatePen1", "UInt", argbRing, "Float", 1.5, "Int", 2, "Ptr*", &pen)
+        DllCall("gdiplus\GdipDrawEllipse", "Ptr", g, "Ptr", pen, "Float", cx - radio, "Float", cy - radio, "Float", radio * 2.0, "Float", radio * 2.0)
+        DllCall("gdiplus\GdipDeletePen", "Ptr", pen)
+    }
+
+    DllCall("gdiplus\GdipDeleteGraphics", "Ptr", g)
 }
 
 PintarSlashSukunaEnHDC(hdc, w, h, frame) {
@@ -5727,6 +5955,26 @@ TickAuraGojo() {
     gojoAuraFrame := 14   ; 4 fases × ~3-4 frames cada una
     ReposicionarOverlayDeco()
     SetTimer(AnimarAuraGojo, 50)
+}
+
+; Tick a 20fps que refresca el overlay de decoraciones cuando el tema actual
+; es Gojo o Sukuna — anima las decoraciones permanentes (Six Eyes orbitando,
+; marcas con pulso, kanji respirando, anillos del Infinito).
+TickDecoracionesPermanentes() {
+    global temas, temaActual, presetDecoraciones, optDecoraciones
+    global overlayDecoraciones
+    if (!presetDecoraciones || !optDecoraciones)
+        return
+    if (!IsObject(overlayDecoraciones))
+        return
+    if (!temas[temaActual].HasProp("unlock"))
+        return
+    unlock := temas[temaActual].unlock
+    if (unlock != "gojo" && unlock != "sukuna")
+        return
+    ; Asegurar que el overlay esté posicionado (puede haberse movido el GUI)
+    ReposicionarOverlayDeco()
+    DllCall("InvalidateRect", "Ptr", overlayDecoraciones.Hwnd, "Ptr", 0, "Int", 1)
 }
 
 AnimarAuraGojo() {
