@@ -8,7 +8,7 @@ configPath := A_ScriptDir "\brawlmacro_config.ini"
 global eggsBackupPath := A_ScriptDir "\brawlmacro_eggs.txt"
 global heartbeatPath := A_ScriptDir "\brawlmacro_heartbeat.txt"
 global historialLogPath := A_ScriptDir "\brawlmacro_historial.log"
-global VERSION_ACTUAL := "30.2.0"
+global VERSION_ACTUAL := "30.3.0"
 
 ; ===== TEMAS =====
 temas := [
@@ -184,8 +184,7 @@ pasosNormales.Push({ tipo:"pimg", nombre:"ingame...",     color:0x70C9D3, catego
 pasosNormales.Push({ tipo:"pimg", nombre:"INTHEGAME1",    color:0x38373E, categoria:4, accion:"c", hold:400, tolerancia:1, delayClick:30, delayTecla:80, cooldown:5000, bloqueoGlobal:170000, tct:true, lastUsed:0, x1:792, y1:488, x2:794, y2:496 })
 pasosNormales.Push({ tipo:"pimg", nombre:"INTHEGAME2",    color:0x38373E, categoria:4, accion:"c", hold:400, tolerancia:1, delayClick:30, delayTecla:80, cooldown:5000, bloqueoGlobal:170000, sp:true, lastUsed:0, x1:792, y1:488, x2:794, y2:496 })
 pasosNormales.Push({ tipo:"pimg", nombre:"creatingmap",   color:0x918D2D, categoria:4, tolerancia:2, hold:100, delayClick:500, delayTecla:500, cooldown:500, sp:true, lastUsed:0, x1:607, y1:243, x2:617, y2:254 })
-pasosNormales.Push({ tipo:"pimg", nombre:"detector",      color:0xFFFCFC, categoria:4, tolerancia:1, cooldown:500, tct:true, sp:true, lastUsed:0, x1:893, y1:483, x2:1025, y2:615, colorDisparo:0xBD4140, tolDisparo:5, detectorActivo:false })
-pasosNormales.Push({ tipo:"pimg", nombre:"detector",      color:0xFFFCFC, categoria:4, tolerancia:1, cooldown:500, dstv:true, lastUsed:0, x1:893, y1:483, x2:1025, y2:615, colorDisparo:0xBD4140, tolDisparo:7, detectorActivo:false })
+pasosNormales.Push({ tipo:"pimg", nombre:"detector",      color:0xFFFFFF, categoria:4, tolerancia:1, cooldown:500, dstv:true, lastUsed:0, x1:893, y1:483, x2:1025, y2:615, circuloDetector:true, circuloRadio:66, circuloCantidad:100, circuloOffsetX:1, circuloOffsetY:20 })
 
 ; ─── FASE 5: PARTIDA TERMINADA (cat 1) ─────────────────────────────
 pasosNormales.Push({ tipo:"pimg", nombre:"gamedone1",     color:0x000033, categoria:1, accion:"c", hold:400, tolerancia:1, delayClick:30, delayTecla:80, cooldown:500, tct:true, sp:true, lastUsed:0, x1:941, y1:40, x2:959, y2:43 })
@@ -227,6 +226,13 @@ global ultimoPasoEjecutado := ""
 global modoDestruccion := false
 global historialVisible := true, accionEnCurso := false, contadorEsc := 0
 global perfilActivo := 1  ; 1=tct, 2=sp, 3=frt — los pasos sin marcar valen para tct y sp
+
+; ===== DETECTOR CIRCULAR (perfil dstv): 100 cruces "+" alrededor de un círculo =====
+; Estado del enganche + caché de las posiciones generadas + recursos GDI reutilizables
+; para capturar la región del círculo en memoria una sola vez por frame (ver CapturarCirculo).
+global circuloPuntos := [], circuloPuntosOrigen := "", circuloLockIdx := 0
+global circuloHDCMem := 0, circuloHBMP := 0, circuloHBMPOld := 0, circuloHDCScreen := 0
+global circuloBuf := 0, circuloBufW := 0, circuloBufH := 0, circuloBufOX := 0, circuloBufOY := 0
 
 ; ===== MODO FRT (spam clicks + cycle de teclas) =====
 ; Coordenadas del pixel a clickear continuamente cuando perfilActivo=3 y activo=true.
@@ -6788,6 +6794,228 @@ BuscarPixel(paso, &x, &y) {
     return false
 }
 
+; ╔══════════════════════════════════════════════════════════════════════════╗
+; ║  DETECTOR CIRCULAR (perfil dstv)                                          ║
+; ║  100 cruces "+" repartidas en círculo (radio configurable). Cada cruz =   ║
+; ║  5 píxeles (centro + arriba/abajo/izquierda/derecha — SIN diagonales):    ║
+; ║       | X |                                                               ║
+; ║       X X X                                                               ║
+; ║       | X |                                                               ║
+; ║  Si ≥4/5 píxeles de una cruz hacen match con paso.color (tolerancia       ║
+; ║  paso.tolerancia) esa cruz se considera "encendida". Al detectar una con  ║
+; ║  certeza, el macro se ENGANCHA a esa cruz puntual y la vigila a máxima    ║
+; ║  frecuencia; en cuanto deja de cumplir el patrón — aunque sea un solo     ║
+; ║  frame — dispara {Space} de inmediato.                                   ║
+; ║                                                                            ║
+; ║  Para que esto sea viable a alta frecuencia, NO se hacen 500              ║
+; ║  PixelGetColor por frame: se captura la región que cubre el círculo       ║
+; ║  completo UNA sola vez (BitBlt+GetDIBits a un buffer en memoria) y los    ║
+; ║  500 píxeles se leen de ahí (simples lecturas de memoria, ~instantáneo).  ║
+; ╚══════════════════════════════════════════════════════════════════════════╝
+
+; Genera (o regenera si cambian paso/escala/resolución) las posiciones de las
+; cruces sobre la circunferencia y dimensiona el buffer de captura para que
+; cubra el círculo completo + 1px de margen para los brazos de cada cruz.
+PrepararCirculoDetector(paso) {
+    global scaleX, scaleY, circuloPuntos, circuloPuntosOrigen, circuloLockIdx
+    global circuloBufW, circuloBufH, circuloBufOX, circuloBufOY
+
+    offsetY := paso.HasProp("circuloOffsetY") ? paso.circuloOffsetY : 0
+    offsetX := paso.HasProp("circuloOffsetX") ? paso.circuloOffsetX : 0
+
+    clave := paso.nombre "|" paso.x1 "," paso.y1 "," paso.x2 "," paso.y2
+        . "|" paso.circuloRadio "|" paso.circuloCantidad
+        . "|" offsetX "," offsetY
+        . "|" Round(scaleX, 4) "|" Round(scaleY, 4)
+    if (circuloPuntosOrigen = clave)
+        return
+
+    ; El offset se aplica en píxeles de pantalla YA escalados (no en unidades
+    ; base) — así "bajar 8px" mueve el círculo 8px reales en TU pantalla,
+    ; sin importar la resolución/escala.
+    cx := (paso.x1 + paso.x2) / 2 * scaleX + offsetX
+    cy := (paso.y1 + paso.y2) / 2 * scaleY + offsetY
+    radioX := paso.circuloRadio * scaleX
+    radioY := paso.circuloRadio * scaleY
+    cantidad := paso.circuloCantidad
+
+    circuloPuntos := []
+    Loop cantidad {
+        ang := (A_Index - 1) * (2 * 3.14159 / cantidad)
+        circuloPuntos.Push({ x: Round(cx + radioX * Cos(ang)), y: Round(cy + radioY * Sin(ang)) })
+    }
+
+    minX := circuloPuntos[1].x, maxX := circuloPuntos[1].x
+    minY := circuloPuntos[1].y, maxY := circuloPuntos[1].y
+    for p in circuloPuntos {
+        minX := Min(minX, p.x), maxX := Max(maxX, p.x)
+        minY := Min(minY, p.y), maxY := Max(maxY, p.y)
+    }
+    ; Margen = distancia de los brazos (escalada) a cada lado, para que los
+    ; brazos arriba/abajo/izq/der quepan dentro del buffer capturado.
+    margenX := Max(1, Round(scaleX))
+    margenY := Max(1, Round(scaleY))
+    circuloBufOX := minX - margenX
+    circuloBufOY := minY - margenY
+    circuloBufW := (maxX - minX) + 2 * margenX + 1
+    circuloBufH := (maxY - minY) + 2 * margenY + 1
+
+    PrepararBufferGDI(circuloBufW, circuloBufH)
+    circuloPuntosOrigen := clave
+    circuloLockIdx := 0
+}
+
+; Crea (o recrea si cambia el tamaño) los recursos GDI reutilizables: se piden
+; UNA vez y se reusan en cada frame — pedirlos/soltarlos cada tick sería
+; demasiado costoso para correr a 60fps.
+PrepararBufferGDI(w, h) {
+    global circuloHDCMem, circuloHBMP, circuloHBMPOld, circuloHDCScreen, circuloBuf
+
+    if (circuloHDCMem && circuloBuf && circuloBuf.Size = w * h * 4)
+        return
+
+    LiberarBufferGDI()
+
+    circuloHDCScreen := DllCall("GetDC", "Ptr", 0, "Ptr")
+    circuloHDCMem    := DllCall("CreateCompatibleDC", "Ptr", circuloHDCScreen, "Ptr")
+    circuloHBMP      := DllCall("CreateCompatibleBitmap", "Ptr", circuloHDCScreen, "Int", w, "Int", h, "Ptr")
+    circuloHBMPOld   := DllCall("SelectObject", "Ptr", circuloHDCMem, "Ptr", circuloHBMP, "Ptr")
+    circuloBuf := Buffer(w * h * 4, 0)
+}
+
+LiberarBufferGDI() {
+    global circuloHDCMem, circuloHBMP, circuloHBMPOld, circuloHDCScreen
+    if (circuloHDCMem && circuloHBMPOld) {
+        ; Restaurar el bitmap original del DC antes de borrar — si no, DeleteObject
+        ; sobre un bitmap todavía seleccionado puede fallar o dejar el handle filtrado.
+        DllCall("SelectObject", "Ptr", circuloHDCMem, "Ptr", circuloHBMPOld)
+        circuloHBMPOld := 0
+    }
+    if circuloHBMP {
+        DllCall("DeleteObject", "Ptr", circuloHBMP)
+        circuloHBMP := 0
+    }
+    if circuloHDCMem {
+        DllCall("DeleteDC", "Ptr", circuloHDCMem)
+        circuloHDCMem := 0
+    }
+    if circuloHDCScreen {
+        DllCall("ReleaseDC", "Ptr", 0, "Ptr", circuloHDCScreen)
+        circuloHDCScreen := 0
+    }
+}
+
+; Captura la región (sx,sy)-(sx+w,sy+h) de pantalla a un buffer en memoria
+; (32bpp BGRA, filas top-down) reutilizando los handles GDI ya preparados.
+CapturarCirculo(sx, sy, w, h) {
+    global circuloHDCMem, circuloHDCScreen, circuloHBMP, circuloBuf
+
+    DllCall("BitBlt"
+        , "Ptr", circuloHDCMem, "Int", 0, "Int", 0, "Int", w, "Int", h
+        , "Ptr", circuloHDCScreen, "Int", sx, "Int", sy
+        , "UInt", 0x00CC0020)  ; SRCCOPY
+
+    bmi := Buffer(40, 0)
+    NumPut("UInt",   40, bmi,  0)   ; biSize
+    NumPut("Int",     w, bmi,  4)   ; biWidth
+    NumPut("Int",   -h, bmi,  8)   ; biHeight negativo = filas en orden top-down
+    NumPut("UShort",  1, bmi, 12)   ; biPlanes
+    NumPut("UShort", 32, bmi, 14)   ; biBitCount = 32bpp BGRA
+    NumPut("UInt",    0, bmi, 16)   ; biCompression = BI_RGB
+
+    DllCall("GetDIBits"
+        , "Ptr", circuloHDCMem, "Ptr", circuloHBMP
+        , "UInt", 0, "UInt", h
+        , "Ptr", circuloBuf, "Ptr", bmi, "UInt", 0)
+}
+
+; Lee un color 0xRRGGBB del buffer capturado, en coordenadas LOCALES (relativas
+; a la esquina superior-izquierda de la región capturada).
+PixelDelCirculo(bx, by) {
+    global circuloBuf, circuloBufW, circuloBufH
+    if (bx < 0 || by < 0 || bx >= circuloBufW || by >= circuloBufH)
+        return -1
+    off := (by * circuloBufW + bx) * 4
+    b := NumGet(circuloBuf, off,     "UChar")
+    g := NumGet(circuloBuf, off + 1, "UChar")
+    r := NumGet(circuloBuf, off + 2, "UChar")
+    return (r << 16) | (g << 8) | b
+}
+
+; ¿c1 (o -1 si fuera de rango) está dentro de "tol" de c2 en los 3 canales?
+ColorEnTolerancia(c1, c2, tol) {
+    if (c1 = -1)
+        return false
+    return Abs(((c1 >> 16) & 0xFF) - ((c2 >> 16) & 0xFF)) <= tol
+        && Abs(((c1 >> 8)  & 0xFF) - ((c2 >> 8)  & 0xFF)) <= tol
+        && Abs(( c1        & 0xFF) - ( c2        & 0xFF)) <= tol
+}
+
+; Revisa las "cantidad" cruces de este frame contra el buffer ya capturado y
+; devuelve cuántos de sus 5 píxeles ("+": centro+arriba+abajo+izq+der, SIN
+; diagonales) hacen match con paso.color dentro de paso.tolerancia — un
+; array paralelo a circuloPuntos con un número de 0 a 5 por cada cruz.
+; Se cuenta una sola vez por frame y de ahí se derivan los dos umbrales
+; (enganche y "fijo") sin volver a tocar el buffer.
+ContarMatchesCruces(paso) {
+    global circuloPuntos, circuloBufOX, circuloBufOY, scaleX, scaleY
+    ; Distancia de cada brazo ESCALADA con la resolución (mín 1 px). En 1080p
+    ; (scale=1.0) cada brazo está a 1 px (cruz 3×3); en 4K (scale=2.0) a 2 px (5×5).
+    bx := Max(1, Round(scaleX))
+    by := Max(1, Round(scaleY))
+    offsets := [[0, 0], [0, -by], [0, by], [-bx, 0], [bx, 0]]  ; centro, arriba, abajo, izq, der ("+")
+
+    conteos := []
+    for idx, p in circuloPuntos {
+        ok := 0
+        for off in offsets {
+            col := PixelDelCirculo(p.x - circuloBufOX + off[1], p.y - circuloBufOY + off[2])
+            if ColorEnTolerancia(col, paso.color, paso.tolerancia)
+                ok += 1
+        }
+        conteos.Push(ok)
+    }
+    return conteos
+}
+
+; Lógica principal: prepara/captura/cuenta matches y aplica el enganche con
+; DOS umbrales distintos:
+;   • UMBRAL_ENGANCHE (5/5): exige los 5 píxeles blancos completos para
+;     "encontrar" una cruz y engancharse (no se engancha con cruces parciales).
+;   • UMBRAL_FIJO     (5/5 — los 5 píxeles completos): mientras está enganchado,
+;     exige el patrón perfecto para seguir considerándola "fija"; en cuanto
+;     UN SOLO píxel deja de hacer match —aunque sea un instante— ya cuenta
+;     como "cambió de color" y dispara {Space} al INSTANTE, sin confirmaciones.
+; Devuelve true si la cruz vigilada cambió/desapareció y ya se envió {Space}.
+RevisarCirculoDetector(paso) {
+    global circuloBufOX, circuloBufOY, circuloBufW, circuloBufH, circuloLockIdx
+    static UMBRAL_ENGANCHE := 5   ; engancha solo con los 5/5 píxeles blancos (tol 1)
+    static UMBRAL_FIJO     := 5
+
+    PrepararCirculoDetector(paso)
+    CapturarCirculo(circuloBufOX, circuloBufOY, circuloBufW, circuloBufH)
+    conteos := ContarMatchesCruces(paso)
+
+    if (circuloLockIdx != 0) {
+        if (conteos[circuloLockIdx] < UMBRAL_FIJO) {
+            ; La cruz enganchada dejó de estar 100% fija — reaccionar YA
+            SendInput "{Space}"
+            circuloLockIdx := 0
+            return true
+        }
+        return false
+    }
+
+    ; Sin enganche todavía: con UMBRAL_ENGANCHE ya alcanza para "encontrarla"
+    for idx, ok in conteos {
+        if (ok >= UMBRAL_ENGANCHE) {
+            circuloLockIdx := idx
+            break
+        }
+    }
+    return false
+}
+
 ActivarBloqueoGlobal(paso) {
     global bloqueoGlobalHasta
     if paso.HasProp("bloqueoGlobal") && (paso.bloqueoGlobal > 0)
@@ -6967,6 +7195,12 @@ EjecutarMacro(*) {
         if !PasoActivoEnPerfil(paso)
             continue
 
+        ; Detector circular dstv: lo vigila su propio timer de alta frecuencia
+        ; (TickCirculoDetectorDstv) — aquí se ignora por completo para que NO
+        ; corra en paralelo con la lógica vieja de "pixel blanco → rojo".
+        if paso.HasProp("circuloDetector") && paso.circuloDetector
+            continue
+
         pasoRevisado += 1
         ; Cada 5 pasos → comprobar prioridad
         if (!modoCadena && Mod(pasoRevisado, PASOS_ENTRE_PRIO) = 0) {
@@ -6980,60 +7214,6 @@ EjecutarMacro(*) {
             continue
 
         encontrado := BuscarPixel(paso, &x, &y)
-
-        ; ── Detector: vigila pixel blanco 1x2 → Space cuando aparece rojo o desaparece blanco ──
-        if paso.HasProp("colorDisparo") {
-            if (encontrado) {
-                ; Verificar bloque 1x2: pixel encontrado + el de abajo (y+1)
-                confirmado := false
-                try {
-                    c2 := PixelGetColor(x, y + 1)
-                    cVal := Integer(c2)
-                    bR := (paso.color >> 16) & 0xFF
-                    bG := (paso.color >> 8) & 0xFF
-                    bB := paso.color & 0xFF
-                    tol := paso.tolerancia
-                    pR := (cVal >> 16) & 0xFF
-                    pG := (cVal >> 8) & 0xFF
-                    pB := cVal & 0xFF
-                    if (Abs(pR - bR) <= tol && Abs(pG - bG) <= tol && Abs(pB - bB) <= tol)
-                        confirmado := true
-                }
-                if (!confirmado) {
-                    accionEnCurso := false
-                    continue
-                }
-                ; 1x2 confirmado — NO mover cursor, solo vigilar
-                paso.detectorActivo := true
-                tmpPaso := {x1: paso.x1, y1: paso.y1, x2: paso.x2, y2: paso.y2, color: paso.colorDisparo, tolerancia: paso.HasProp("tolDisparo") ? paso.tolDisparo : 5}
-                if BuscarPixel(tmpPaso, &xd, &yd) {
-                    SendInput "{Space}"
-                    paso.lastUsed := A_TickCount
-                    paso.detectorActivo := false
-                    ultimaDeteccionReal := A_TickCount
-                    ultimoCambio := A_TickCount
-                    AgregarHistorial(paso.nombre " → Space (rojo)", paso.HasProp("categoria") ? ObtenerColorCategoria(paso.categoria) : "")
-                    LuzAccionFlash()
-                    OndaBarra()
-                    DespuesDeAccion(false)
-                }
-                accionEnCurso := false
-                return
-            } else if (paso.HasProp("detectorActivo") && paso.detectorActivo) {
-                SendInput "{Space}"
-                paso.lastUsed := A_TickCount
-                paso.detectorActivo := false
-                ultimaDeteccionReal := A_TickCount
-                ultimoCambio := A_TickCount
-                AgregarHistorial(paso.nombre " → Space (desaparecio)", paso.HasProp("categoria") ? ObtenerColorCategoria(paso.categoria) : "")
-                LuzAccionFlash()
-                OndaBarra()
-                DespuesDeAccion(false)
-                accionEnCurso := false
-                return
-            }
-            continue
-        }
 
         if (encontrado) {
             if paso.HasProp("tiempoNecesario") {
@@ -7202,6 +7382,43 @@ EjecutarMacro(*) {
     global ultimoAfkMove
     ultimoAfkMove := A_TickCount   ; watchdog: marca que el AFK acaba de moverse
     accionEnCurso := false
+}
+
+; ===== DETECTOR CIRCULAR DSTV — TICK DE ALTA FRECUENCIA =====
+; Corre en su PROPIO SetTimer (independiente del loop de 50ms de EjecutarMacro,
+; que para el perfil dstv no hace nada más que mantener vivo el watchdog) para
+; poder vigilar el círculo de cruces a ~60fps sin esperar la cadencia del loop
+; principal — clave para reaccionar "al instante" cuando la cruz cambia.
+TickCirculoDetectorDstv() {
+    global activo, perfilActivo, pasosNormales
+    global ultimoCambio, ultimaDeteccionReal
+
+    if (!activo || perfilActivo != 4)
+        return
+
+    paso := 0
+    for p in pasosNormales {
+        if (p.HasProp("circuloDetector") && p.circuloDetector && p.HasProp("dstv") && p.dstv) {
+            paso := p
+            break
+        }
+    }
+    if !IsObject(paso)
+        return
+
+    if paso.HasProp("cooldown") && (A_TickCount - paso.lastUsed < paso.cooldown)
+        return
+
+    if RevisarCirculoDetector(paso) {
+        paso.lastUsed := A_TickCount
+        ActivarBloqueoGlobal(paso)
+        ultimaDeteccionReal := A_TickCount
+        ultimoCambio := A_TickCount
+        AgregarHistorial(paso.nombre " → Space (círculo)", paso.HasProp("categoria") ? ObtenerColorCategoria(paso.categoria) : "")
+        LuzAccionFlash()
+        OndaBarra()
+        DespuesDeAccion(false)
+    }
 }
 
 ; ===== DINAMISMO — FUNCIONES =====
@@ -8061,6 +8278,7 @@ Iniciar(*) {
     if (perfilActivo = 4) {
         SetTimer(EjecutarMacro, 50)
         SetTimer(ActualizarCooldowns, 100)
+        SetTimer(TickCirculoDetectorDstv, 16)   ; detector circular ~60fps, en su propio timer
         IniciarTimer()
         EscribirHeartbeat()   ; capturar activo=1 al instante (no esperar 5s)
         EnviarWebhookEvento("iniciado")
@@ -8093,7 +8311,9 @@ Parar(*) {
     global tiempoUltimoLanzamiento, barra, barraHistorial, colorBarra, logoMacro, colorLogoMacro
     global logoVelObjetivo
     global afkAlertaFlash, afkText, colorAFK, timerLabel, colorTextoPrincipal
+    global circuloLockIdx
     activo := false
+    circuloLockIdx := 0   ; soltar el enganche del detector circular — re-detectar fresco al reiniciar
     logoVelObjetivo := 0.0
     accionEnCurso := false
     bloqueoGlobalHasta := 0
@@ -8102,6 +8322,7 @@ Parar(*) {
     tiempoUltimoLanzamiento := 0
     ActualizarEstadoVisual()
     SetTimer(EjecutarMacro, 0)
+    SetTimer(TickCirculoDetectorDstv, 0)
     SetTimer(ActualizarCooldowns, 0)
     SetTimer(ActualizarAFK, 0)
     SetTimer(PulsoBarraActivo, 0)
@@ -8414,7 +8635,7 @@ ToggleOverlayPixeles(*) {
 }
 
 DibujarOverlayPixeles() {
-    global overlayPixeles, pasosPrioridad, pasosNormales, scaleX, scaleY
+    global overlayPixeles, pasosPrioridad, pasosNormales, scaleX, scaleY, circuloPuntos
 
     try {
         if IsObject(overlayPixeles)
@@ -8426,7 +8647,7 @@ DibujarOverlayPixeles() {
 
     overlayPixeles := Gui("-Caption +ToolWindow +AlwaysOnTop +E0x20")
     overlayPixeles.BackColor := "010101"
-    WinSetTransColor("010101 200", overlayPixeles)
+    WinSetTransColor("010101 160", overlayPixeles)   ; un poco más transparente que antes (era 200/255)
     overlayPixeles.Show("x0 y0 w" sw " h" sh " NoActivate")
 
     hWnd := overlayPixeles.Hwnd
@@ -8461,6 +8682,39 @@ DibujarOverlayPixeles() {
         ; (borde removido — ahora el color del cuadrado ES el color del paso a detectar)
     }
 
+    ; Dibuja una "+" de 5 puntos (centro + arriba/abajo/izquierda/derecha, SIN
+    ; diagonales) — replica visual EXACTA del patrón que vigila el detector
+    ; circular, en las mismas coordenadas de pantalla, para poder calibrar la
+    ; alineación del círculo de 100 cruces a simple vista.
+    DibujarCruz(hDC, cx, cy, rgbColor) {
+        global scaleX, scaleY
+        ; Brazos escalados igual que el detector real (ContarMatchesCruces)
+        bx := Max(1, Round(scaleX))
+        by := Max(1, Round(scaleY))
+        offsets := [[0, 0], [0, -by], [0, by], [-bx, 0], [bx, 0]]
+        tam := 3
+
+        r := (rgbColor >> 16) & 0xFF
+        g := (rgbColor >> 8)  & 0xFF
+        b := rgbColor & 0xFF
+        if (r = 1 && g = 1 && b = 1)
+            b := 2
+        colorRef := (b << 16) | (g << 8) | r
+        hBrush := DllCall("CreateSolidBrush", "UInt", colorRef, "Ptr")
+
+        for off in offsets {
+            px := cx + off[1] - 1
+            py := cy + off[2] - 1
+            rect := Buffer(16, 0)
+            NumPut("Int", px,          rect, 0)
+            NumPut("Int", py,          rect, 4)
+            NumPut("Int", px + tam,    rect, 8)
+            NumPut("Int", py + tam,    rect, 12)
+            DllCall("FillRect", "Ptr", hDC, "Ptr", rect, "Ptr", hBrush)
+        }
+        DllCall("DeleteObject", "Ptr", hBrush)
+    }
+
     for paso in pasosPrioridad {
         if !PasoActivoEnPerfil(paso)
             continue
@@ -8475,11 +8729,22 @@ DibujarOverlayPixeles() {
     for paso in pasosNormales {
         if !PasoActivoEnPerfil(paso)
             continue
+        colorPaso := paso.HasProp("color") ? paso.color : 0xFF00FF
+
+        ; Detector circular dstv: en vez del cuadrado de búsqueda, dibujar las
+        ; 100 cruces "+" exactamente donde el detector real las va a vigilar
+        ; (mismas coordenadas de pantalla — sirve para calibrar el radio/centro).
+        if (paso.HasProp("circuloDetector") && paso.circuloDetector) {
+            PrepararCirculoDetector(paso)
+            for p in circuloPuntos
+                DibujarCruz(hDC, p.x, p.y, colorPaso)
+            continue
+        }
+
         x1s := Round(paso.x1 * scaleX)
         y1s := Round(paso.y1 * scaleY)
         x2s := Round(paso.x2 * scaleX)
         y2s := Round(paso.y2 * scaleY)
-        colorPaso := paso.HasProp("color") ? paso.color : 0xFF00FF
         DibujarCuadrado(hDC, x1s, y1s, x2s, y2s, colorPaso)
     }
 
