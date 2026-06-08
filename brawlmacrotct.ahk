@@ -8,7 +8,7 @@ configPath := A_ScriptDir "\brawlmacro_config.ini"
 global eggsBackupPath := A_ScriptDir "\brawlmacro_eggs.txt"
 global heartbeatPath := A_ScriptDir "\brawlmacro_heartbeat.txt"
 global historialLogPath := A_ScriptDir "\brawlmacro_historial.log"
-global VERSION_ACTUAL := "30.4.0"
+global VERSION_ACTUAL := "30.4.1"
 
 ; ===== TEMAS =====
 temas := [
@@ -4088,14 +4088,20 @@ AbrirTutorial(*) {
     global colorFondoPrincipal, colorTextoPrincipal, colorBarra, colorTextoBarra
     global colorBotonNormal, colorBotonHover, colorBtnTexto
 
-    if (tutGuiVisible && IsObject(tutGui)) {
+    ; Toggle: si ya hay ventana (visible o no), ciérrala y sal. Usamos IsObject
+    ; (no tutGuiVisible) para que nunca quede una ventana "huérfana" imposible de cerrar.
+    if (IsObject(tutGui)) {
         CerrarTutorial()
         return
     }
 
     tutPagina := 1
     tutGui := Gui("+AlwaysOnTop -Caption +ToolWindow")
+    tutGuiVisible := true   ; marcar YA, antes de cualquier paso que pueda fallar
     tutGui.BackColor := colorFondoPrincipal
+    ; Cierre por teclado (Esc) y por Alt+F4 / sistema (Close) — respaldo fiable
+    tutGui.OnEvent("Escape", CerrarTutorial)
+    tutGui.OnEvent("Close", CerrarTutorial)
     W := 460
 
     ; Barra superior (arrastrar / cerrar)
@@ -4146,8 +4152,7 @@ AbrirTutorial(*) {
 
     TutorialRender()
     tutGui.Show("w" W " h410 Center")
-    RedondearVentana(tutGui.Hwnd, 14)
-    tutGuiVisible := true
+    try RedondearVentana(tutGui.Hwnd, 14)   ; en try: si falla, la ventana sigue cerrable
 }
 
 TutorialRender() {
@@ -4173,13 +4178,14 @@ TutorialNav(dir) {
     TutorialRender()
 }
 
-CerrarTutorial() {
+CerrarTutorial(*) {
     global tutGui, tutGuiVisible
-    if (tutGuiVisible && IsObject(tutGui)) {
+    tutGuiVisible := false
+    if (IsObject(tutGui)) {
         try LimpiarHoverGui(tutGui)
         try tutGui.Destroy()
-        tutGuiVisible := false
     }
+    tutGui := ""   ; soltar la referencia para que el toggle sepa que está cerrado
 }
 
 AbrirPanelRGB(*) {
