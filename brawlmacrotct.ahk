@@ -8,7 +8,7 @@ configPath := A_ScriptDir "\brawlmacro_config.ini"
 global eggsBackupPath := A_ScriptDir "\brawlmacro_eggs.txt"
 global heartbeatPath := A_ScriptDir "\brawlmacro_heartbeat.txt"
 global historialLogPath := A_ScriptDir "\brawlmacro_historial.log"
-global VERSION_ACTUAL := "30.3.1"
+global VERSION_ACTUAL := "30.4.0"
 
 ; ===== TEMAS =====
 temas := [
@@ -271,7 +271,7 @@ global miGui, barra, barraHistorial, logoMacro, tituloMacro, timerLabel
 global miniGui := "", modoMini := false, logoMacroMini := "", miniSubclassCb := 0
 global barraMini := "", miniBarraSubclassCb := 0
 global overlayPartMini := "", particulasMini := [], overlayDecoMini := "", overlayDecoMiniSubCb := 0
-global btnIniciar, btnParar, btnCodigo, btnReset, btnHistorial, btnTema, btnMin, btnClose, btnUpdate, btnOverlay, btnRGBBtn, btnStatsBtn, btnWebhook, btnLogros, btnPart, btnPerfil, btnMini, btnOptimizar
+global btnIniciar, btnParar, btnCodigo, btnReset, btnHistorial, btnTema, btnMin, btnClose, btnUpdate, btnOverlay, btnRGBBtn, btnStatsBtn, btnWebhook, btnLogros, btnPart, btnPerfil, btnMini, btnOptimizar, btnTutorial
 global hoverAccent := "", hoverAnimStep := 0, hoverAccentTop := "", hoverAccentHist := ""
 global hoverAccentBot := "", hoverAccentRight := "", hoverAccentBotHist := "", hoverAccentRightHist := ""
 global glowTitulo := "", sepEstado := "", sepAccion := ""  ; polish visual estático
@@ -373,6 +373,7 @@ global optDecoraciones   := true   ; animaciones de los temas
 global optConfeti        := true   ; confeti en milestones
 global optTypeReveal     := true   ; revelado progresivo de texto
 global optGui := "", optGuiVisible := false
+global tutGui := "", tutGuiVisible := false, tutPagina := 1  ; tutorial tipo libro
 
 ; ===== PRESETS DE RENDIMIENTO =====
 global presetRendimiento := 3
@@ -2361,27 +2362,31 @@ destruccionesLabel.Value := Chr(0x276E) "  Destrucciones: 0  " Chr(0x276F)
 ; egg Sukuna (4 brazos / 4 clicks) en destruccionesLabel
 destruccionesLabel.OnEvent("Click", ClickDestruccionesSukuna)
 
-; Centrado: 7 botones × 22px + 6 gaps × 4px = 178px → x46 a x224 (centro de GUI 270)
-btnStatsBtn := historialGui.Add("Text", "x46 y327 w22 h20 +0x201 Background" colorBotonNormal " c" colorBtnTexto, Chr(0x1F4CA))
+; Centrado: 8 botones × 22px + 7 gaps × 4px = 204px → x33 a x237 (centro de GUI 270)
+global btnTutorial
+btnTutorial := historialGui.Add("Text", "x33 y327 w22 h20 +0x201 Background" colorBotonNormal " c" colorBtnTexto, Chr(0x1F4D6))
+btnTutorial.SetFont("s9 c" colorBtnTexto, "Segoe UI Emoji")
+btnTutorial.OnEvent("Click", AbrirTutorial)
+btnStatsBtn := historialGui.Add("Text", "x59 y327 w22 h20 +0x201 Background" colorBotonNormal " c" colorBtnTexto, Chr(0x1F4CA))
 btnStatsBtn.SetFont("s9 c" colorBtnTexto, "Segoe UI Emoji")
 btnStatsBtn.OnEvent("Click", MostrarEstadisticas)
-btnLogros := historialGui.Add("Text", "x72 y327 w22 h20 +0x201 Background" colorBotonNormal " c" colorBtnTexto, Chr(0x1F3C5))
+btnLogros := historialGui.Add("Text", "x85 y327 w22 h20 +0x201 Background" colorBotonNormal " c" colorBtnTexto, Chr(0x1F3C5))
 btnLogros.SetFont("s9 c" colorBtnTexto, "Segoe UI Emoji")
 btnLogros.OnEvent("Click", AbrirPanelLogros)
-btnCodigo := historialGui.Add("Text", "x98 y327 w22 h20 +0x201 Background" colorBotonNormal " c" colorBtnTexto, Chr(9000))
+btnCodigo := historialGui.Add("Text", "x111 y327 w22 h20 +0x201 Background" colorBotonNormal " c" colorBtnTexto, Chr(9000))
 btnCodigo.SetFont("s10 c" colorBtnTexto " Bold", "Segoe UI Symbol")
 btnCodigo.OnEvent("Click", AbrirCodigo)
-btnOverlay := historialGui.Add("Text", "x124 y327 w22 h20 +0x201 Background" colorBotonNormal " c" colorBtnTexto, Chr(0x1F441))
+btnOverlay := historialGui.Add("Text", "x137 y327 w22 h20 +0x201 Background" colorBotonNormal " c" colorBtnTexto, Chr(0x1F441))
 btnOverlay.SetFont("s9 c" colorBtnTexto, "Segoe UI Emoji")
 btnOverlay.OnEvent("Click", ToggleOverlayPixeles)
-btnWebhook := historialGui.Add("Text", "x150 y327 w22 h20 +0x201 Background" colorBotonNormal " c" colorBtnTexto, Chr(0x1F514))
+btnWebhook := historialGui.Add("Text", "x163 y327 w22 h20 +0x201 Background" colorBotonNormal " c" colorBtnTexto, Chr(0x1F514))
 btnWebhook.SetFont("s9 c" colorBtnTexto, "Segoe UI Emoji")
 btnWebhook.OnEvent("Click", AbrirPanelWebhook)
-btnUpdate := historialGui.Add("Text", "x176 y327 w22 h20 +0x201 Background" colorBotonNormal " c" colorBtnTexto, Chr(8593))
+btnUpdate := historialGui.Add("Text", "x189 y327 w22 h20 +0x201 Background" colorBotonNormal " c" colorBtnTexto, Chr(8593))
 btnUpdate.SetFont("s8 c" colorBtnTexto, "Segoe UI Symbol")
 btnUpdate.OnEvent("Click", AbrirVentanaActualizacion)
 global btnOptimizar
-btnOptimizar := historialGui.Add("Text", "x202 y327 w22 h20 +0x201 Background" colorBotonNormal " c" colorBtnTexto, Chr(0x2699))
+btnOptimizar := historialGui.Add("Text", "x215 y327 w22 h20 +0x201 Background" colorBotonNormal " c" colorBtnTexto, Chr(0x2699))
 btnOptimizar.SetFont("s9 c" colorBtnTexto, "Segoe UI Symbol")
 btnOptimizar.OnEvent("Click", AbrirPanelOptimizacion)
 
@@ -2523,6 +2528,7 @@ RegistrarHover(btnStatsBtn,  () => (rgbBotones ? colorRGBActual : colorBotonNorm
 RegistrarHover(btnWebhook,   () => (rgbBotones ? colorRGBActual : colorBotonNormal))
 RegistrarHover(btnLogros,    () => (rgbBotones ? colorRGBActual : colorBotonNormal))
 RegistrarHover(btnOptimizar, () => (rgbBotones ? colorRGBActual : colorBotonNormal))
+RegistrarHover(btnTutorial,  () => (rgbBotones ? colorRGBActual : colorBotonNormal))
 RegistrarHover(btnPart,      () => (rgbBotones ? colorRGBActual : colorBotonNormal))
 RegistrarHover(btnMini,      () => (rgbBotones ? colorRGBActual : colorBotonNormal))
 
@@ -3978,6 +3984,204 @@ CerrarPanelOptimizacion() {
     }
 }
 
+; ═══════════════════════════════════════════════════════════════
+; TUTORIAL — libro navegable con páginas que explican todo el macro
+; ═══════════════════════════════════════════════════════════════
+TutorialPaginas() {
+    return [
+    { ico: Chr(0x1F4D6), tit: "Bienvenido a AFK Smart",
+      txt: "Este macro automatiza el farmeo AFK en Brawlhalla.`n`n"
+         . "Detecta píxeles en la pantalla y reacciona solo: entra a partidas, juega, sale y reintenta — para que ganes oro y XP sin estar delante.`n`n"
+         . "Usa los botones  ◀ Anterior  y  Siguiente ▶  de abajo para pasar las páginas de este libro." },
+
+    { ico: Chr(0x25B6), tit: "Empezar: Iniciar y Parar",
+      txt: "• ▶ Iniciar (F1): arranca el macro. Abre Brawlhalla si hace falta y empieza a detectar.`n`n"
+         . "• ■ Parar (F2): detiene TODO al instante (detección, AFK, lanzamientos).`n`n"
+         . "Las 3 luces de arriba muestran el estado:`n"
+         . "   Verde = activo · Azul = acción · Apagada = parado.`n`n"
+         . "El reloj ⏱ cuenta el tiempo que llevas farmeando." },
+
+    { ico: Chr(0x1F3AE), tit: "Perfiles (botón perfil / F3)",
+      txt: "Cambian QUÉ hace el macro:`n`n"
+         . "• 🌐 tct — farmeo público: abre Brawlhalla y juega partidas normales.`n`n"
+         . "• 🔒 sp — farmeo privado: sala propia con bots.`n`n"
+         . "• ⚔ frt — modo spam: clica y cicla teclas (1-7) sin parar.`n`n"
+         . "• ∅ dstv — solo detector: vigila una zona en círculo y pulsa Espacio. Sin AFK ni abrir el juego." },
+
+    { ico: Chr(0x1F3A8), tit: "Apariencia y personalización",
+      txt: "• ◐ Tema: selector con ~65 temas (claros, oscuros, temáticos y secretos).`n`n"
+         . "• 🎨 RGB: anima los colores en arcoíris — barra, botones, logo o texto. Atajo Ctrl+R.`n`n"
+         . "• ✨ Partículas: ajusta cantidad, velocidad, tamaño y opacidad de las partículas de fondo.`n`n"
+         . "• ▣ Mini: modo compacto flotante (solo el logo)." },
+
+    { ico: Chr(0x1F6E0), tit: "Botones de herramientas",
+      txt: "En la ventana del historial (fila inferior):`n`n"
+         . "• 📖 Tutorial — este libro.`n"
+         . "• 📊 Stats — tus estadísticas (Alt+H).`n"
+         . "• 🏆 Logros — medallas desbloqueables.`n"
+         . "• ⟨⟩ Código — abre el .ahk del macro.`n"
+         . "• 👁 Overlay — dibuja en pantalla las zonas/píxeles que vigila (para calibrar).`n"
+         . "• 🔔 Webhook — avisos a Discord.`n"
+         . "• ↑ Update — busca actualizaciones.`n"
+         . "• ⚙ Optimizar — enciende/apaga efectos." },
+
+    { ico: Chr(0x26A1), tit: "Rendimiento",
+      txt: "Toca el medidor ⚡ (arriba) para ciclar los presets:`n`n"
+         . "• Eco — mínimo consumo, sin animaciones.`n"
+         . "• Ligero · Normal · Ultra — más fluidez, más CPU.`n`n"
+         . "La detección funciona IGUAL en todos; los presets solo afectan a lo visual.`n`n"
+         . "El botón ⚙ Optimizar permite apagar efectos sueltos (hover, brillos, decoraciones, confeti, revelado de texto...) sin cambiar el preset." },
+
+    { ico: Chr(0x1F4DC), tit: "Historial",
+      txt: "Registra cada acción del macro con hora y un color según el tipo de evento.`n`n"
+         . "Para desplazarte (con el ratón encima de la ventana):`n"
+         . "• Rueda del ratón — subir / bajar`n"
+         . "• ↑ ↓ — una línea`n"
+         . "• RePág / AvPág — un bloque`n"
+         . "• Inicio / Fin — principio / final`n`n"
+         . "Guarda hasta 5000 líneas en pantalla y un log completo en disco." },
+
+    { ico: Chr(0x1F6E1), tit: "Anti-AFK y recuperación",
+      txt: "El macro se cuida solo para no parar de noche:`n`n"
+         . "• Anti-AFK: cada cierto tiempo manda teclas para no quedar inactivo.`n`n"
+         . "• Modo Destrucción: si pasa demasiado sin detectar nada, cierra Brawlhalla y lo vuelve a abrir.`n`n"
+         . "• Watchdog: un vigilante externo. Si el macro se cuelga o se cierra solo, lo relanza — y si estaba detectando, sigue detectando." },
+
+    { ico: Chr(0x1F514), tit: "Webhook de Discord",
+      txt: "Pega la URL de un webhook de tu servidor (botón 🔔, o Ctrl+W) y el macro te avisa por Discord de:`n`n"
+         . "iniciado · parado · destrucción · Alt+F4 · hitos · secuencias.`n`n"
+         . "Puedes activar o desactivar cada tipo de aviso por separado." },
+
+    { ico: Chr(0x1F3C6), tit: "Logros y estadísticas",
+      txt: "• 📊 Stats: horas totales, secuencias, destrucciones, críticos y más.`n`n"
+         . "• 🏆 Logros: se desbloquean solos al cumplir retos (tu 1ª secuencia, 100 secuencias, 24 horas, 10 destrucciones...).`n`n"
+         . "Algunos logros son SECRETOS y solo muestran una pista — descúbrelos tú mismo." },
+
+    { ico: Chr(0x2328), tit: "Atajos de teclado",
+      txt: "• F1 — Iniciar`n"
+         . "• F2 — Parar`n"
+         . "• F3 — Cambiar perfil`n"
+         . "• Ctrl + R — Panel RGB`n"
+         . "• Ctrl + W — Webhook`n"
+         . "• Alt + H — Estadísticas`n`n"
+         . "• Rueda / flechas / RePág / Inicio-Fin — desplazar el historial (con el ratón encima)." },
+
+    { ico: Chr(0x2728), tit: "Secretos (pistas, sin spoiler)",
+      txt: "Hay packs de temas ocultos y eggs. Algunas pistas:`n`n"
+         . "• Pack Gamer — las SECUENCIAS son el camino.`n"
+         . "• Pack Leyendas — el medidor ⚡ gira en bucle... no pares de tocarlo.`n"
+         . "• El reloj ⏱ responde si insistes.`n"
+         . "• Gira y gira... el título.`n"
+         . "• Las 3 luces tienen un orden: izq → centro → der.`n"
+         . "• El logo esconde más de uno (prueba con Shift)." },
+
+    { ico: Chr(0x2764), tit: "¡Listo!",
+      txt: "Ya conoces todo lo esencial.`n`n"
+         . "Elige tu perfil con F3, pulsa F1 y deja el macro farmeando tranquilo. Experimenta con los temas y caza los secretos.`n`n"
+         . "Cierra este libro tocando la barra de arriba.`n`n"
+         . "¡A farmear! 🎮" }
+    ]
+}
+
+AbrirTutorial(*) {
+    global tutGui, tutGuiVisible, tutPagina
+    global colorFondoPrincipal, colorTextoPrincipal, colorBarra, colorTextoBarra
+    global colorBotonNormal, colorBotonHover, colorBtnTexto
+
+    if (tutGuiVisible && IsObject(tutGui)) {
+        CerrarTutorial()
+        return
+    }
+
+    tutPagina := 1
+    tutGui := Gui("+AlwaysOnTop -Caption +ToolWindow")
+    tutGui.BackColor := colorFondoPrincipal
+    W := 460
+
+    ; Barra superior (arrastrar / cerrar)
+    barr := tutGui.Add("Text", "x0 y0 w" W " h32 Background" colorBarra " Center +0x200",
+                       "  " Chr(0x1F4D6) "  Tutorial — AFK Smart")
+    barr.SetFont("s11 c" colorTextoBarra " Bold", "Segoe UI Semibold")
+    barr.OnEvent("Click", (*) => PostMessage(0xA1, 2,,, "ahk_id " tutGui.Hwnd))
+    barr.OnEvent("DoubleClick", (*) => CerrarTutorial())
+
+    ; Botón cerrar (×) en la esquina de la barra
+    btnX := tutGui.Add("Text", "x" (W - 30) " y4 w24 h24 +0x201 Background" colorBarra " c" colorTextoBarra " Center", Chr(215))
+    btnX.SetFont("s12 Bold", "Segoe UI")
+    btnX.OnEvent("Click", (*) => CerrarTutorial())
+
+    ; Título de página (icono + texto)
+    lblTit := tutGui.Add("Text", "x20 y44 w" (W - 40) " h26 Background" colorFondoPrincipal " c" colorTextoPrincipal)
+    lblTit.SetFont("s13 Bold", "Segoe UI Semibold")
+
+    ; Línea separadora
+    tutGui.Add("Text", "x20 y72 w" (W - 40) " h1 Background" colorBarra, "")
+
+    ; Cuerpo de la página
+    lblTxt := tutGui.Add("Text", "x20 y82 w" (W - 40) " h268 Background" colorFondoPrincipal " c" colorTextoPrincipal)
+    lblTxt.SetFont("s10", "Segoe UI")
+
+    ; Separador inferior
+    tutGui.Add("Text", "x20 y356 w" (W - 40) " h1 Background" colorBarra, "")
+
+    ; Navegación
+    btnPrev := tutGui.Add("Text", "x20 y366 w130 h32 +0x201 Background" colorBotonNormal " c" colorBtnTexto " Center",
+                          Chr(0x25C0) "  Anterior")
+    btnPrev.SetFont("s10 Bold", "Segoe UI Semibold")
+    btnPrev.OnEvent("Click", (*) => TutorialNav(-1))
+    RegistrarHover(btnPrev, () => colorBotonNormal)
+
+    lblCount := tutGui.Add("Text", "x150 y372 w" (W - 300) " h20 +0x201 Background" colorFondoPrincipal " c" colorTextoPrincipal " Center")
+    lblCount.SetFont("s10 Bold", "Segoe UI")
+
+    btnNext := tutGui.Add("Text", "x" (W - 20 - 130) " y366 w130 h32 +0x201 Background" colorBotonNormal " c" colorBtnTexto " Center",
+                          "Siguiente  " Chr(0x25B6))
+    btnNext.SetFont("s10 Bold", "Segoe UI Semibold")
+    btnNext.OnEvent("Click", (*) => TutorialNav(1))
+    RegistrarHover(btnNext, () => colorBotonNormal)
+
+    tutGui._lblTit := lblTit
+    tutGui._lblTxt := lblTxt
+    tutGui._lblCount := lblCount
+
+    TutorialRender()
+    tutGui.Show("w" W " h410 Center")
+    RedondearVentana(tutGui.Hwnd, 14)
+    tutGuiVisible := true
+}
+
+TutorialRender() {
+    global tutGui, tutPagina
+    if (!IsObject(tutGui))
+        return
+    pgs := TutorialPaginas()
+    if (tutPagina < 1)
+        tutPagina := 1
+    if (tutPagina > pgs.Length)
+        tutPagina := pgs.Length
+    p := pgs[tutPagina]
+    try {
+        tutGui._lblTit.Value   := p.ico "  " p.tit
+        tutGui._lblTxt.Value   := p.txt
+        tutGui._lblCount.Value := tutPagina " / " pgs.Length
+    }
+}
+
+TutorialNav(dir) {
+    global tutPagina
+    tutPagina += dir
+    TutorialRender()
+}
+
+CerrarTutorial() {
+    global tutGui, tutGuiVisible
+    if (tutGuiVisible && IsObject(tutGui)) {
+        try LimpiarHoverGui(tutGui)
+        try tutGui.Destroy()
+        tutGuiVisible := false
+    }
+}
+
 AbrirPanelRGB(*) {
     global rgbGui, rgbGuiVisible, rgbBarra, rgbBotones, rgbLogo, rgbTexto
     global colorFondoPrincipal, colorTextoPrincipal, colorBarra, colorTextoBarra, colorBotonNormal, colorBtnTexto
@@ -5007,7 +5211,7 @@ TransicionPaso() {
     }
 
     ; Botones — fondo + texto
-    for btn in [btnIniciar, btnParar, btnCodigo, btnReset, btnHistorial, btnTema, btnMin, btnClose, btnUpdate, btnOverlay, btnRGBBtn, btnStatsBtn, btnWebhook, btnLogros, btnPart, btnMini, btnOptimizar] {
+    for btn in [btnIniciar, btnParar, btnCodigo, btnReset, btnHistorial, btnTema, btnMin, btnClose, btnUpdate, btnOverlay, btnRGBBtn, btnStatsBtn, btnWebhook, btnLogros, btnPart, btnMini, btnOptimizar, btnTutorial] {
         if (IsObject(btn))
             btn.Opt("Background" cBoton " c" cBtnTexto)
     }
@@ -5217,7 +5421,7 @@ AplicarTema(tema, guardar := true, fromTrans := false) {
     luzAccion.Opt("Background" colorFondoPrincipal)
     luzApagado.Opt("Background" colorFondoPrincipal)
     SendMessage(0x0443, 0, HexToBGR(colorFondoHistorial), , "ahk_id " historialBox.Hwnd)
-    for btn in [btnIniciar, btnParar, btnCodigo, btnReset, btnHistorial, btnTema, btnMin, btnClose, btnUpdate, btnOverlay, btnRGBBtn, btnStatsBtn, btnWebhook, btnLogros, btnPart, btnMini, btnOptimizar] {
+    for btn in [btnIniciar, btnParar, btnCodigo, btnReset, btnHistorial, btnTema, btnMin, btnClose, btnUpdate, btnOverlay, btnRGBBtn, btnStatsBtn, btnWebhook, btnLogros, btnPart, btnMini, btnOptimizar, btnTutorial] {
         btn.Opt("Background" colorBotonNormal " c" colorBtnTexto)
         btn.SetFont("s11 c" colorBtnTexto " Bold", "Segoe UI Symbol")
         if (!fromTrans) {
@@ -5235,6 +5439,7 @@ AplicarTema(tema, guardar := true, fromTrans := false) {
         btn.SetFont("s10 c" colorBtnTexto " Bold", "Segoe UI Semibold")
     btnUpdate.SetFont("s8 c" colorBtnTexto, "Segoe UI Symbol")
     btnOptimizar.SetFont("s9 c" colorBtnTexto, "Segoe UI Symbol")
+    btnTutorial.SetFont("s9 c" colorBtnTexto, "Segoe UI Emoji")
     btnOverlay.SetFont("s9 c" colorBtnTexto, "Segoe UI Emoji")
     btnRGBBtn.SetFont("s9 c" colorBtnTexto, "Segoe UI Emoji")
     btnStatsBtn.SetFont("s9 c" colorBtnTexto, "Segoe UI Emoji")
@@ -5339,7 +5544,7 @@ ActualizarRGB(*) {
         if (IsObject(destruccionesLabel))
             destruccionesLabel.Opt("c" cTexto)
 
-        for btn in [btnIniciar, btnParar, btnCodigo, btnReset, btnHistorial, btnTema, btnMin, btnClose, btnUpdate, btnOverlay, btnRGBBtn, btnStatsBtn, btnWebhook, btnLogros, btnPart, btnPerfil, btnMini, btnOptimizar]
+        for btn in [btnIniciar, btnParar, btnCodigo, btnReset, btnHistorial, btnTema, btnMin, btnClose, btnUpdate, btnOverlay, btnRGBBtn, btnStatsBtn, btnWebhook, btnLogros, btnPart, btnPerfil, btnMini, btnOptimizar, btnTutorial]
             btn.Opt("Background" cBoton " c000000")
 
         ; Actualizar preview RGB si está abierto
@@ -5395,7 +5600,7 @@ ActualizarRGB(*) {
             destruccionesLabel.Opt("c" colorRGBActual)
     }
     if (rgbBotones) {
-        for btn in [btnIniciar, btnParar, btnCodigo, btnReset, btnHistorial, btnTema, btnMin, btnClose, btnUpdate, btnOverlay, btnRGBBtn, btnStatsBtn, btnWebhook, btnLogros, btnPart, btnPerfil, btnMini, btnOptimizar]
+        for btn in [btnIniciar, btnParar, btnCodigo, btnReset, btnHistorial, btnTema, btnMin, btnClose, btnUpdate, btnOverlay, btnRGBBtn, btnStatsBtn, btnWebhook, btnLogros, btnPart, btnPerfil, btnMini, btnOptimizar, btnTutorial]
             btn.Opt("Background" colorRGBActual " c000000")
     }
 
