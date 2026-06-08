@@ -8,7 +8,7 @@ configPath := A_ScriptDir "\brawlmacro_config.ini"
 global eggsBackupPath := A_ScriptDir "\brawlmacro_eggs.txt"
 global heartbeatPath := A_ScriptDir "\brawlmacro_heartbeat.txt"
 global historialLogPath := A_ScriptDir "\brawlmacro_historial.log"
-global VERSION_ACTUAL := "30.3.0"
+global VERSION_ACTUAL := "30.3.1"
 
 ; ===== TEMAS =====
 temas := [
@@ -184,7 +184,7 @@ pasosNormales.Push({ tipo:"pimg", nombre:"ingame...",     color:0x70C9D3, catego
 pasosNormales.Push({ tipo:"pimg", nombre:"INTHEGAME1",    color:0x38373E, categoria:4, accion:"c", hold:400, tolerancia:1, delayClick:30, delayTecla:80, cooldown:5000, bloqueoGlobal:170000, tct:true, lastUsed:0, x1:792, y1:488, x2:794, y2:496 })
 pasosNormales.Push({ tipo:"pimg", nombre:"INTHEGAME2",    color:0x38373E, categoria:4, accion:"c", hold:400, tolerancia:1, delayClick:30, delayTecla:80, cooldown:5000, bloqueoGlobal:170000, sp:true, lastUsed:0, x1:792, y1:488, x2:794, y2:496 })
 pasosNormales.Push({ tipo:"pimg", nombre:"creatingmap",   color:0x918D2D, categoria:4, tolerancia:2, hold:100, delayClick:500, delayTecla:500, cooldown:500, sp:true, lastUsed:0, x1:607, y1:243, x2:617, y2:254 })
-pasosNormales.Push({ tipo:"pimg", nombre:"detector",      color:0xFFFFFF, categoria:4, tolerancia:1, cooldown:500, dstv:true, lastUsed:0, x1:893, y1:483, x2:1025, y2:615, circuloDetector:true, circuloRadio:66, circuloCantidad:100, circuloOffsetX:1, circuloOffsetY:20 })
+pasosNormales.Push({ tipo:"pimg", nombre:"detector",      color:0xFFFFFF, categoria:4, tolerancia:1, cooldown:500, dstv:true, lastUsed:0, x1:893, y1:483, x2:1025, y2:615, circuloDetector:true, circuloRadio:67, circuloCantidad:100, circuloOffsetX:1, circuloOffsetY:19 })
 
 ; ─── FASE 5: PARTIDA TERMINADA (cat 1) ─────────────────────────────
 pasosNormales.Push({ tipo:"pimg", nombre:"gamedone1",     color:0x000033, categoria:1, accion:"c", hold:400, tolerancia:1, delayClick:30, delayTecla:80, cooldown:500, tct:true, sp:true, lastUsed:0, x1:941, y1:40, x2:959, y2:43 })
