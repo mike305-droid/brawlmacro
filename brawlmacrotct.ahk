@@ -8,7 +8,7 @@ configPath := A_ScriptDir "\brawlmacro_config.ini"
 global eggsBackupPath := A_ScriptDir "\brawlmacro_eggs.txt"
 global heartbeatPath := A_ScriptDir "\brawlmacro_heartbeat.txt"
 global historialLogPath := A_ScriptDir "\brawlmacro_historial.log"
-global VERSION_ACTUAL := "30.5.0"
+global VERSION_ACTUAL := "30.6.0"
 
 ; ===== TEMAS =====
 temas := [
@@ -21,7 +21,6 @@ temas := [
     { nombre:"Menta",      fondo:"FAF8F2", texto:"2C4A3E", barra:"A8E6CF", textoBarra:"1B3A2E", historial:"FEFDF8", panel:"D4F1E0", cooldown:"E07A5F", afk:"81B29A", boton:"A8E6CF", hover:"BBEFD9", logo:"2C4A3E", luzOn:"81B29A", luzAccion:"A8E6CF", luzOff:"2C4A3E",  btnTexto:"1B3A2E", histColor1:"2C4A3E", histColor2:"81B29A", histColor3:"A8E6CF" },
     { nombre:"Verde",      fondo:"F0FFF4", texto:"1B5E20", barra:"66BB6A", textoBarra:"FFFFFF", historial:"E8F5E9", panel:"C8E6C9", cooldown:"E53935", afk:"2E7D32", boton:"66BB6A", hover:"81C784", logo:"1B5E20", luzOn:"388E3C", luzAccion:"66BB6A", luzOff:"1B5E20",  btnTexto:"FFFFFF", histColor1:"1B5E20", histColor2:"388E3C", histColor3:"66BB6A" },
     ; Pastel mixto / neutros
-    { nombre:"Macaron",    fondo:"FFF0F5", texto:"6A3D70", barra:"AED9E0", textoBarra:"2E4156", historial:"FFF6FA", panel:"F5C2C7", cooldown:"D8567A", afk:"8FB8C7", boton:"AED9E0", hover:"C5E3E8", logo:"6A3D70", luzOn:"95C8A8", luzAccion:"F5B0D6", luzOff:"6A3D70",  btnTexto:"2E4156", histColor1:"6A3D70", histColor2:"95C8A8", histColor3:"F5B0D6" },
     { nombre:"Nube",       fondo:"FAFAFA", texto:"37474F", barra:"B0BEC5", textoBarra:"FFFFFF", historial:"FCFCFC", panel:"ECEFF1", cooldown:"EF5350", afk:"78909C", boton:"B0BEC5", hover:"CFD8DC", logo:"37474F", luzOn:"78909C", luzAccion:"90A4AE", luzOff:"37474F",  btnTexto:"FFFFFF", histColor1:"37474F", histColor2:"78909C", histColor3:"90A4AE" },
     ; Morados / lilas claros
     { nombre:"Lavanda",    fondo:"F8F4FF", texto:"5E3A8C", barra:"C8B6E2", textoBarra:"FFFFFF", historial:"FCFAFF", panel:"E8DEFC", cooldown:"D87093", afk:"9370DB", boton:"C8B6E2", hover:"D4C5E8", logo:"5E3A8C", luzOn:"9370DB", luzAccion:"BA9CDB", luzOff:"5E3A8C",  btnTexto:"FFFFFF", histColor1:"5E3A8C", histColor2:"9370DB", histColor3:"BA9CDB" },
@@ -217,7 +216,7 @@ for p in pasosNormales
 
 ; ===== GLOBALES =====
 global pasosPrioridad, pasosNormales, activo := false
-global luzActiva, luzAccion, luzApagado, historialGui, historialBox, cooldownText, afkText
+global luzActiva, luzAccion, luzApagado, historialGui := "", historialBox := "", cooldownText, afkText
 global tiempoInicio := 0, tiempoAcumulado := 0, timerActivo := false
 global avisoMostrado := false, avisoGui := "", ultimoCambio := 0
 global ultimaDeteccionReal := 0   ; A_TickCount de la ULTIMA deteccion REAL de pixel (no resets/anti-AFK)
@@ -1690,7 +1689,7 @@ EfectoDeTema(t) {
         ["Sky","nieve"], ["Hielo","nieve"], ["Polar","nieve"], ["Tundra","nieve"], ["Nube","nieve"],
         ["Pok","chispas"], ["Brawl","chispas"], ["Valorant","chispas"], ["Spotify","chispas"], ["Dorado","chispas"], ["Miel","chispas"], ["Mostaza","chispas"], ["Electrico","chispas"],
         ["Retrowave","estrellas"], ["Noche","estrellas"], ["Aurora","estrellas"], ["Abismo","estrellas"],
-        ["Sakura","petalos"], ["Rosa","petalos"], ["Lavanda","petalos"], ["Lila","petalos"], ["Chicle","petalos"], ["Macaron","petalos"],
+        ["Sakura","petalos"], ["Rosa","petalos"], ["Lavanda","petalos"], ["Lila","petalos"], ["Chicle","petalos"],
         ["Magma","brasas"], ["Sangre","brasas"]
     ]
     for par in pares {
@@ -1794,13 +1793,15 @@ InicializarParticulas(arr, w, h, n := 35) {
 ; y muestra/oculta los overlays según el toggle de activadas.
 AplicarConfigParticulas() {
     global particulasMain, particulasHist, miGui, historialGui, historialVisible
-    global overlayPartMain, overlayPartHist, particulasActivas
+    global overlayPartMain, overlayPartHist, particulasActivas, optEscena
     static BAR_H := 25
 
     if (IsObject(miGui) && IsObject(overlayPartMain)) {
         miGui.GetPos(,, &mw, &mh)
         InicializarParticulas(particulasMain, mw, mh - BAR_H, 32)
-        if (particulasActivas) {
+        ; El overlay principal se muestra si hay partículas O si está activa la
+        ; decoración del tema (escena), aunque las partículas estén apagadas.
+        if (particulasActivas || optEscena) {
             try overlayPartMain.Show("NoActivate")
         } else {
             try overlayPartMain.Hide()
@@ -1815,6 +1816,50 @@ AplicarConfigParticulas() {
             try overlayPartHist.Hide()
         }
     }
+}
+
+; Pinta SOLO la escena/decoración del tema en el overlay principal, sin partículas.
+; Se usa cuando las partículas están apagadas (preset Eco o toggle de partículas off)
+; pero el usuario quiere mantener la decoración (toggle "Decoración del tema").
+ActualizarEscenaSola() {
+    global miGui, overlayPartMain, temaEnTransicion, optEscena
+    global particulasActivas, presetParticulas
+    static BAR_H := 25
+    if (temaEnTransicion || !optEscena)
+        return
+    if (particulasActivas && presetParticulas > 0)
+        return  ; las partículas ya están pintando la escena, no duplicar
+    try if (IsObject(miGui) && IsObject(overlayPartMain) && !DllCall("IsIconic", "Ptr", miGui.Hwnd, "Int")) {
+        miGui.GetPos(&mx, &my, &mw, &mh)
+        overlayPartMain.GetPos(&ox, &oy, &ow, &oh)
+        targetY := my + BAR_H
+        targetH := mh - BAR_H
+        if (mx != ox || targetY != oy || mw != ow || targetH != oh)
+            overlayPartMain.Move(mx, targetY, mw, targetH)
+        PintarOverlayParticulas(overlayPartMain.Hwnd, mw, targetH, [], "", true)
+    }
+}
+
+; Decide qué timers visuales corren y la visibilidad del overlay principal.
+; - Partículas encendidas (toggle on + preset con fps) → timer de partículas, que
+;   pinta partículas + escena juntas.
+; - Si no, pero la decoración está activa → timer ligero (presetDecoFps) que pinta
+;   SOLO la escena. Así Eco / partículas-off conservan la decoración del tema.
+RefrescarTimersVisuales() {
+    global particulasActivas, presetParticulas, presetDecoFps, optEscena, overlayPartMain
+    particulasOn := particulasActivas && presetParticulas > 0
+    escenaSola := optEscena && !particulasOn
+    SetTimer(ActualizarParticulas, particulasOn ? presetParticulas : 0)
+    SetTimer(ActualizarEscenaSola, escenaSola ? presetDecoFps : 0)
+    if (IsObject(overlayPartMain)) {
+        if (particulasOn || optEscena) {
+            try overlayPartMain.Show("NoActivate")
+        } else {
+            try overlayPartMain.Hide()
+        }
+    }
+    if (escenaSola)
+        try ActualizarEscenaSola()   ; pinta un frame ya, sin esperar al primer tick
 }
 
 ActualizarParticulas() {
@@ -2051,7 +2096,8 @@ PintarOverlayParticulas(overlayHwnd, w, h, particulas, excludeRect := "", conEsc
     ; es ESPECÍFICA por tema (bambú→cañas, miel→panal...), no por categoría.
     if (conEscena && optEscena) {
         deco := temaPremiumActivo ? "premium" : DecoDeTema(temas[temaActual])
-        PintarEscenaTema(g, w, h, deco, rC, gC, bC, fondoClaro)
+        if (deco != "")
+            PintarEscenaTema(g, w, h, deco, rC, gC, bC, fondoClaro)
     }
 
     for i, p in particulas {
@@ -2231,8 +2277,8 @@ DecoDeTema(t) {
             case "solar":   return "fenix"
             case "premium": return "diamantes"
             case "blanco":  return "solnika"
-            case "gojo":    return "limitless"
-            case "sukuna":  return "maldicion"
+            case "gojo":    return ""
+            case "sukuna":  return ""
         }
     }
     n := t.nombre
@@ -2240,7 +2286,7 @@ DecoDeTema(t) {
     pares := [
         ; ── claros ──
         ["Hielo","hielo"], ["Polar","iglu"], ["Agua","gotas"], ["Menta","menta"],
-        ["Verde","pasto"], ["Macaron","macaron"], ["Nube","nubes"], ["Lavanda","lavanda"],
+        ["Verde","pasto"], ["Nube","nubes"], ["Lavanda","lavanda"],
         ["Lila","lila"], ["Sakura","sakura"], ["Rosa","rosa"], ["Atardecer","atardecer"],
         ["Melocot","melocoton"], ["Naranja","naranja"], ["Desierto","cactus"], ["Vainilla","vainilla"],
         ["Miel","miel"], ["Bamb","bambu"], ["Monocromo","ajedrez"], ["Chicle","chicle"],
@@ -2275,20 +2321,35 @@ PintarEscenaTema(g, w, h, ef, rC, gC, bC, fondoClaro) {
     switch ef {
     ; ─────────── DECORACIONES ESPECÍFICAS POR TEMA ───────────
     case "hielo":
-        col := (160 << 24) | (185 << 16) | (220 << 8) | 245
+        ; Cristales de hielo en el borde inferior + destellos titilando arriba
         loop 5 {
             cx := (A_Index - 0.5) * w / 5
-            s := 10 + Mod(A_Index * 3, 6)
-            EscenaRect(g, col, cx - s / 2, h - s, s, s)
-            EscenaLinea(g, (210 << 24) | (255 << 16) | (255 << 8) | 255, cx - s / 2 + 2, h - s + 2, cx + s / 2 - 2, h - s + 2, 1)
-            EscenaLinea(g, (210 << 24) | (255 << 16) | (255 << 8) | 255, cx - s / 2 + 2, h - s + 2, cx - s / 2 + 2, h - 2, 1)
+            hh := 15 + Mod(A_Index * 7, 11)
+            EscenaPoligono(g, (200 << 24) | (130 << 16) | (205 << 8) | 235, [[cx, h - hh], [cx + 5, h - hh + 6], [cx + 4, h], [cx - 4, h], [cx - 5, h - hh + 6]])
+            EscenaLinea(g, (235 << 24) | (255 << 16) | (255 << 8) | 255, cx, h - hh, cx - 5, h - hh + 6, 1.4)
+            EscenaLinea(g, (210 << 24) | (40 << 16) | (110 << 8) | 190, cx + 5, h - hh + 6, cx + 4, h, 1.2)
+        }
+        loop 4 {
+            sx := Mod(A_Index * 73, Round(w - 12)) + 6
+            sy := 6 + Mod(A_Index * 11, 18)
+            tw := 0.5 + 0.5 * Sin(tNow / 220.0 + A_Index)
+            EscenaElipse(g, (Round(225 * tw) << 24) | (170 << 16) | (215 << 8) | 255, sx - 2, sy - 2, 4, 4)
         }
     case "iglu":
-        EscenaPoligono(g, (160 << 24) | (120 << 16) | (170 << 8) | 220, [[0, h], [0, h - 4], [w, h - 4], [w, h]])
+        ; Suelo nevado + iglús (cúpula con bloques y entrada) + nieve cayendo
+        EscenaRect(g, (190 << 24) | (200 << 16) | (220 << 8) | 240, 0, h - 5, w, 5)
         loop 2 {
-            cx := A_Index * w / 3 + w * 0.08
-            EscenaPoligono(g, (210 << 24) | (235 << 16) | (245 << 8) | 255, [[cx - 14, h - 4], [cx + 14, h - 4], [cx, h - 20]])
-            EscenaPoligono(g, (120 << 24) | (200 << 16) | (225 << 8) | 245, [[cx - 8, h - 4], [cx + 8, h - 4], [cx, h - 12]])
+            cx := A_Index * w / 3 + w * 0.06
+            EscenaPie(g, (220 << 24) | (200 << 16) | (215 << 8) | 240, cx - 18, h - 23, 36, 38, 180, 180)
+            EscenaLinea(g, (170 << 24) | (130 << 16) | (155 << 8) | 195, cx - 17, h - 10, cx + 17, h - 10, 1.2)
+            EscenaLinea(g, (170 << 24) | (130 << 16) | (155 << 8) | 195, cx - 6, h - 5, cx - 7, h - 19, 1)
+            EscenaLinea(g, (170 << 24) | (130 << 16) | (155 << 8) | 195, cx + 6, h - 5, cx + 7, h - 19, 1)
+            EscenaPie(g, (215 << 24) | (70 << 16) | (100 << 8) | 150, cx - 6, h - 11, 12, 15, 180, 180)
+        }
+        loop 6 {
+            sx := Mod(A_Index * 53, Round(w - 8)) + 4
+            sy := Mod(tNow / 16.0 + A_Index * 30, h)
+            EscenaElipse(g, (210 << 24) | (255 << 16) | (255 << 8) | 255, sx - 1.5, sy - 1.5, 3, 3)
         }
     case "gotas":
         loop 6 {
@@ -2322,41 +2383,55 @@ PintarEscenaTema(g, w, h, ef, rC, gC, bC, fondoClaro) {
             sway := Sin(tNow / 600.0 + A_Index) * 2
             EscenaLinea(g, verde, cx, h, cx + sway, h - hh, 1.6)
         }
-    case "macaron":
-        cols := [(220 << 24) | (255 << 16) | (180 << 8) | 200, (220 << 24) | (190 << 16) | (230 << 8) | 255, (220 << 24) | (255 << 16) | (235 << 8) | 170]
-        loop 3 {
-            cx := (A_Index - 0.5) * w / 3
-            c := cols[A_Index]
-            EscenaPie(g, c, cx - 9, h - 16, 18, 13, 180, 180)
-            EscenaPie(g, c, cx - 9, h - 8, 18, 13, 0, 180)
-            EscenaRect(g, (210 << 24) | (255 << 16) | (245 << 8) | 220, cx - 9, h - 8, 18, 3)
-        }
     case "vainilla":
-        crema := (210 << 24) | (255 << 16) | (248 << 8) | 225
+        ; Cupcakes de vainilla: envoltorio + crema + cereza (contraste para fondo claro)
         loop 3 {
             cx := (A_Index - 0.5) * w / 3
-            EscenaLinea(g, (185 << 24) | (120 << 16) | (90 << 8) | 50, cx + 7, h, cx + 7, h - 14, 2)
-            fy := h - 12
-            loop 5 {
-                ang := (A_Index - 1) * 1.2566
-                EscenaElipse(g, crema, cx + Cos(ang) * 3.4 - 2.2, fy + Sin(ang) * 3.4 - 2.2, 4.4, 4.4)
-            }
-            EscenaElipse(g, (210 << 24) | (255 << 16) | (210 << 8) | 120, cx - 1.4, fy - 1.4, 2.8, 2.8)
+            EscenaPoligono(g, (225 << 24) | (225 << 16) | (170 << 8) | 110, [[cx - 9, h], [cx + 9, h], [cx + 7, h - 9], [cx - 7, h - 9]])
+            EscenaLinea(g, (200 << 24) | (180 << 16) | (130 << 8) | 70, cx - 3, h, cx - 4, h - 9, 1)
+            EscenaLinea(g, (200 << 24) | (180 << 16) | (130 << 8) | 70, cx + 3, h, cx + 4, h - 9, 1)
+            crema := (235 << 24) | (255 << 16) | (245 << 8) | 215
+            EscenaElipse(g, crema, cx - 8, h - 15, 16, 9)
+            EscenaElipse(g, crema, cx - 5, h - 19, 10, 8)
+            EscenaElipse(g, crema, cx - 2.5, h - 22, 5, 6)
+            EscenaElipse(g, (235 << 24) | (220 << 16) | (40 << 8) | 60, cx - 2, h - 25, 4, 4)
         }
     case "ajedrez":
-        loop 16 {
-            cx := (A_Index - 1) * w / 16
-            c := Mod(A_Index, 2) ? ((205 << 24) | (30 << 16) | (30 << 8) | 30) : ((170 << 24) | (235 << 16) | (235 << 8) | 235)
-            EscenaRect(g, c, cx, h - 10, w / 16 + 1, 10)
+        ; Suelo de ajedrez con profundidad (3 filas) + un peón en el centro
+        loop 3 {
+            row := A_Index
+            ry := h - row * 6
+            cols := 16 + (row - 1) * 2
+            a := 215 - (row - 1) * 50
+            loop cols {
+                cx := (A_Index - 1) * w / cols
+                c := Mod(A_Index + row, 2) ? ((a << 24) | (28 << 16) | (28 << 8) | 28) : ((Round(a * 0.8) << 24) | (235 << 16) | (235 << 8) | 235)
+                EscenaRect(g, c, cx, ry, w / cols + 1, 6)
+            }
         }
+        px := w * 0.5, py := h - 16
+        EscenaElipse(g, (120 << 24) | (20 << 16) | (20 << 8) | 20, px - 7, py + 8, 14, 4)   ; sombra
+        pc := (230 << 24) | (240 << 16) | (240 << 8) | 240
+        EscenaElipse(g, pc, px - 4, py - 10, 8, 8)                                            ; cabeza
+        EscenaPoligono(g, pc, [[px - 3, py - 3], [px + 3, py - 3], [px + 5, py + 8], [px - 5, py + 8]])  ; cuerpo
+        EscenaRect(g, pc, px - 6, py + 8, 12, 3)                                              ; base
     case "mostaza":
-        col := (220 << 24) | (220 << 16) | (170 << 8) | 20
+        ; Charco + goterones + zigzag de mostaza exprimida (estilo hotdog)
+        col := (225 << 24) | (215 << 16) | (165 << 8) | 25
+        colD := (230 << 24) | (175 << 16) | (120 << 8) | 12
         EscenaPoligono(g, col, [[0, h], [0, h - 4], [w, h - 4], [w, h]])
         loop 6 {
             cx := (A_Index - 0.5) * w / 6
             dl := 6 + Mod(A_Index * 5, 10)
             EscenaRect(g, col, cx - 2, h - 4 - dl, 4, dl)
             EscenaElipse(g, col, cx - 3, h - 4 - dl - 2, 6, 6)
+        }
+        px := 4.0, py := 14.0
+        loop 9 {
+            nx := px + w / 9
+            ny := Mod(A_Index, 2) ? 22.0 : 12.0
+            EscenaLinea(g, colD, px, py, nx, ny, 2.6)
+            px := nx, py := ny
         }
     case "palmera":
         EscenaElipse(g, (205 << 24) | (255 << 16) | (210 << 8) | 60, w - 24, 6, 16, 16)
@@ -2384,10 +2459,20 @@ PintarEscenaTema(g, w, h, ef, rC, gC, bC, fondoClaro) {
             EscenaElipse(g, (210 << 24) | (255 << 16) | (120 << 8) | 30, cx - 1.5, cy - 1.5, 3, 3)
         }
     case "grafito":
-        col := (150 << 24) | (rC << 16) | (gC << 8) | bC
-        loop 8 {
-            x1 := (A_Index - 1) * w / 8
-            EscenaLinea(g, col, x1, h, x1 + 14, h - 12, 1.4)
+        ; Trazos de boceto de fondo + lápices de grafito apoyados abajo
+        loop 9 {
+            x1 := A_Index * w / 9
+            EscenaLinea(g, (60 << 24) | (rC << 16) | (gC << 8) | bC, x1 - 12, h - 3, x1 + 4, h - 17, 1.1)
+        }
+        loop 3 {
+            bx := w * 0.12 + (A_Index - 1) * (w * 0.3)
+            by := h - 5 - Mod(A_Index, 2) * 4
+            EscenaRect(g, (235 << 24) | (235 << 16) | (140 << 8) | 160, bx - 4, by - 3, 3.5, 4)              ; goma
+            EscenaRect(g, (220 << 24) | (180 << 16) | (180 << 8) | 190, bx - 0.5, by - 3, 1.5, 4)            ; virola
+            EscenaRect(g, (235 << 24) | (235 << 16) | (195 << 8) | 50, bx, by - 3, 28, 4)                    ; cuerpo madera
+            EscenaRect(g, (120 << 24) | (255 << 16) | (235 << 8) | 150, bx, by - 3, 28, 1)                   ; brillo
+            EscenaPoligono(g, (235 << 24) | (215 << 16) | (165 << 8) | 95, [[bx + 28, by - 3], [bx + 28, by + 1], [bx + 36, by - 1]])  ; punta madera
+            EscenaPoligono(g, (245 << 24) | (55 << 16) | (55 << 8) | 65, [[bx + 33.5, by - 1.7], [bx + 36, by - 1], [bx + 33.5, by - 0.3]])  ; mina
         }
     case "abisal":
         loop 10 {
@@ -2447,14 +2532,29 @@ PintarEscenaTema(g, w, h, ef, rC, gC, bC, fondoClaro) {
             }
         }
     case "circuito":
-        col := (190 << 24) | (40 << 16) | (220 << 8) | 150
-        EscenaLinea(g, col, 0, h - 9, w, h - 9, 1.4)
-        loop 6 {
-            cx := (A_Index - 0.5) * w / 6
-            EscenaLinea(g, col, cx, h - 9, cx, h - 2, 1.2)
-            EscenaLinea(g, col, cx, h - 2, cx + 8, h - 2, 1.2)
-            EscenaElipse(g, (220 << 24) | (90 << 16) | (255 << 8) | 180, cx - 2, h - 11, 4, 4)
+        ; Placa de circuito: pistas + pads + un chip + un pulso de luz viajando
+        col := (170 << 24) | (40 << 16) | (210 << 8) | 150
+        colBright := (235 << 24) | (130 << 16) | (255 << 8) | 210
+        loop 3 {
+            ty := h - 4 - (A_Index - 1) * 7
+            EscenaLinea(g, col, 0, ty, w, ty, 1.3)
         }
+        loop 7 {
+            cx := (A_Index - 0.5) * w / 7
+            topY := h - 4 - Mod(A_Index, 3) * 7
+            EscenaLinea(g, col, cx, h, cx, topY, 1.2)
+            EscenaAnillo(g, col, cx - 2.5, topY - 2.5, 5, 1.2)
+        }
+        chx := w * 0.3, chy := h - 19
+        EscenaRect(g, (215 << 24) | (35 << 16) | (20 << 8) | 60, chx - 8, chy - 5, 16, 11)
+        loop 4 {
+            py := chy - 3 + (A_Index - 1) * 2.6
+            EscenaLinea(g, col, chx - 12, py, chx - 8, py, 1)
+            EscenaLinea(g, col, chx + 8, py, chx + 12, py, 1)
+        }
+        EscenaElipse(g, colBright, chx - 6, chy - 3, 2.5, 2.5)
+        pulseX := Mod(tNow / 6.0, w)
+        EscenaElipse(g, colBright, pulseX - 2.5, h - 6.5, 5, 5)
     case "pinos":
         EscenaPoligono(g, (70 << 24) | (200 << 16) | (210 << 8) | 215, [[0, h], [0, h - 5], [w, h - 5], [w, h]])
         verde := (215 << 24) | (30 << 16) | (75 << 8) | 45
@@ -2639,35 +2739,6 @@ PintarEscenaTema(g, w, h, ef, rC, gC, bC, fondoClaro) {
         loop 12 {
             a := (A_Index - 1) * 0.523 + Sin(tNow / 800.0) * 0.1
             EscenaLinea(g, (210 << 24) | (255 << 16) | (250 << 8) | 200, cx + Cos(a) * 13, cy + Sin(a) * 13, cx + Cos(a) * 19, cy + Sin(a) * 19, 2)
-        }
-    case "limitless":
-        loop 7 {
-            cx := Mod(A_Index * 59, Round(w - 16)) + 8
-            cy := 12 + Mod(A_Index * 19, Round(h - 30)) + Sin(tNow / 360.0 + A_Index) * 5
-            tw := 0.5 + 0.5 * Sin(tNow / 250.0 + A_Index)
-            c := (A_Index < 4) ? ((Round(160 * tw) << 24) | (79 << 16) | (195 << 8) | 247) : ((Round(160 * tw) << 24) | (138 << 16) | (43 << 8) | 226)
-            d := 5 + tw * 4
-            EscenaElipse(g, c, cx - d / 2, cy - d / 2, d, d)
-        }
-    case "maldicion":
-        ; Energía maldita ascendiendo (humo/llama oscura) — SIN cortes
-        loop 5 {
-            bx := (A_Index - 0.5) * w / 5
-            px := bx, py := h
-            loop 5 {
-                prog := A_Index / 5
-                nx := bx + Sin(tNow / 250.0 + A_Index + bx) * 4 * prog
-                ny := h - A_Index * (h * 0.18)
-                a := Round(170 * (1 - prog))
-                EscenaLinea(g, (a << 24) | (200 << 16) | (25 << 8) | 25, px, py, nx, ny, 2)
-                px := nx, py := ny
-            }
-        }
-        loop 6 {
-            cx := Mod(A_Index * 67, Round(w - 10)) + 5
-            cy := Mod(h - tNow / 14.0 - A_Index * 36, h) - 5
-            tw := 0.5 + 0.5 * Sin(tNow / 180.0 + A_Index)
-            EscenaElipse(g, (Round(210 * tw) << 24) | (255 << 16) | (40 << 8) | 30, cx - 1.6, cy - 1.6, 3.2, 3.2)
         }
     case "lavanda":
         ; Campo de lavanda (espigas densas azul-moradas)
@@ -2859,19 +2930,19 @@ PintarEscenaTema(g, w, h, ef, rC, gC, bC, fondoClaro) {
             }
         }
     case "sakura":
-        ; Rama de cerezo ARRIBA con flores colgando (los pétalos caen como partículas)
-        rama := (200 << 24) | (110 << 16) | (75 << 8) | 55
-        EscenaLinea(g, rama, 0, 6, w, 14, 2.5)
-        EscenaLinea(g, rama, w * 0.3, 9, w * 0.3 + 10, 2, 1.6)
-        EscenaLinea(g, rama, w * 0.7, 12, w * 0.7 + 8, 5, 1.6)
-        loop 6 {
-            fx := A_Index * w / 7
-            fy := 12 + fx * 8 / w + Mod(A_Index, 2) * 5
+        ; Rama de cerezo ARRIBA con flores de 5 pétalos (los pétalos caen como partículas)
+        rama := (215 << 24) | (120 << 16) | (80 << 8) | 60
+        EscenaLinea(g, rama, 0, 5, w, 13, 3)
+        EscenaLinea(g, rama, w * 0.25, 8, w * 0.25 + 12, 1, 2)
+        EscenaLinea(g, rama, w * 0.6, 11, w * 0.6 + 10, 3, 2)
+        loop 7 {
+            fx := A_Index * w / 8
+            fy := 11 + Mod(A_Index * 5, 8) + Mod(A_Index, 2) * 4
             loop 5 {
-                ang := (A_Index - 1) * 1.2566 + Sin(tNow / 900.0) * 0.1
-                EscenaElipse(g, (225 << 24) | (255 << 16) | (160 << 8) | 205, fx + Cos(ang) * 3.6 - 2.4, fy + Sin(ang) * 3.6 - 2.4, 4.8, 4.8)
+                ang := (A_Index - 1) * 1.2566 + Sin(tNow / 900.0 + fx) * 0.08
+                EscenaElipse(g, (235 << 24) | (255 << 16) | (150 << 8) | 195, fx + Cos(ang) * 4 - 2.6, fy + Sin(ang) * 4 - 2.6, 5.2, 5.2)
             }
-            EscenaElipse(g, (235 << 24) | (255 << 16) | (225 << 8) | 90, fx - 1.6, fy - 1.6, 3.2, 3.2)
+            EscenaElipse(g, (240 << 24) | (255 << 16) | (210 << 8) | 80, fx - 1.8, fy - 1.8, 3.6, 3.6)
         }
     case "rosa":
         ; Rosas rojas en capas con tallo y hoja
@@ -2885,14 +2956,19 @@ PintarEscenaTema(g, w, h, ef, rC, gC, bC, fondoClaro) {
             EscenaElipse(g, (240 << 24) | (255 << 16) | (70 << 8) | 95, cx - 1.5, ry - 1.5, 3, 3)
         }
     case "lila":
-        ; Lavanda: tallos con espigas de capullos lila
-        loop 6 {
-            cx := (A_Index - 0.5) * w / 6
-            EscenaLinea(g, (200 << 24) | (70 << 16) | (140 << 8) | 70, cx, h, cx, h - 18, 1.4)
-            loop 6 {
-                yy := h - 7 - A_Index * 1.9
-                offx := (Mod(A_Index, 2) ? 1.6 : -1.6)
-                EscenaElipse(g, (215 << 24) | (175 << 16) | (115 << 8) | 225, cx + offx - 2, yy - 2, 4, 4)
+        ; Racimos de lilas (conos de florecillas moradas) — distinto de lavanda
+        loop 4 {
+            cx := (A_Index - 0.5) * w / 4
+            EscenaLinea(g, (200 << 24) | (70 << 16) | (130 << 8) | 70, cx, h, cx, h - 11, 1.6)
+            EscenaElipse(g, (200 << 24) | (60 << 16) | (140 << 8) | 70, cx - 6, h - 10, 7, 4)
+            EscenaElipse(g, (200 << 24) | (60 << 16) | (140 << 8) | 70, cx + 1, h - 10, 7, 4)
+            loop 10 {
+                row := (A_Index - 1) // 3
+                colp := Mod(A_Index - 1, 3)
+                spread := 6 - row * 1.5
+                fx := cx + (colp - 1) * spread
+                fy := h - 13 - row * 4.5
+                EscenaElipse(g, (220 << 24) | (180 << 16) | (120 << 8) | 235, fx - 2.4, fy - 2.4, 4.8, 4.8)
             }
         }
     case "melocoton":
@@ -2947,14 +3023,25 @@ PintarEscenaTema(g, w, h, ef, rC, gC, bC, fondoClaro) {
         EscenaRect(g, (235 << 24) | (30 << 16) | (24 << 8) | 16, bx - 2, by - 3, 1.6, 6)
         EscenaRect(g, (235 << 24) | (30 << 16) | (24 << 8) | 16, bx + 1, by - 3, 1.6, 6)
     case "chicle":
-        ; Pompas de chicle grandes flotando hacia arriba (a la deriva)
-        loop 6 {
-            d := 12 + Mod(A_Index * 7, 16)
+        ; Pompas de chicle subiendo + charco abajo. Borde OSCURO para que resalten
+        ; sobre el fondo rosa del tema (si no, rosa sobre rosa = invisible).
+        borde := (215 << 24) | (90 << 16) | (10 << 8) | 80     ; magenta-morado oscuro (contraste)
+        gum   := (220 << 24) | (233 << 16) | (30 << 8) | 99    ; rosa chicle saturado
+        ; charco de chicle pegado abajo
+        EscenaRect(g, gum, 0, h - 4, w, 4)
+        loop 5 {
+            cx := (A_Index - 0.5) * w / 5
+            bw := 16 + Mod(A_Index * 5, 10)
+            EscenaElipse(g, gum, cx - bw / 2, h - 9, bw, 9)
+        }
+        ; pompas subiendo
+        loop 7 {
+            d := 11 + Mod(A_Index * 7, 15)
             cx := Mod(A_Index * 67, Round(w - 20)) + 10 + Sin(tNow / 800.0 + A_Index) * 8
-            cy := Mod(h - (tNow / 22.0) - A_Index * 45, h + 30) - 15
-            EscenaElipse(g, (60 << 24) | (255 << 16) | (120 << 8) | 190, cx - d / 2, cy - d / 2, d, d)
-            EscenaAnillo(g, (190 << 24) | (255 << 16) | (90 << 8) | 170, cx - d / 2, cy - d / 2, d, 1.6)
-            EscenaElipse(g, (210 << 24) | (255 << 16) | (235 << 8) | 245, cx - d / 2 + d * 0.25, cy - d / 2 + d * 0.25, d * 0.22, d * 0.22)
+            cy := Mod(h - (tNow / 22.0) - A_Index * 40, h + 30) - 15
+            EscenaElipse(g, (165 << 24) | (245 << 16) | (90 << 8) | 165, cx - d / 2, cy - d / 2, d, d)   ; relleno rosa
+            EscenaAnillo(g, borde, cx - d / 2, cy - d / 2, d, 2)                                          ; borde oscuro
+            EscenaElipse(g, (240 << 24) | (255 << 16) | (255 << 8) | 255, cx - d / 2 + d * 0.28, cy - d / 2 + d * 0.22, d * 0.26, d * 0.26)  ; brillo
         }
     case "gema":
         ; Gemas talladas (esmeraldas facetadas)
@@ -3063,14 +3150,17 @@ PintarEscenaTema(g, w, h, ef, rC, gC, bC, fondoClaro) {
             EscenaRect(g, (210 << 24) | (90 << 16) | (170 << 8) | 60, cx - s / 2, cy - s / 2, s, 4)
         }
     case "nubes":
-        ; Nubes esponjosas flotando por ARRIBA, a la deriva
-        nube := fondoClaro ? ((170 << 24) | (235 << 16) | (242 << 8) | 252) : ((210 << 24) | (245 << 16) | (250 << 8) | 255)
+        ; Nubes esponjosas a la deriva por ARRIBA, con base sombreada para que resalten
         loop 4 {
             drift := Mod(tNow / 50.0 + A_Index * w / 4, w + 70) - 35
-            cy := 4 + Mod(A_Index * 9, 22)
-            EscenaElipse(g, nube, drift - 13, cy, 26, 13)
-            EscenaElipse(g, nube, drift - 4, cy - 6, 18, 16)
-            EscenaElipse(g, nube, drift + 7, cy, 18, 13)
+            cy := 5 + Mod(A_Index * 9, 20)
+            sombra := fondoClaro ? ((150 << 24) | (150 << 16) | (165 << 8) | 195) : ((150 << 24) | (110 << 16) | (135 << 8) | 175)
+            nube := fondoClaro ? ((235 << 24) | (250 << 16) | (252 << 8) | 255) : ((225 << 24) | (245 << 16) | (250 << 8) | 255)
+            EscenaElipse(g, sombra, drift - 13, cy + 3, 40, 12)
+            EscenaElipse(g, nube, drift - 13, cy, 26, 14)
+            EscenaElipse(g, nube, drift - 3, cy - 7, 20, 18)
+            EscenaElipse(g, nube, drift + 8, cy, 20, 14)
+            EscenaElipse(g, nube, drift - 1, cy + 1, 30, 12)
         }
     case "luna":
         ; Luna arriba-derecha + estrellas titilando por todo el cielo
@@ -3595,7 +3685,7 @@ barraHistorial.SetFont("s11 c" colorTextoBarra " Bold", "Segoe UI")
 barraHistorial.OnEvent("Click", (*) => (ClickBarraHistorialNika(), ArrastrarHistorial()))
 
 ; Sin WS_VSCROLL: el RichEdit no dibuja NINGUNA scrollbar nativa.
-; La rueda del ratón y las flechas se gestionan via hotkeys #HotIf más abajo,
+; La rueda del ratón se gestiona via hotkey #HotIf más abajo,
 ; que envían EM_LINESCROLL directamente. El scrollbar custom (scrollTrack/Thumb)
 ; se actualiza por ActualizarScrollbarCustom().
 historialBox := historialGui.Add("Custom", "ClassRICHEDIT50W x10 y35 w250 h110 +0x4 +0x10 +0x40 +0x800 vHistorial")
@@ -3714,7 +3804,7 @@ barra.OnEvent("Click", ArrastrarVentana)
 barra.OnEvent("DoubleClick", ClickTitulo)
 
 ; Boton de perfil — pequeñito al lado izquierdo del reset.
-; Click cicla 🌐 tct → 🔒 sp → ⚔ frt → 🌐 tct... F3 hace lo mismo.
+; Click cicla 🌐 tct → 🔒 sp → ⚔ frt → 🌐 tct.
 btnPerfil := miGui.Add("Text", "x290 y36 w14 h14 +0x201 Center Background" colorBotonNormal " c" colorBtnTexto, EmojiPerfil())
 btnPerfil.SetFont("s8 c" colorBtnTexto " Bold", "Segoe UI Emoji")
 btnPerfil.OnEvent("Click", CambiarPerfil)
@@ -4146,7 +4236,7 @@ AplicarPreset(p) {
 
     SetTimer(HoverPoll, presetHoverPoll)
     SetTimer(HoverBreath, presetHoverBreath > 0 ? presetHoverBreath : 0)
-    SetTimer(ActualizarParticulas, presetParticulas > 0 ? presetParticulas : 0)
+    RefrescarTimersVisuales()   ; partículas y/o escena-sola según preset + toggles
     SetTimer(AnimarBarras, presetBarras)
     SetTimer(TickDecoracionesPermanentes, presetDecoFps)
     SetTimer(ActualizarTrayIcon, presetTrayIcon)
@@ -5027,6 +5117,7 @@ PartChkActivas(ctrl, *) {
     particulasActivas := ctrl.Value = 1
     try IniWrite(particulasActivas ? 1 : 0, configPath, "Particulas", "Activas")
     AplicarConfigParticulas()
+    RefrescarTimersVisuales()
 }
 
 PartSlidCant(ctrl, *) {
@@ -5129,7 +5220,7 @@ AbrirPanelOptimizacion(*) {
         {var: "optDecoraciones",  label: "Decoraciones",         desc: "Efectos los temas"},
         {var: "optConfeti",       label: "Confeti",              desc: "Confeti en milestones"},
         {var: "optTypeReveal",    label: "Type Reveal",          desc: "Revelado progresivo de texto"},
-        {var: "optEscena",        label: "Escena del tema",      desc: "Decorado del borde (lo más pesado — apágalo si va lento)"},
+        {var: "optEscena",        label: "Decoración del tema",   desc: "Decorado del borde por tema. Se mantiene aunque las partículas/Eco estén apagadas"},
     ]
 
     for t in toggles {
@@ -5207,6 +5298,8 @@ OptToggleCallback(varName, ctrl, *) {
     }
     iniKey := StrReplace(varName, "opt", "")
     IniWrite(val ? 1 : 0, configPath, "Optimizacion", iniKey)
+    if (varName = "optEscena")
+        RefrescarTimersVisuales()   ; encender/apagar la escena al instante (incluso en Eco)
 }
 
 OptSetTodos(val) {
@@ -5238,6 +5331,7 @@ OptSetTodos(val) {
 
 OptTodoOn(*) {
     OptSetTodos(true)
+    RefrescarTimersVisuales()
     try {
         CerrarPanelOptimizacion()
         AbrirPanelOptimizacion()
@@ -5246,6 +5340,7 @@ OptTodoOn(*) {
 
 OptTodoOff(*) {
     OptSetTodos(false)
+    RefrescarTimersVisuales()
     try {
         CerrarPanelOptimizacion()
         AbrirPanelOptimizacion()
@@ -5268,73 +5363,64 @@ TutorialPaginas() {
     return [
     { ico: Chr(0x1F4D6), tit: "Tutorial AFK Smart",
       txt: "Este macro automatiza principalmente el farmeo AFK en Brawlhalla y otros juegos.`n`n"
-         . "Detecta píxeles en la pantalla y hace acciones especificas: farmea, juega y sigue. Para conseguir oro, xp y darte una pequeña ventaja en algunos juegos.`n`n"
+         . "Detecta píxeles en la pantalla y hace acciones específicas: farmea, juega y sigue. Para conseguir oro, xp y darte una pequeña ventaja en algunos juegos.`n`n"
          . "Usa los botones  ◀ Anterior  y  Siguiente ▶  de abajo para pasar las páginas de este libro." },
 
     { ico: Chr(0x25B6), tit: "Empezar: Iniciar y Parar",
       txt: "• ▶ Iniciar (F1): arranca el macro. Abre Brawlhalla si hace falta y empieza a detectar.`n`n"
-         . "• ■ Parar (F2): detiene TODO al instante (detección, AFK, lanzamientos).`n`n"
-         . "Las 3 luces de arriba muestran el estado:`n"
-         . "   Verde = activo · Azul = acción · Apagada = parado.`n`n"
-         . "El reloj ⏱ cuenta el tiempo que llevas farmeando." },
+         . "• ■ Parar (F2): detiene las detecciones del macro y pausa todo lo que tenga que ver con el funcionamiento.`n`n"
+         . "Los cuadraditos de arriba muestran el funcionamiento:`n"
+         . "Primero: macro activo | Segundo: hizo una acción | Tercero: macro apagado.`n`n"
+         . "El reloj ⏱ cuenta el tiempo que lleva activo." },
 
     { ico: Chr(0x1F3AE), tit: "Perfiles (botón perfil / F3)",
       txt: "Cambian QUÉ hace el macro:`n`n"
-         . "• 🌐 tct — farmeo público: abre Brawlhalla y juega partidas normales.`n`n"
-         . "• 🔒 sp — farmeo privado: sala propia con bots.`n`n"
-         . "• ⚔ frt — modo fruta: da clicks sin parar y (1-7) sin parar.`n`n"
-         . "• ∅ dstv — solo detector: vigila una zona en círculo y pulsa Espacio. Sin AFK ni abrir el juego." },
+         . "• 🌐 tct — farmeo público: Juega todos contra todos en Brawlhalla.`n`n"
+         . "• 🔒 sp — farmeo privado: crea sala en Brawlhalla y juega con un bot.`n`n"
+         . "• ⚔ frt — modo fruta: farmea nivel en fruits battleground.`n`n"
+         . "• ∅ dstv — generadores: Para distrito de violencia para hacer los generadores." },
 
     { ico: Chr(0x1F3A8), tit: "Apariencia y personalización",
-      txt: "• ◐ Tema: selector con ~65 temas (claros, oscuros, temáticos y secretos).`n`n"
-         . "• 🎨 RGB: anima los colores en arcoíris — barra, botones, logo o texto. Atajo Ctrl+R.`n`n"
-         . "• ✨ Partículas: ajusta cantidad, velocidad, tamaño y opacidad de las partículas de fondo.`n`n"
-         . "• ▣ Mini: modo compacto flotante (solo el logo)." },
-
-    { ico: Chr(0x1F3DE), tit: "Decoración por tema",
-      txt: "Cada tema tiene partículas Y una escena animada propia en el borde, según lo que ES su nombre:`n`n"
-         . "❄ Hielo→nieve · 🌴 Jungla→árboles · 🌋 Magma→lava · 🌊 Océano→olas`n"
-         . "🩸 Sangre→goteo · ⚡ Eléctrico→rayos · 🍯 Miel→panal · 🍷 Vino→copas`n"
-         . "🌸 Sakura→flores · 💎 Esmeralda→gemas · 🪙 Dorado→oro...`n`n"
-         . "Hace falta tener las PARTÍCULAS activadas (✨) para ver las escenas.`n`n"
-         . "Gojo y Sukuna tienen decoración propia (Six Eyes / cortes 解)." },
+      txt: "• ◐ Tema: sirve para cambiar el aspecto del macro con ~65 temas (claros, oscuros, temáticos y secretos (se consiguen con los logros)).`n`n"
+         . "• 🎨 RGB: configura el rgb de ciertas partes del macro.`n`n"
+         . "• ✨ Partículas: ajusta las partículas de fondo.`n`n"
+         . "• ▣ Mini: hace el macro pequeño para que no moleste en la pantalla." },
 
     { ico: Chr(0x1F6E0), tit: "Botones de herramientas",
-      txt: "En la ventana del historial (fila inferior):`n`n"
-         . "• 📖 Tutorial — este libro.`n"
-         . "• 📊 Stats — tus estadísticas (Alt+H).`n"
-         . "• 🏆 Logros — medallas desbloqueables.`n"
-         . "• ⟨⟩ Código — abre el .ahk del macro.`n"
-         . "• 👁 Overlay — dibuja en pantalla las zonas/píxeles que vigila (para calibrar).`n"
+      txt: "En la ventana del historial hay estos botones:`n`n"
+         . "• 📖 Tutorial — ya sabes...`n"
+         . "• 📊 Stats — tus estadísticas totales.`n"
+         . "• 🏆 Logros — logros conseguidos y por obtener.`n"
+         . "• ⟨⟩ Código — abre el código del macro.`n"
+         . "• 👁 Overlay — muestra los píxeles que tiene que detectar. (para que no pongas el macro ahí).`n"
          . "• 🔔 Webhook — avisos a Discord.`n"
-         . "• ↑ Update — busca actualizaciones.`n"
-         . "• ⚙ Optimizar — enciende/apaga efectos." },
+         . "• ↑ Update — actualiza el macro (si es que hay actualización).`n"
+         . "• ⚙ Optimizar — quita efectos para mejor rendimiento.`n`n"
+	 . "• En las siguientes páginas se explicará más a detalle cada uno de estos para entenderlo mejor." },
 
     { ico: Chr(0x26A1), tit: "Rendimiento (si va lento)",
-      txt: "Toca el medidor ⚡ (abajo-izq) para ciclar los presets:`n`n"
-         . "• Eco — mínimo consumo, sin animaciones.`n"
-         . "• Ligero · Normal · Ultra — más fluidez, más CPU.`n`n"
-         . "La detección funciona IGUAL en todos; los presets solo afectan a lo visual.`n`n"
-         . "En ⚙ Optimizar puedes apagar efectos sueltos sin cambiar el preset. Si te va lento, apaga 'Escena del tema' (lo más pesado) o baja las ✨ Partículas." },
+      txt: "Baja o sube los fps del macro para mejor rendimiento:`n`n"
+         . "• Eco : pocas animaciones.`n"
+         . "• Ligero · Normal · Ultra : más animaciones, menos rendimiento (no recomendado en pc como la del xavi).`n`n"
+         . "No afecta en el funcionamiento del macro." },
 
     { ico: Chr(0x1F4DC), tit: "Historial",
       txt: "Registra cada acción del macro con hora y un color según el tipo de evento.`n`n"
-         . "Para desplazarte (con el ratón encima de la ventana):`n"
-         . "• Rueda del ratón — subir / bajar`n"
-         . "• ↑ ↓ — una línea`n"
-         . "• RePág / AvPág — un bloque`n"
-         . "• Inicio / Fin — principio / final`n`n"
-         . "Guarda hasta 5000 líneas en pantalla y un log completo en disco." },
+         . "Puedes mirar todas las acciones con la rueda del ratón.`n`n"
+         . "Guarda hasta 5000 líneas en pantalla y guarda automáticamente todas las acciones en brawlmacro_historial.log por si el macro se crashea o lo cierras por accidente." },
 
     { ico: Chr(0x1F6E1), tit: "Anti-AFK y recuperación",
-      txt: "El macro se cuida solo para no parar de noche:`n`n"
+      txt: "Aunque el macro se crashee, aún así se inicia de nuevo como si lo hubieras abierto:`n`n"
          . "• Anti-AFK: cada cierto tiempo manda teclas para no quedar inactivo.`n`n"
          . "• Modo Destrucción: si pasa demasiado sin detectar nada, cierra Brawlhalla y lo vuelve a abrir.`n`n"
-         . "• Watchdog: un vigilante externo. Si el macro se cuelga o se cierra solo, lo relanza — y si estaba detectando, sigue detectando." },
+         . "• Watchdog: un vigilante externo para el macro. Si el macro se congela o se cierra solo, lo vuelve a abrir. Si estaba activo el macro, seguirá activo después de abrirse." },
 
     { ico: Chr(0x1F514), tit: "Webhook de Discord",
-      txt: "Pega la URL de un webhook de tu servidor (botón 🔔, o Ctrl+W) y el macro te avisa por Discord de:`n`n"
-         . "iniciado · parado · destrucción · Alt+F4 · hitos · secuencias.`n`n"
+      txt: "Pega la URL de un webhook de tu servidor y el macro te avisa por Discord de:`n`n"
+         . "Vas a tu servidor (o un servidor donde tengas permisos), configuras un canal, vas a integraciones y añades un webhook.`n"
+	 . "Ahí puedes crear un webhook, copias el link y lo pegas en el macro.`n"
+	 . "Puedes configurar el webhook con estas opciones para que te avise sobre estas acciones que haga el macro, algunas hacen captura de pantalla para que tengas una idea de cómo ocurrió el error:`n"
+	 . "iniciado · parado · destrucción · Alt+F4 · hitos · secuencias.`n`n"
          . "Puedes activar o desactivar cada tipo de aviso por separado." },
 
     { ico: Chr(0x1F3C6), tit: "Logros y estadísticas",
@@ -5342,29 +5428,18 @@ TutorialPaginas() {
          . "• 🏆 Logros: se desbloquean solos al cumplir retos (tu 1ª secuencia, 100 secuencias, 24 horas, 10 destrucciones...).`n`n"
          . "Algunos logros son SECRETOS y solo muestran una pista — descúbrelos tú mismo." },
 
-    { ico: Chr(0x2328), tit: "Atajos de teclado",
-      txt: "• F1 — Iniciar`n"
-         . "• F2 — Parar`n"
-         . "• F3 — Cambiar perfil`n"
-         . "• Ctrl + R — Panel RGB`n"
-         . "• Ctrl + W — Webhook`n"
-         . "• Alt + H — Estadísticas`n`n"
-         . "• Rueda / flechas / RePág / Inicio-Fin — desplazar el historial (con el ratón encima)." },
+    { ico: Chr(0x1F4A1), tit: "¿Quieres un macro de otro juego?",
+      txt: "La siguiente página ya es la última.`n`n"
+         . "Si tienes una petición para un macro de algún juego, dímelo y lo intentaré hacer.`n`n"
+         . "No te aseguro que salga, depende del juego y de si se puede detectar bien, pero lo intento.`n`n"
+         . "Y gracias por usar el macro." },
 
-    { ico: Chr(0x2728), tit: "Secretos (pistas, sin spoiler)",
-      txt: "Hay packs de temas ocultos y eggs. Algunas pistas:`n`n"
-         . "• Pack Gamer — las SECUENCIAS son el camino.`n"
-         . "• Pack Leyendas — el medidor ⚡ gira en bucle... no pares de tocarlo.`n"
-         . "• El reloj ⏱ responde si insistes.`n"
-         . "• Gira y gira... el título.`n"
-         . "• Las 3 luces tienen un orden: izq → centro → der.`n"
-         . "• El logo esconde más de uno (prueba con Shift)." },
-
-    { ico: Chr(0x2764), tit: "¡Listo!",
-      txt: "Ya conoces todo lo esencial.`n`n"
-         . "Elige tu perfil con F3, pulsa F1 y deja el macro farmeando tranquilo. Experimenta con los temas y caza los secretos.`n`n"
-         . "Cierra este libro tocando la barra de arriba.`n`n"
-         . "¡A farmear! 🎮" }
+    { ico: Chr(0x2764), tit: "FIN",
+      txt: "Y ya está, con esto ya sabes lo básico.`n`n"
+         . "Pon el perfil que quieras, dale a F1 y deja el macro farmeando tranquilo mientras haces otra cosa.`n`n"
+         . "Ve probando los temas y a ver si encuentras los secretos, que hay unos cuantos escondidos por ahí.`n`n"
+         . "Si algo se rompe o se ve raro, avísame y lo arreglo.`n`n"
+         . "Para cerrar el libro toca la barra de arriba. ¡A farmear! 🎮" }
     ]
 }
 
@@ -6759,7 +6834,10 @@ AplicarTema(tema, guardar := true, fromTrans := false) {
         DllCall("RedrawWindow", "Ptr", miGui.Hwnd,        "Ptr", 0, "Ptr", 0, "UInt", 0x85)
         DllCall("RedrawWindow", "Ptr", historialGui.Hwnd, "Ptr", 0, "Ptr", 0, "UInt", 0x85)
     }
-    ; Actualizar borde de color en todas las ventanas abiertas
+    ; Limpiar el overlay de decoraciones (Gojo Six Eyes / Sukuna kanji): al salir de un
+    ; tema secreto, TickDecoracionesPermanentes deja de invalidar el overlay, así que los
+    ; detalles quedaban congelados pegados. Forzamos un repintado que borra el frame previo.
+    InvalidarOverlayDeco()
 }
 
 ActualizarRGB(*) {
@@ -10308,24 +10386,17 @@ OverlayHoverCheck(*) {
     }
 }
 
-^w::AbrirPanelWebhook()
+; Atajos de teclado retirados a petición del usuario: Ctrl+W (webhook), Ctrl+R (RGB),
+; Alt+H (estadísticas) y F3 (cambiar perfil). Esas funciones siguen accesibles por sus
+; botones / zonas de click. Se mantienen solo F1=Iniciar y F2=Parar para el juego.
 F1::Iniciar()
 F2::Parar()
-F3::CambiarPerfil()  ; Toggle perfil P1/P2 (zona de click invisible esta en esquina inf-izq)
-^r::AbrirPanelRGB()
-!h::MostrarEstadisticas()
 
 ; ═════ SCROLL DEL HISTORIAL POR TECLADO Y RUEDA ═════
 ; Activos cuando el ratón está sobre la ventana del historial.
 #HotIf RatonSobreHistorial()
 WheelUp::ScrollHistorial(-3)
 WheelDown::ScrollHistorial(3)
-PgUp::ScrollHistorial(-5)
-PgDn::ScrollHistorial(5)
-Up::ScrollHistorial(-1)
-Down::ScrollHistorial(1)
-Home::ScrollHistorial(-9999)
-End::ScrollHistorial(9999)
 #HotIf
 
 RatonSobreHistorial() {
