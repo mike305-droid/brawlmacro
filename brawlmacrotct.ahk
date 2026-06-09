@@ -8,7 +8,7 @@ configPath := A_ScriptDir "\brawlmacro_config.ini"
 global eggsBackupPath := A_ScriptDir "\brawlmacro_eggs.txt"
 global heartbeatPath := A_ScriptDir "\brawlmacro_heartbeat.txt"
 global historialLogPath := A_ScriptDir "\brawlmacro_historial.log"
-global VERSION_ACTUAL := "30.4.1"
+global VERSION_ACTUAL := "30.5.0"
 
 ; ===== TEMAS =====
 temas := [
@@ -76,8 +76,8 @@ temas := [
     { nombre:"★ Brawl",       secreto:true, unlock:"gamer", fondo:"000000", texto:"FFFFFF", barra:"0050D5", textoBarra:"FFFFFF", historial:"000000", panel:"0A1A30", cooldown:"FF4444", afk:"4FC3F7", boton:"0050D5", hover:"1976D2", logo:"FFFFFF", luzOn:"00B0FF", luzAccion:"FFFFFF", luzOff:"050E1C",  btnTexto:"FFFFFF", histColor1:"FFFFFF", histColor2:"00B0FF", histColor3:"0050D5" },
     { nombre:"◆ Cyberpunk",   secreto:true, unlock:"gamer", fondo:"0D0B1F", texto:"00FFFF", barra:"FF00AA", textoBarra:"FFFF00", historial:"070518", panel:"130E2E", cooldown:"FFFF00", afk:"00FFFF", boton:"FF00AA", hover:"FF33BB", logo:"FFFF00", luzOn:"FF00AA", luzAccion:"00FFFF", luzOff:"1A1240",  btnTexto:"FFFFFF", histColor1:"00FFFF", histColor2:"FF00AA", histColor3:"FFFF00" },
     { nombre:"☀ Retrowave",   secreto:true, unlock:"gamer", fondo:"1A0833", texto:"FF6EC7", barra:"7A1FA2", textoBarra:"00E5FF", historial:"0F051F", panel:"23104D", cooldown:"FF4081", afk:"FF8A50", boton:"7A1FA2", hover:"9C27B0", logo:"FF8A50", luzOn:"FF6EC7", luzAccion:"00E5FF", luzOff:"1A0833",  btnTexto:"FFFFFF", histColor1:"FF6EC7", histColor2:"00E5FF", histColor3:"FF8A50" },
-    { nombre:"🎮 Discord",    secreto:true, unlock:"gamer", fondo:"2C2F33", texto:"DCDDDE", barra:"5865F2", textoBarra:"FFFFFF", historial:"23272A", panel:"36393F", cooldown:"ED4245", afk:"57F287", boton:"40444B", hover:"5865F2", logo:"FFFFFF", luzOn:"5865F2", luzAccion:"57F287", luzOff:"2C2F33",  btnTexto:"FFFFFF", histColor1:"DCDDDE", histColor2:"5865F2", histColor3:"57F287" },
-    { nombre:"🎵 Spotify",    secreto:true, unlock:"gamer", fondo:"121212", texto:"B3B3B3", barra:"1DB954", textoBarra:"FFFFFF", historial:"0A0A0A", panel:"1A1A1A", cooldown:"FF4444", afk:"1DB954", boton:"282828", hover:"1DB954", logo:"1DB954", luzOn:"1DB954", luzAccion:"1ED760", luzOff:"181818",  btnTexto:"FFFFFF", histColor1:"B3B3B3", histColor2:"1DB954", histColor3:"1ED760" },
+    { nombre:"✦ Discord",    secreto:true, unlock:"gamer", fondo:"2C2F33", texto:"DCDDDE", barra:"5865F2", textoBarra:"FFFFFF", historial:"23272A", panel:"36393F", cooldown:"ED4245", afk:"57F287", boton:"40444B", hover:"5865F2", logo:"FFFFFF", luzOn:"5865F2", luzAccion:"57F287", luzOff:"2C2F33",  btnTexto:"FFFFFF", histColor1:"DCDDDE", histColor2:"5865F2", histColor3:"57F287" },
+    { nombre:"♪ Spotify",    secreto:true, unlock:"gamer", fondo:"121212", texto:"B3B3B3", barra:"1DB954", textoBarra:"FFFFFF", historial:"0A0A0A", panel:"1A1A1A", cooldown:"FF4444", afk:"1DB954", boton:"282828", hover:"1DB954", logo:"1DB954", luzOn:"1DB954", luzAccion:"1ED760", luzOff:"181818",  btnTexto:"FFFFFF", histColor1:"B3B3B3", histColor2:"1DB954", histColor3:"1ED760" },
     { nombre:"⌖ Valorant",    secreto:true, unlock:"gamer", fondo:"0F1923", texto:"ECE8E1", barra:"FF4655", textoBarra:"FFFFFF", historial:"0A1018", panel:"162030", cooldown:"FFFF00", afk:"BD3944", boton:"1A2A3A", hover:"FF4655", logo:"FF4655", luzOn:"FF4655", luzAccion:"ECE8E1", luzOff:"0F1923",  btnTexto:"FFFFFF", histColor1:"ECE8E1", histColor2:"FF4655", histColor3:"BD3944" },
     { nombre:"⛏ Minecraft",   secreto:true, unlock:"gamer", fondo:"3B2A1A", texto:"7CFC00", barra:"5D8A3C", textoBarra:"FFFFFF", historial:"2E2010", panel:"4A3620", cooldown:"FF3333", afk:"55FF55", boton:"5D8A3C", hover:"6FA04A", logo:"7CFC00", luzOn:"55FF55", luzAccion:"7CFC00", luzOff:"3B2A1A",  btnTexto:"FFFFFF", histColor1:"7CFC00", histColor2:"55FF55", histColor3:"5D8A3C" },
     ; ─────────── SECRETOS — PACK LEYENDAS ───────────
@@ -90,9 +90,9 @@ temas := [
     { nombre:"✦ E C L I P S E ✦", secreto:true, unlock:"shadow",  fondo:"050508", texto:"C8A060", barra:"0D0A20", textoBarra:"FFB347", historial:"030306", panel:"0A0818", cooldown:"FF2244", afk:"00FFCC", boton:"14102A", hover:"221840", logo:"FFB347", luzOn:"FF6600", luzAccion:"FFD700", luzOff:"080520",  btnTexto:"FFB347", histColor1:"FFD700", histColor2:"FF6600", histColor3:"00FFCC" },
     { nombre:"✦ C O S M O S ✦",   secreto:true, unlock:"cosmos",  fondo:"03000F", texto:"E2C9FF", barra:"180040", textoBarra:"FFD700", historial:"020008", panel:"0D001E", cooldown:"FF1493", afk:"00E5FF", boton:"12002E", hover:"1E0050", logo:"FFD700", luzOn:"BF00FF", luzAccion:"FF69B4", luzOff:"080020",  btnTexto:"FFD700", histColor1:"FF69B4", histColor2:"BF00FF", histColor3:"00E5FF" },
     { nombre:"⚡ V O I D ⚡",      secreto:true, unlock:"void",    fondo:"000000", texto:"FFFFFF", barra:"0A0A0A", textoBarra:"FF0000", historial:"050505", panel:"0D0D0D", cooldown:"FF0000", afk:"FF0000", boton:"111111", hover:"1C1C1C", logo:"FF0000", luzOn:"FF0000", luzAccion:"FFFFFF", luzOff:"000000",  btnTexto:"FF0000", histColor1:"FFFFFF", histColor2:"FF0000", histColor3:"CC0000" },
-    { nombre:"🔥 F E N I X 🔥",   secreto:true, unlock:"solar",   fondo:"FFF8EC", texto:"8B3A00", barra:"FF6B00", textoBarra:"FFFFFF", historial:"FFFBF5", panel:"FFE5C0", cooldown:"00C9B7", afk:"00C9B7", boton:"FFB347", hover:"FF8C00", logo:"00C9B7", luzOn:"00C9B7", luzAccion:"FF6B00", luzOff:"FFB347",  btnTexto:"FFFFFF", histColor1:"FFD700", histColor2:"FF6B00", histColor3:"00C9B7" },
+    { nombre:"☀ F E N I X ☀",   secreto:true, unlock:"solar",   fondo:"FFF8EC", texto:"8B3A00", barra:"FF6B00", textoBarra:"FFFFFF", historial:"FFFBF5", panel:"FFE5C0", cooldown:"00C9B7", afk:"00C9B7", boton:"FFB347", hover:"FF8C00", logo:"00C9B7", luzOn:"00C9B7", luzAccion:"FF6B00", luzOff:"FFB347",  btnTexto:"FFFFFF", histColor1:"FFD700", histColor2:"FF6B00", histColor3:"00C9B7" },
     { nombre:"✦ N I K A ✦",       secreto:true, unlock:"blanco",  fondo:"FFFFFF", texto:"CC0000", barra:"CC0000", textoBarra:"FFFFFF", historial:"FFFFFF", panel:"FFF2F2", cooldown:"990000", afk:"CC0000", boton:"FFF2F2", hover:"FFE0E0", logo:"CC0000", luzOn:"DD0000", luzAccion:"FF2222", luzOff:"CC0000",  btnTexto:"CC0000", histColor1:"CC0000", histColor2:"DD0000", histColor3:"FF2222" },
-    { nombre:"💎 P R E M I U M 💎", secreto:true, unlock:"premium", fondo:"050008", texto:"FFFFFF", barra:"0F0020", textoBarra:"FFFFFF", historial:"030005", panel:"0A0015", cooldown:"FF0066", afk:"00FFCC", boton:"15002A", hover:"25004A", logo:"FFFFFF", luzOn:"FF00FF", luzAccion:"FFD700", luzOff:"0A0015",  btnTexto:"FFFFFF", histColor1:"FF00FF", histColor2:"00FFFF", histColor3:"FFFF00" },
+    { nombre:"♦ P R E M I U M ♦", secreto:true, unlock:"premium", fondo:"050008", texto:"FFFFFF", barra:"0F0020", textoBarra:"FFFFFF", historial:"030005", panel:"0A0015", cooldown:"FF0066", afk:"00FFCC", boton:"15002A", hover:"25004A", logo:"FFFFFF", luzOn:"FF00FF", luzAccion:"FFD700", luzOff:"0A0015",  btnTexto:"FFFFFF", histColor1:"FF00FF", histColor2:"00FFFF", histColor3:"FFFF00" },
     ; ── GOJO: el más fuerte. Uniforme negro + pelo blanco + Limitless beige + Six Eyes azul + Hollow Purple ──
     ; Logo: ∞ (Limitless). Negro azulado del uniforme, blanco del pelo, beige del Infinito, azul cielo, morado Hollow Purple.
     { nombre:"♾ G O J O ♾", secreto:true, unlock:"gojo", logoChar:Chr(0x221E),
@@ -372,6 +372,7 @@ global optLogoGiratorio  := true   ; animación del engranaje girando
 global optDecoraciones   := true   ; animaciones de los temas
 global optConfeti        := true   ; confeti en milestones
 global optTypeReveal     := true   ; revelado progresivo de texto
+global optEscena         := true   ; escena temática del borde (lo más pesado)
 global optGui := "", optGuiVisible := false
 global tutGui := "", tutGuiVisible := false, tutPagina := 1  ; tutorial tipo libro
 
@@ -1658,24 +1659,134 @@ global miGuiPartCb := 0, histGuiPartCb := 0
 global particulasInited := false
 global overlayPartMain := "", overlayPartHist := ""
 
+; ═══════════════════════════════════════════════════════════════
+; EFECTOS DE PARTÍCULA POR TEMA — cada tema tiene su propio "detalle"
+;   nieve · brasas · estrellas · chispas · lluvia · matrix · burbujas
+;   · petalos · hojas · default
+; ═══════════════════════════════════════════════════════════════
+EfectoDeTema(t) {
+    if (t.HasProp("efecto"))
+        return t.efecto
+    ; Secretos identificables por su unlock (nombres con espacios entre letras)
+    if (t.HasProp("unlock")) {
+        switch t.unlock {
+            case "gojo":    return "estrellas"
+            case "sukuna":  return "brasas"
+            case "cosmos":  return "estrellas"
+            case "void":    return "estrellas"
+            case "solar":   return "brasas"     ; Fénix
+            case "blanco":  return "chispas"    ; Nika
+            case "shadow":  return "estrellas"  ; Eclipse
+            case "premium": return "chispas"
+        }
+    }
+    n := t.nombre
+    ; Mapeo por nombre (substring). El orden es la prioridad. Lo que no encaje
+    ; aquí se infiere por color más abajo, así que TODOS los temas tienen efecto.
+    pares := [
+        ["Matrix","matrix"], ["Glitch","matrix"], ["Cyberpunk","matrix"], ["Cyber","matrix"], ["Neon","matrix"],
+        ["Naruto","hojas"], ["Minecraft","hojas"], ["Bosque","hojas"], ["Jungla","hojas"], ["Bamb","hojas"], ["Verde","hojas"],
+        ["One Piece","burbujas"], ["Agua","burbujas"], ["Océano","burbujas"], ["Submarino","burbujas"], ["Tropical","burbujas"], ["Profundo","burbujas"], ["Discord","burbujas"],
+        ["Sky","nieve"], ["Hielo","nieve"], ["Polar","nieve"], ["Tundra","nieve"], ["Nube","nieve"],
+        ["Pok","chispas"], ["Brawl","chispas"], ["Valorant","chispas"], ["Spotify","chispas"], ["Dorado","chispas"], ["Miel","chispas"], ["Mostaza","chispas"], ["Electrico","chispas"],
+        ["Retrowave","estrellas"], ["Noche","estrellas"], ["Aurora","estrellas"], ["Abismo","estrellas"],
+        ["Sakura","petalos"], ["Rosa","petalos"], ["Lavanda","petalos"], ["Lila","petalos"], ["Chicle","petalos"], ["Macaron","petalos"],
+        ["Magma","brasas"], ["Sangre","brasas"]
+    ]
+    for par in pares {
+        if (InStr(n, par[1]))
+            return par[2]
+    }
+    ; Resto: inferir del color de la paleta
+    return InferirEfectoPorColor(t)
+}
+
+; Deriva un efecto del color de acento (barra) + si el fondo es oscuro.
+InferirEfectoPorColor(t) {
+    acc := t.barra
+    r := Integer("0x" SubStr(acc, 1, 2)), g := Integer("0x" SubStr(acc, 3, 2)), b := Integer("0x" SubStr(acc, 5, 2))
+    fr := Integer("0x" SubStr(t.fondo, 1, 2)), fg := Integer("0x" SubStr(t.fondo, 3, 2)), fb := Integer("0x" SubStr(t.fondo, 5, 2))
+    oscuro := ((fr * 299 + fg * 587 + fb * 114) / 1000) < 110
+    mx := Max(r, g, b), mn := Min(r, g, b), d := mx - mn
+    sat := (mx = 0) ? 0 : d / mx
+    if (d = 0)
+        h := 0
+    else if (mx = r)
+        h := Mod(60 * (((g - b) / d) + 6), 360)
+    else if (mx = g)
+        h := 60 * (((b - r) / d) + 2)
+    else
+        h := 60 * (((r - g) / d) + 4)
+    if (sat < 0.18)
+        return oscuro ? "estrellas" : "nieve"
+    if (h < 35 || h >= 330)
+        return "brasas"
+    if (h < 65)
+        return "chispas"
+    if (h < 165)
+        return oscuro ? "matrix" : "hojas"
+    if (h < 200)
+        return "burbujas"
+    if (h < 255)
+        return oscuro ? "estrellas" : "nieve"
+    return "petalos"
+}
+
 InicializarParticulas(arr, w, h, n := 35) {
     global particulasCantidad, particulasVelocidad, particulasTamano, particulasOpacidad
+    global temas, temaActual
     while (arr.Length > 0)
         arr.Pop()
-    ; Aplicar multiplicadores de cantidad sobre el baseN
+    ef := EfectoDeTema(temas[temaActual])
     realN := Max(0, Round(n * particulasCantidad / 100))
     factorVel := particulasVelocidad / 100
     factorTam := particulasTamano / 100
     factorAlpha := particulasOpacidad / 100
     loop realN {
-        arr.Push({
-            x:     Random(0.0, w * 1.0),
-            y:     Random(0.0, h * 1.0),
-            vx:    (Random(-100, 100) / 500.0) * factorVel,
-            vy:    (Random(-100, 100) / 650.0) * factorVel,
-            r:     (Random(20, 45) / 10.0) * factorTam,
-            alpha: Min(255, Round(Random(45, 110) * factorAlpha))
-        })
+        ; Defaults (efecto "default" — flotación suave en cualquier dirección)
+        vx := (Random(-100, 100) / 500.0) * factorVel
+        vy := (Random(-100, 100) / 650.0) * factorVel
+        rr := (Random(20, 45) / 10.0) * factorTam
+        al := Min(255, Round(Random(45, 110) * factorAlpha))
+        switch ef {
+            case "nieve":
+                vx := (Random(-40, 40) / 500.0) * factorVel
+                vy := (Random(30, 90) / 300.0) * factorVel       ; cae despacio
+                rr := (Random(15, 35) / 10.0) * factorTam
+                al := Min(255, Round(Random(120, 210) * factorAlpha))
+            case "brasas":
+                vx := (Random(-30, 30) / 600.0) * factorVel
+                vy := -(Random(40, 110) / 300.0) * factorVel      ; sube
+                rr := (Random(10, 24) / 10.0) * factorTam
+                al := Min(255, Round(Random(120, 220) * factorAlpha))
+            case "estrellas", "chispas":
+                vx := (Random(-15, 15) / 900.0) * factorVel       ; casi quietas (titilan)
+                vy := (Random(-15, 15) / 900.0) * factorVel
+                rr := (Random(8, 20) / 10.0) * factorTam
+                al := Min(255, Round(Random(70, 170) * factorAlpha))
+            case "lluvia":
+                vx := 0.0
+                vy := (Random(120, 240) / 300.0) * factorVel      ; cae rápido
+                rr := (Random(20, 38) / 10.0) * factorTam         ; r = largo del trazo
+                al := Min(255, Round(Random(90, 160) * factorAlpha))
+            case "matrix":
+                vx := 0.0
+                vy := (Random(90, 180) / 300.0) * factorVel
+                rr := (Random(14, 28) / 10.0) * factorTam
+                al := Min(255, Round(Random(110, 200) * factorAlpha))
+            case "burbujas":
+                vx := (Random(-20, 20) / 700.0) * factorVel
+                vy := -(Random(25, 70) / 300.0) * factorVel       ; sube
+                rr := (Random(18, 40) / 10.0) * factorTam
+                al := Min(255, Round(Random(60, 130) * factorAlpha))
+            case "petalos", "hojas":
+                vx := (Random(-60, 60) / 500.0) * factorVel       ; deriva lateral
+                vy := (Random(25, 70) / 300.0) * factorVel        ; cae suave
+                rr := (Random(22, 42) / 10.0) * factorTam
+                al := Min(255, Round(Random(110, 190) * factorAlpha))
+        }
+        arr.Push({ x: Random(0.0, w * 1.0), y: Random(0.0, h * 1.0),
+                   vx: vx, vy: vy, r: rr, alpha: al, ph: Random(0.0, 6.2831) })
     }
 }
 
@@ -1710,10 +1821,31 @@ ActualizarParticulas() {
     global particulasMain, particulasHist, miGui, historialGui, historialVisible, particulasInited
     global overlayPartMain, overlayPartHist
     global temaEnTransicion, particulasActivas
+    global temas, temaActual, modoMini, particulasMini
     if (!particulasInited || temaEnTransicion || !particulasActivas)
         return
 
     static BAR_H := 25  ; alto de la barra de título excluida del overlay
+
+    ; ── Si cambió el EFECTO del tema, re-inicializar las partículas para que
+    ;    adopten la nueva dirección/forma (nieve cae, brasas suben, etc.) ──
+    static lastEf := ""
+    efAhora := EfectoDeTema(temas[temaActual])
+    if (efAhora != lastEf) {
+        lastEf := efAhora
+        try {
+            if (IsObject(miGui)) {
+                miGui.GetPos(,, &rw, &rh)
+                InicializarParticulas(particulasMain, rw, rh - BAR_H, 32)
+            }
+            if (IsObject(historialGui)) {
+                historialGui.GetPos(,, &rhw, &rhh)
+                InicializarParticulas(particulasHist, rhw, rhh - BAR_H, 40)
+            }
+            if (modoMini && IsObject(particulasMini))
+                InicializarParticulas(particulasMini, 120, 100, 15)
+        }
+    }
     ; Sincronizar overlay con la ventana padre (sigue el drag) y repintar.
     ; Saltar actualización si el padre está minimizado — GetPos devolvería coords
     ; basura del estado minimizado y las partículas se apiñarían ahí.
@@ -1738,7 +1870,7 @@ ActualizarParticulas() {
             else if (p.y > targetH + 8)
                 p.y := -8
         }
-        PintarOverlayParticulas(overlayPartMain.Hwnd, mw, targetH, particulasMain)
+        PintarOverlayParticulas(overlayPartMain.Hwnd, mw, targetH, particulasMain, "", true)
     }
     try if (IsObject(historialGui) && IsObject(overlayPartHist) && historialVisible
         && !DllCall("IsIconic", "Ptr", historialGui.Hwnd, "Int")) {
@@ -1860,8 +1992,9 @@ LanzarWatchdogSiNoEsta() {
 ; Pinta partículas con alpha por píxel (PARGB) sobre la overlay layered y las muestra
 ; vía UpdateLayeredWindow. Así cada partícula se mezcla contra los píxeles reales que
 ; hay detrás (sin halo y respetando el fondo), no contra una color-key negra.
-PintarOverlayParticulas(overlayHwnd, w, h, particulas, excludeRect := "") {
+PintarOverlayParticulas(overlayHwnd, w, h, particulas, excludeRect := "", conEscena := false) {
     global colorLogoMacro, colorFondoPrincipal, temaPremiumActivo, rgbBarraHue
+    global temas, temaActual, optEscena
 
     if (w <= 0 || h <= 0)
         return
@@ -1902,29 +2035,90 @@ PintarOverlayParticulas(overlayHwnd, w, h, particulas, excludeRect := "") {
     rF := Integer("0x" SubStr(colorFondoPrincipal, 1, 2))
     gF := Integer("0x" SubStr(colorFondoPrincipal, 3, 2))
     bF := Integer("0x" SubStr(colorFondoPrincipal, 5, 2))
-    if ((rF * 299 + gF * 587 + bF * 114) / 1000 > 180) {  ; luminancia > 180/255 ≈ claro
+    fondoClaro := ((rF * 299 + gF * 587 + bF * 114) / 1000 > 180)  ; ≈ tema claro
+    if (fondoClaro) {
         rC := (rC + 255) // 2
         gC := (gC + 255) // 2
         bC := (bC + 255) // 2
     }
 
+    ; Efecto del tema actual (premium ignora el efecto: mantiene su arcoíris)
+    ef := temaPremiumActivo ? "premium" : EfectoDeTema(temas[temaActual])
+    tNow := A_TickCount
+
+    ; Escena temática en el borde inferior (solo ventana principal). Se pinta
+    ; ANTES que las partículas para que estas floten por delante. La decoración
+    ; es ESPECÍFICA por tema (bambú→cañas, miel→panal...), no por categoría.
+    if (conEscena && optEscena) {
+        deco := temaPremiumActivo ? "premium" : DecoDeTema(temas[temaActual])
+        PintarEscenaTema(g, w, h, deco, rC, gC, bC, fondoClaro)
+    }
+
     for i, p in particulas {
-        if (temaPremiumActivo) {
+        ph := p.HasProp("ph") ? p.ph : 0.0
+        if (ef = "premium") {
             huePart := Mod(rgbBarraHue * 3 + i * 25, 360)
             cHex := HSVaHex(huePart, 1.0, 1.0)
-            rPi := Integer("0x" SubStr(cHex, 1, 2))
-            gPi := Integer("0x" SubStr(cHex, 3, 2))
-            bPi := Integer("0x" SubStr(cHex, 5, 2))
-            alphaP := Min(255, p.alpha + 50)
-            argb := (alphaP << 24) | (rPi << 16) | (gPi << 8) | bPi
+            pr := Integer("0x" SubStr(cHex, 1, 2))
+            pg := Integer("0x" SubStr(cHex, 3, 2))
+            pb := Integer("0x" SubStr(cHex, 5, 2))
+            a  := Min(255, p.alpha + 50)
         } else {
-            argb := (p.alpha << 24) | (rC << 16) | (gC << 8) | bC
+            ; Color característico por efecto (los que tienen identidad fuerte usan
+            ; color fijo; el resto usa el tinte del tema ya aclarado para fondos claros).
+            a := p.alpha
+            switch ef {
+                case "nieve":     pr := fondoClaro ? 130 : 235, pg := fondoClaro ? 165 : 245, pb := fondoClaro ? 210 : 255
+                case "estrellas": pr := fondoClaro ? 120 : 255, pg := fondoClaro ? 130 : 255, pb := fondoClaro ? 200 : 255
+                case "chispas":   pr := fondoClaro ? 210 : 255, pg := fondoClaro ? 160 : 224, pb := fondoClaro ? 40  : 130
+                case "matrix":    pr := fondoClaro ? 20  : 40,  pg := fondoClaro ? 160 : 255, pb := fondoClaro ? 70  : 110
+                case "petalos":   pr := fondoClaro ? 225 : 255, pg := fondoClaro ? 90  : 150, pb := fondoClaro ? 150 : 195
+                case "hojas":     pr := fondoClaro ? 80  : 130, pg := fondoClaro ? 150 : 190, pb := fondoClaro ? 40  : 70
+                case "brasas":
+                    fl := 0.5 + 0.5 * Sin(tNow / 160.0 + ph)
+                    pr := fondoClaro ? 220 : 255, pg := Round((fondoClaro ? 40 : 70) + 130 * fl), pb := 30
+                default:          pr := rC,  pg := gC,  pb := bC   ; lluvia, burbujas, default
+            }
+            ; Titileo para estrellas y chispas
+            if (ef = "estrellas" || ef = "chispas") {
+                tw := 0.30 + 0.70 * (0.5 + 0.5 * Sin(tNow / 280.0 + ph))
+                a := Round(p.alpha * tw)
+            }
         }
+        if (a < 4)
+            continue
+        argb := (a << 24) | (pr << 16) | (pg << 8) | pb
+
+        ; ── Burbujas: anillo hueco (pen), no relleno ──
+        if (ef = "burbujas") {
+            pen := 0
+            DllCall("gdiplus\GdipCreatePen1", "UInt", argb, "Float", 1.4, "Int", 2, "Ptr*", &pen)
+            DllCall("gdiplus\GdipDrawEllipse", "Ptr", g, "Ptr", pen,
+                    "Float", p.x - p.r, "Float", p.y - p.r, "Float", p.r * 2, "Float", p.r * 2)
+            DllCall("gdiplus\GdipDeletePen", "Ptr", pen)
+            continue
+        }
+
         brush := 0
         DllCall("gdiplus\GdipCreateSolidFill", "UInt", argb, "Ptr*", &brush)
-        DllCall("gdiplus\GdipFillEllipse",     "Ptr", g, "Ptr", brush,
-                "Float", p.x - p.r, "Float", p.y - p.r,
-                "Float", p.r * 2, "Float", p.r * 2)
+        switch ef {
+            case "lluvia":
+                ; trazo vertical fino (gota alargada)
+                DllCall("gdiplus\GdipFillRectangle", "Ptr", g, "Ptr", brush,
+                        "Float", p.x - 0.8, "Float", p.y, "Float", 1.6, "Float", p.r * 4)
+            case "matrix":
+                ; cuadrito de "código"
+                DllCall("gdiplus\GdipFillRectangle", "Ptr", g, "Ptr", brush,
+                        "Float", p.x - p.r, "Float", p.y - p.r, "Float", p.r * 2, "Float", p.r * 2)
+            case "petalos", "hojas":
+                ; óvalo (más ancho que alto)
+                DllCall("gdiplus\GdipFillEllipse", "Ptr", g, "Ptr", brush,
+                        "Float", p.x - p.r * 1.2, "Float", p.y - p.r * 0.7, "Float", p.r * 2.4, "Float", p.r * 1.4)
+            default:
+                ; círculo (nieve, brasas, estrellas, chispas, default)
+                DllCall("gdiplus\GdipFillEllipse", "Ptr", g, "Ptr", brush,
+                        "Float", p.x - p.r, "Float", p.y - p.r, "Float", p.r * 2, "Float", p.r * 2)
+        }
         DllCall("gdiplus\GdipDeleteBrush", "Ptr", brush)
     }
 
@@ -1969,6 +2163,1081 @@ PintarOverlayParticulas(overlayHwnd, w, h, particulas, excludeRect := "") {
     DllCall("DeleteDC",     "Ptr", hdcMem)
     DllCall("ReleaseDC",    "Ptr", 0, "Ptr", hdcScreen)
     DllCall("DeleteObject", "Ptr", hbm)
+}
+
+; Rellena un polígono GDI+ a partir de un array de puntos [[x,y],...].
+EscenaPoligono(g, argb, pts) {
+    n := pts.Length
+    if (n < 2)
+        return
+    buf := Buffer(n * 8)
+    for i, pt in pts {
+        NumPut("Float", pt[1], buf, (i - 1) * 8)
+        NumPut("Float", pt[2], buf, (i - 1) * 8 + 4)
+    }
+    br := 0
+    DllCall("gdiplus\GdipCreateSolidFill", "UInt", argb, "Ptr*", &br)
+    DllCall("gdiplus\GdipFillPolygon", "Ptr", g, "Ptr", br, "Ptr", buf, "Int", n, "Int", 0)
+    DllCall("gdiplus\GdipDeleteBrush", "Ptr", br)
+}
+
+; Elipse rellena rápida (helper).
+EscenaElipse(g, argb, x, y, ew, eh) {
+    br := 0
+    DllCall("gdiplus\GdipCreateSolidFill", "UInt", argb, "Ptr*", &br)
+    DllCall("gdiplus\GdipFillEllipse", "Ptr", g, "Ptr", br, "Float", x, "Float", y, "Float", ew, "Float", eh)
+    DllCall("gdiplus\GdipDeleteBrush", "Ptr", br)
+}
+
+EscenaRect(g, argb, x, y, ew, eh) {
+    br := 0
+    DllCall("gdiplus\GdipCreateSolidFill", "UInt", argb, "Ptr*", &br)
+    DllCall("gdiplus\GdipFillRectangle", "Ptr", g, "Ptr", br, "Float", x, "Float", y, "Float", ew, "Float", eh)
+    DllCall("gdiplus\GdipDeleteBrush", "Ptr", br)
+}
+
+EscenaAnillo(g, argb, x, y, d, grosor) {
+    pen := 0
+    DllCall("gdiplus\GdipCreatePen1", "UInt", argb, "Float", grosor, "Int", 2, "Ptr*", &pen)
+    DllCall("gdiplus\GdipDrawEllipse", "Ptr", g, "Ptr", pen, "Float", x, "Float", y, "Float", d, "Float", d)
+    DllCall("gdiplus\GdipDeletePen", "Ptr", pen)
+}
+
+EscenaPie(g, argb, x, y, ew, eh, start, sweep) {
+    br := 0
+    DllCall("gdiplus\GdipCreateSolidFill", "UInt", argb, "Ptr*", &br)
+    DllCall("gdiplus\GdipFillPie", "Ptr", g, "Ptr", br, "Float", x, "Float", y, "Float", ew, "Float", eh, "Float", start, "Float", sweep)
+    DllCall("gdiplus\GdipDeleteBrush", "Ptr", br)
+}
+
+EscenaLinea(g, argb, x1, y1, x2, y2, grosor) {
+    pen := 0
+    DllCall("gdiplus\GdipCreatePen1", "UInt", argb, "Float", grosor, "Int", 2, "Ptr*", &pen)
+    DllCall("gdiplus\GdipDrawLine", "Ptr", g, "Ptr", pen, "Float", x1, "Float", y1, "Float", x2, "Float", y2)
+    DllCall("gdiplus\GdipDeletePen", "Ptr", pen)
+}
+
+; Decoración ESPECÍFICA por tema (según su nombre), con respaldo a la categoría
+; por efecto (EfectoDeTema) si el tema no tiene una decoración propia definida.
+DecoDeTema(t) {
+    if (t.HasProp("deco"))
+        return t.deco
+    ; Secretos de nombre espaciado (✦ C O S M O S ✦, etc.) → por unlock
+    if (t.HasProp("unlock")) {
+        switch t.unlock {
+            case "shadow":  return "eclipse"
+            case "cosmos":  return "planeta"
+            case "void":    return "void"
+            case "solar":   return "fenix"
+            case "premium": return "diamantes"
+            case "blanco":  return "solnika"
+            case "gojo":    return "limitless"
+            case "sukuna":  return "maldicion"
+        }
+    }
+    n := t.nombre
+    ; Cada tema → una decoración ÚNICA (sin repeticiones). Orden = prioridad.
+    pares := [
+        ; ── claros ──
+        ["Hielo","hielo"], ["Polar","iglu"], ["Agua","gotas"], ["Menta","menta"],
+        ["Verde","pasto"], ["Macaron","macaron"], ["Nube","nubes"], ["Lavanda","lavanda"],
+        ["Lila","lila"], ["Sakura","sakura"], ["Rosa","rosa"], ["Atardecer","atardecer"],
+        ["Melocot","melocoton"], ["Naranja","naranja"], ["Desierto","cactus"], ["Vainilla","vainilla"],
+        ["Miel","miel"], ["Bamb","bambu"], ["Monocromo","ajedrez"], ["Chicle","chicle"],
+        ["Mostaza","mostaza"], ["Tropical","palmera"],
+        ; ── oscuros ──
+        ["Ceniza","ceniza"], ["Grafito","grafito"], ["Noche","luna"], ["Profundo","abisal"],
+        ["Océano","olas"], ["Aurora","aurora"], ["Cyberpunk","ciudadneon"], ["Cyber","circuito"],
+        ["Neon","neon"], ["Esmeralda","gema"], ["Jungla","jungla"], ["Bosque","pinos"],
+        ["Cafe","cafe"], ["Dorado","oro"], ["Magma","lava"], ["Sangre","sangre"],
+        ["Abismo","portal"], ["Electrico","electrico"], ["Glitch","glitch"], ["Tundra","tundra"],
+        ["Veneno","veneno"], ["Cobre","cobre"], ["Vino","vino"], ["Submarino","submarino"],
+        ; ── secretos gamer / leyendas ──
+        ["Brawl","espadas"], ["Retrowave","retrowave"], ["Discord","chat"], ["Spotify","spotify"],
+        ["Valorant","mira"], ["Minecraft","bloques"], ["Sky","cielo"], ["Matrix","matrixlluvia"],
+        ["Pok","pokebola"], ["Naruto","naruto"], ["One Piece","onepiece"]
+    ]
+    for par in pares {
+        if (InStr(n, par[1]))
+            return par[2]
+    }
+    return EfectoDeTema(t)
+}
+
+; ═══════════════════════════════════════════════════════════════
+; ESCENA TEMÁTICA en el borde inferior de la ventana principal.
+; Cada tipo de tema dibuja un decorado reconocible: hielo→nieve,
+; jungla→árboles, magma→llamas, océano→olas, etc.
+; ═══════════════════════════════════════════════════════════════
+PintarEscenaTema(g, w, h, ef, rC, gC, bC, fondoClaro) {
+    tNow := A_TickCount
+
+    switch ef {
+    ; ─────────── DECORACIONES ESPECÍFICAS POR TEMA ───────────
+    case "hielo":
+        col := (160 << 24) | (185 << 16) | (220 << 8) | 245
+        loop 5 {
+            cx := (A_Index - 0.5) * w / 5
+            s := 10 + Mod(A_Index * 3, 6)
+            EscenaRect(g, col, cx - s / 2, h - s, s, s)
+            EscenaLinea(g, (210 << 24) | (255 << 16) | (255 << 8) | 255, cx - s / 2 + 2, h - s + 2, cx + s / 2 - 2, h - s + 2, 1)
+            EscenaLinea(g, (210 << 24) | (255 << 16) | (255 << 8) | 255, cx - s / 2 + 2, h - s + 2, cx - s / 2 + 2, h - 2, 1)
+        }
+    case "iglu":
+        EscenaPoligono(g, (160 << 24) | (120 << 16) | (170 << 8) | 220, [[0, h], [0, h - 4], [w, h - 4], [w, h]])
+        loop 2 {
+            cx := A_Index * w / 3 + w * 0.08
+            EscenaPoligono(g, (210 << 24) | (235 << 16) | (245 << 8) | 255, [[cx - 14, h - 4], [cx + 14, h - 4], [cx, h - 20]])
+            EscenaPoligono(g, (120 << 24) | (200 << 16) | (225 << 8) | 245, [[cx - 8, h - 4], [cx + 8, h - 4], [cx, h - 12]])
+        }
+    case "gotas":
+        loop 6 {
+            cx := Mod(A_Index * 61, Round(w - 10)) + 5
+            gy := Mod(tNow / 9.0 + A_Index * 35, h)
+            EscenaElipse(g, (180 << 24) | (rC << 16) | (gC << 8) | bC, cx - 2, gy, 4, 6)
+        }
+        pen := 0
+        DllCall("gdiplus\GdipCreatePen1", "UInt", (130 << 24) | (rC << 16) | (gC << 8) | bC, "Float", 1.2, "Int", 2, "Ptr*", &pen)
+        loop 4 {
+            cx := (A_Index - 0.5) * w / 4
+            rip := 4 + Mod(tNow // 150 + A_Index * 4, 8)
+            DllCall("gdiplus\GdipDrawArc", "Ptr", g, "Ptr", pen, "Float", cx - rip, "Float", h - 3 - rip * 0.4, "Float", rip * 2, "Float", rip * 0.8, "Float", 180, "Float", 180)
+        }
+        DllCall("gdiplus\GdipDeletePen", "Ptr", pen)
+    case "menta":
+        verde := (205 << 24) | (90 << 16) | (200 << 8) | 130
+        loop 5 {
+            cx := (A_Index - 0.5) * w / 5
+            EscenaLinea(g, verde, cx, h, cx, h - 13, 1.4)
+            EscenaElipse(g, verde, cx - 7, h - 13, 7, 5)
+            EscenaElipse(g, verde, cx, h - 13, 7, 5)
+            EscenaElipse(g, verde, cx - 5, h - 8, 6, 4)
+            EscenaElipse(g, verde, cx, h - 8, 6, 4)
+        }
+    case "pasto":
+        verde := (205 << 24) | (70 << 16) | (160 << 8) | 60
+        loop 15 {
+            cx := A_Index * w / 16
+            hh := 8 + Mod(A_Index * 5, 10)
+            sway := Sin(tNow / 600.0 + A_Index) * 2
+            EscenaLinea(g, verde, cx, h, cx + sway, h - hh, 1.6)
+        }
+    case "macaron":
+        cols := [(220 << 24) | (255 << 16) | (180 << 8) | 200, (220 << 24) | (190 << 16) | (230 << 8) | 255, (220 << 24) | (255 << 16) | (235 << 8) | 170]
+        loop 3 {
+            cx := (A_Index - 0.5) * w / 3
+            c := cols[A_Index]
+            EscenaPie(g, c, cx - 9, h - 16, 18, 13, 180, 180)
+            EscenaPie(g, c, cx - 9, h - 8, 18, 13, 0, 180)
+            EscenaRect(g, (210 << 24) | (255 << 16) | (245 << 8) | 220, cx - 9, h - 8, 18, 3)
+        }
+    case "vainilla":
+        crema := (210 << 24) | (255 << 16) | (248 << 8) | 225
+        loop 3 {
+            cx := (A_Index - 0.5) * w / 3
+            EscenaLinea(g, (185 << 24) | (120 << 16) | (90 << 8) | 50, cx + 7, h, cx + 7, h - 14, 2)
+            fy := h - 12
+            loop 5 {
+                ang := (A_Index - 1) * 1.2566
+                EscenaElipse(g, crema, cx + Cos(ang) * 3.4 - 2.2, fy + Sin(ang) * 3.4 - 2.2, 4.4, 4.4)
+            }
+            EscenaElipse(g, (210 << 24) | (255 << 16) | (210 << 8) | 120, cx - 1.4, fy - 1.4, 2.8, 2.8)
+        }
+    case "ajedrez":
+        loop 16 {
+            cx := (A_Index - 1) * w / 16
+            c := Mod(A_Index, 2) ? ((205 << 24) | (30 << 16) | (30 << 8) | 30) : ((170 << 24) | (235 << 16) | (235 << 8) | 235)
+            EscenaRect(g, c, cx, h - 10, w / 16 + 1, 10)
+        }
+    case "mostaza":
+        col := (220 << 24) | (220 << 16) | (170 << 8) | 20
+        EscenaPoligono(g, col, [[0, h], [0, h - 4], [w, h - 4], [w, h]])
+        loop 6 {
+            cx := (A_Index - 0.5) * w / 6
+            dl := 6 + Mod(A_Index * 5, 10)
+            EscenaRect(g, col, cx - 2, h - 4 - dl, 4, dl)
+            EscenaElipse(g, col, cx - 3, h - 4 - dl - 2, 6, 6)
+        }
+    case "palmera":
+        EscenaElipse(g, (205 << 24) | (255 << 16) | (210 << 8) | 60, w - 24, 6, 16, 16)
+        tronco := (210 << 24) | (150 << 16) | (100 << 8) | 50
+        verde := (210 << 24) | (40 << 16) | (160 << 8) | 80
+        loop 2 {
+            cx := A_Index * w / 3
+            EscenaLinea(g, tronco, cx, h, cx - 3, h - 20, 3)
+            ty := h - 20
+            loop 5 {
+                ang := 3.4 + (A_Index - 1) * 0.45
+                EscenaLinea(g, verde, cx - 3, ty, cx - 3 + Cos(ang) * 14, ty + Sin(ang) * 9 + 9, 2)
+            }
+        }
+    case "ceniza":
+        loop 7 {
+            cx := Mod(A_Index * 53, Round(w - 10)) + 5 + Sin(tNow / 500.0 + A_Index) * 5
+            cy := Mod(h - tNow / 18.0 - A_Index * 30, h + 20) - 10
+            d := 3 + Mod(A_Index, 3) * 2
+            EscenaElipse(g, (90 << 24) | (160 << 16) | (160 << 8) | 160, cx - d / 2, cy - d / 2, d, d)
+        }
+        loop 3 {
+            cx := Mod(A_Index * 97, Round(w - 10)) + 5
+            cy := Mod(h - tNow / 12.0 - A_Index * 50, h) - 5
+            EscenaElipse(g, (210 << 24) | (255 << 16) | (120 << 8) | 30, cx - 1.5, cy - 1.5, 3, 3)
+        }
+    case "grafito":
+        col := (150 << 24) | (rC << 16) | (gC << 8) | bC
+        loop 8 {
+            x1 := (A_Index - 1) * w / 8
+            EscenaLinea(g, col, x1, h, x1 + 14, h - 12, 1.4)
+        }
+    case "abisal":
+        loop 10 {
+            cx := Mod(A_Index * 47, Round(w - 10)) + 5
+            cy := Mod(A_Index * 31, Round(h - 20)) + 10
+            tw := 0.4 + 0.6 * (0.5 + 0.5 * Sin(tNow / 300.0 + A_Index))
+            EscenaElipse(g, (Round(200 * tw) << 24) | (80 << 16) | (220 << 8) | 255, cx - 1.5, cy - 1.5, 3, 3)
+        }
+        mx := w * 0.5 + Sin(tNow / 700.0) * 30
+        my := h * 0.5
+        EscenaPie(g, (170 << 24) | (120 << 16) | (180 << 8) | 255, mx - 10, my - 8, 20, 16, 180, 180)
+        loop 4 {
+            tx := mx - 6 + A_Index * 3.5
+            EscenaLinea(g, (140 << 24) | (120 << 16) | (180 << 8) | 255, tx, my, tx, my + 8 + Sin(tNow / 300.0 + A_Index) * 2, 1.2)
+        }
+    case "olas":
+        loop 2 {
+            capa := A_Index
+            fase := tNow / 650.0 + capa * 1.6
+            baseY := h - (capa = 1 ? 4 : 9)
+            aA := capa = 1 ? 160 : 100
+            pts := []
+            pts.Push([0, h])
+            x := 0.0
+            while (x <= w) {
+                pts.Push([x, baseY + 3.5 * Sin(x / 24.0 + fase)])
+                x += 12
+            }
+            pts.Push([w, h])
+            EscenaPoligono(g, (aA << 24) | (rC << 16) | (gC << 8) | bC, pts)
+        }
+        bx := Mod(tNow / 40.0, w + 40) - 20
+        EscenaPoligono(g, (200 << 24) | (120 << 16) | (80 << 8) | 50, [[bx - 8, h - 12], [bx + 8, h - 12], [bx + 5, h - 8], [bx - 5, h - 8]])
+        EscenaPoligono(g, (210 << 24) | (255 << 16) | (255 << 8) | 255, [[bx, h - 12], [bx, h - 22], [bx + 7, h - 13]])
+    case "aurora":
+        loop 6 {
+            cx := A_Index * w / 7
+            sway := Sin(tNow / 500.0 + A_Index) * 6
+            loop 7 {
+                yy := (A_Index - 1) * 4
+                a := Round(110 * (1 - A_Index / 8))
+                c := (A_Index < 5) ? ((a << 24) | (80 << 16) | (255 << 8) | 150) : ((a << 24) | (170 << 16) | (90 << 8) | 255)
+                EscenaLinea(g, c, cx + sway, yy, cx + sway + Sin(tNow / 400.0 + A_Index) * 4, yy + 5, 3)
+            }
+        }
+    case "ciudadneon":
+        loop 7 {
+            cx := (A_Index - 1) * w / 7
+            bw := w / 7 - 2
+            bh := 14 + Mod(A_Index * 7, 16)
+            EscenaRect(g, (210 << 24) | (20 << 16) | (10 << 8) | 35, cx + 1, h - bh, bw, bh)
+            loop 6 {
+                wx := cx + 3 + Mod(A_Index, 3) * (bw / 3)
+                wy := h - bh + 3 + ((A_Index - 1) // 3) * 5
+                lit := Mod(A_Index * 3 + Round(cx), 5) < 3
+                EscenaRect(g, (lit ? ((230 << 24) | (255 << 16) | (90 << 8) | 220) : ((120 << 24) | (60 << 16) | (40 << 8) | 80)), wx, wy, 2, 2.5)
+            }
+        }
+    case "circuito":
+        col := (190 << 24) | (40 << 16) | (220 << 8) | 150
+        EscenaLinea(g, col, 0, h - 9, w, h - 9, 1.4)
+        loop 6 {
+            cx := (A_Index - 0.5) * w / 6
+            EscenaLinea(g, col, cx, h - 9, cx, h - 2, 1.2)
+            EscenaLinea(g, col, cx, h - 2, cx + 8, h - 2, 1.2)
+            EscenaElipse(g, (220 << 24) | (90 << 16) | (255 << 8) | 180, cx - 2, h - 11, 4, 4)
+        }
+    case "pinos":
+        EscenaPoligono(g, (70 << 24) | (200 << 16) | (210 << 8) | 215, [[0, h], [0, h - 5], [w, h - 5], [w, h]])
+        verde := (215 << 24) | (30 << 16) | (75 << 8) | 45
+        loop 6 {
+            cx := (A_Index - 0.5) * w / 6
+            ph := 16 + Mod(A_Index * 5, 8)
+            EscenaPoligono(g, verde, [[cx - 7, h - 4], [cx + 7, h - 4], [cx, h - 4 - ph * 0.55]])
+            EscenaPoligono(g, verde, [[cx - 5, h - 4 - ph * 0.4], [cx + 5, h - 4 - ph * 0.4], [cx, h - 4 - ph]])
+        }
+    case "cafe":
+        taza := (220 << 24) | (235 << 16) | (240 << 8) | 245
+        cafe := (220 << 24) | (90 << 16) | (55 << 8) | 30
+        cx := w * 0.5
+        EscenaRect(g, taza, cx - 11, h - 14, 22, 12)
+        EscenaRect(g, cafe, cx - 9, h - 13, 18, 3)
+        EscenaAnillo(g, taza, cx + 9, h - 12, 8, 2)
+        pen := 0
+        DllCall("gdiplus\GdipCreatePen1", "UInt", (110 << 24) | (220 << 16) | (220 << 8) | 220, "Float", 1.4, "Int", 2, "Ptr*", &pen)
+        loop 2 {
+            vx := cx - 4 + A_Index * 6
+            DllCall("gdiplus\GdipDrawArc", "Ptr", g, "Ptr", pen, "Float", vx - 3, "Float", h - 24 + Sin(tNow / 300.0 + A_Index) * 2, "Float", 6, "Float", 8, "Float", 90, "Float", 250)
+        }
+        DllCall("gdiplus\GdipDeletePen", "Ptr", pen)
+    case "portal":
+        cx := w * 0.5, cy := h * 0.5
+        loop 5 {
+            r := 6 + A_Index * 5 + Sin(tNow / 300.0 + A_Index) * 2
+            a := Round(150 / A_Index)
+            EscenaAnillo(g, (a << 24) | (170 << 16) | (60 << 8) | 255, cx - r, cy - r, r * 2, 1.6)
+        }
+        EscenaElipse(g, (200 << 24) | (210 << 16) | (140 << 8) | 255, cx - 3, cy - 3, 6, 6)
+    case "tundra":
+        loop 5 {
+            cx := A_Index * w / 6
+            EscenaLinea(g, (70 << 24) | (120 << 16) | (220 << 8) | 180, cx, 2, cx + 4, 9, 2)
+        }
+        EscenaPoligono(g, (200 << 24) | (235 << 16) | (245 << 8) | 255, [[0, h], [0, h - 5], [w, h - 7], [w, h]])
+        loop 3 {
+            cx := (A_Index - 0.5) * w / 3
+            EscenaPoligono(g, (210 << 24) | (40 << 16) | (90 << 8) | 55, [[cx - 6, h - 5], [cx + 6, h - 5], [cx, h - 18]])
+            EscenaPoligono(g, (180 << 24) | (240 << 16) | (248 << 8) | 255, [[cx - 6, h - 5], [cx + 6, h - 5], [cx, h - 9]])
+        }
+    case "submarino":
+        loop 6 {
+            cx := Mod(A_Index * 53, Round(w - 8)) + 4
+            by := Mod(h - tNow / 22.0 - A_Index * 38, h + 20) - 10
+            EscenaAnillo(g, (150 << 24) | (rC << 16) | (gC << 8) | bC, cx - 3, by - 3, 6, 1.3)
+        }
+        sx := Mod(tNow / 35.0, w + 50) - 25
+        sub := (220 << 24) | (235 << 16) | (200 << 8) | 30
+        EscenaElipse(g, sub, sx - 13, h - 16, 26, 11)
+        EscenaRect(g, sub, sx - 2, h - 21, 4, 6)
+        EscenaElipse(g, (220 << 24) | (120 << 16) | (210 << 8) | 255, sx - 4, h - 13, 5, 5)
+    case "espadas":
+        EscenaLinea(g, (220 << 24) | (210 << 16) | (215 << 8) | 230, w / 2 - 14, h - 2, w / 2 + 14, h - 20, 2.5)
+        EscenaLinea(g, (220 << 24) | (210 << 16) | (215 << 8) | 230, w / 2 + 14, h - 2, w / 2 - 14, h - 20, 2.5)
+        EscenaLinea(g, (220 << 24) | (180 << 16) | (140 << 8) | 30, w / 2 - 9, h - 6, w / 2 - 3, h - 9, 2)
+        EscenaLinea(g, (220 << 24) | (180 << 16) | (140 << 8) | 30, w / 2 + 9, h - 6, w / 2 + 3, h - 9, 2)
+        EscenaPoligono(g, (220 << 24) | (255 << 16) | (210 << 8) | 40, [[w / 2 - 8, h - 22], [w / 2 - 8, h - 30], [w / 2 - 3, h - 26], [w / 2, h - 32], [w / 2 + 3, h - 26], [w / 2 + 8, h - 30], [w / 2 + 8, h - 22]])
+    case "retrowave":
+        sx := w * 0.5, sy := 18
+        loop 6 {
+            a := Round(220 * (1 - A_Index / 8))
+            EscenaPie(g, (a << 24) | (255 << 16) | (90 << 8) | (A_Index * 25), sx - 16, sy - 16 + A_Index * 3, 32, 32, 180, 180)
+        }
+        col := (160 << 24) | (255 << 16) | (40 << 8) | 200
+        loop 6 {
+            EscenaLinea(g, col, (A_Index - 1) * w / 5, h, w / 2 + ((A_Index - 3) * 8), h - 14, 1.2)
+        }
+        EscenaLinea(g, col, 0, h - 5, w, h - 5, 1.2)
+    case "chat":
+        loop 4 {
+            cx := Mod(A_Index * 89, Round(w - 40)) + 20
+            cy := 10 + Mod(A_Index * 13, Round(h - 30)) + Sin(tNow / 500.0 + A_Index) * 4
+            EscenaRect(g, (200 << 24) | (88 << 16) | (101 << 8) | 242, cx - 12, cy - 7, 24, 13)
+            EscenaPoligono(g, (200 << 24) | (88 << 16) | (101 << 8) | 242, [[cx - 8, cy + 6], [cx - 2, cy + 6], [cx - 8, cy + 11]])
+            loop 3 {
+                EscenaElipse(g, (220 << 24) | (255 << 16) | (255 << 8) | 255, cx - 6 + (A_Index - 1) * 5, cy - 1.5, 3, 3)
+            }
+        }
+    case "mira":
+        cx := w * 0.5, cy := h * 0.5
+        col := (220 << 24) | (255 << 16) | (70 << 8) | 85
+        EscenaAnillo(g, col, cx - 12, cy - 12, 24, 1.6)
+        EscenaLinea(g, col, cx - 18, cy, cx - 6, cy, 2)
+        EscenaLinea(g, col, cx + 6, cy, cx + 18, cy, 2)
+        EscenaLinea(g, col, cx, cy - 18, cx, cy - 6, 2)
+        EscenaLinea(g, col, cx, cy + 6, cx, cy + 18, 2)
+        EscenaElipse(g, col, cx - 1.5, cy - 1.5, 3, 3)
+    case "cielo":
+        EscenaElipse(g, (210 << 24) | (255 << 16) | (235 << 8) | 130, w - 26, 6, 18, 18)
+        nube := (200 << 24) | (255 << 16) | (255 << 8) | 255
+        loop 3 {
+            drift := Mod(tNow / 55.0 + A_Index * w / 3, w + 60) - 30
+            cy := 6 + Mod(A_Index * 10, 18)
+            EscenaElipse(g, nube, drift - 11, cy, 22, 11)
+            EscenaElipse(g, nube, drift - 3, cy - 5, 15, 13)
+            EscenaElipse(g, nube, drift + 6, cy, 15, 11)
+        }
+    case "matrixlluvia":
+        loop 12 {
+            cx := (A_Index - 0.5) * w / 12
+            loop 4 {
+                cy := Mod(tNow / 7.0 + A_Index * (h / 4) + cx * 3, h)
+                a := 230 - (A_Index - 1) * 55
+                EscenaRect(g, (a << 24) | (40 << 16) | (255 << 8) | 90, cx - 1.5, cy, 3, 4)
+            }
+        }
+    case "naruto":
+        loop 2 {
+            cx := A_Index * w / 3
+            cy := h - 14
+            px := cx, py := cy
+            loop 16 {
+                a := A_Index * 0.6
+                r := A_Index * 0.7
+                nx := cx + Cos(a) * r
+                ny := cy + Sin(a) * r
+                EscenaLinea(g, (220 << 24) | (255 << 16) | (120 << 8) | 20, px, py, nx, ny, 2)
+                px := nx, py := ny
+            }
+        }
+    case "onepiece":
+        cx := w * 0.5, cy := h * 0.5
+        EscenaLinea(g, (210 << 24) | (235 << 16) | (235 << 8) | 235, cx - 12, cy + 8, cx + 12, cy - 8, 3)
+        EscenaLinea(g, (210 << 24) | (235 << 16) | (235 << 8) | 235, cx + 12, cy + 8, cx - 12, cy - 8, 3)
+        EscenaPie(g, (220 << 24) | (240 << 16) | (200 << 8) | 70, cx - 12, cy - 10, 24, 16, 180, 180)
+        EscenaRect(g, (220 << 24) | (240 << 16) | (200 << 8) | 70, cx - 13, cy - 3, 26, 3)
+        EscenaRect(g, (220 << 24) | (200 << 16) | (40 << 8) | 40, cx - 13, cy - 2, 26, 1.5)
+    case "eclipse":
+        loop 8 {
+            sx := Mod(A_Index * 71, Round(w - 14)) + 7
+            sy := 4 + Mod(A_Index * 17, 30)
+            EscenaElipse(g, (180 << 24) | (255 << 16) | (210 << 8) | 130, sx - 1, sy - 1, 2, 2)
+        }
+        cx := w * 0.5, cy := h * 0.45
+        loop 14 {
+            a := (A_Index - 1) * 0.449
+            cor := 16 + Sin(tNow / 250.0 + A_Index) * 3
+            EscenaLinea(g, (160 << 24) | (255 << 16) | (170 << 8) | 30, cx + Cos(a) * 13, cy + Sin(a) * 13, cx + Cos(a) * cor, cy + Sin(a) * cor, 1.6)
+        }
+        EscenaElipse(g, (240 << 24) | (10 << 16) | (8 << 8) | 14, cx - 12, cy - 12, 24, 24)
+        EscenaAnillo(g, (220 << 24) | (255 << 16) | (200 << 8) | 60, cx - 12, cy - 12, 24, 1.5)
+    case "void":
+        col := (230 << 24) | (255 << 16) | (20 << 8) | 20
+        loop 4 {
+            bx := (A_Index - 0.5) * w / 4
+            px := bx, py := 0.0
+            loop 6 {
+                nx := bx + (Mod(A_Index, 2) ? 8 : -8) + Sin(tNow / 400.0 + A_Index) * 2
+                ny := A_Index * (h / 6)
+                EscenaLinea(g, col, px, py, nx, ny, 1.8)
+                px := nx, py := ny
+            }
+        }
+        loop 5 {
+            cx := Mod(A_Index * 67, Round(w - 10)) + 5
+            cy := Mod(A_Index * 43, Round(h - 10)) + 5
+            tw := 0.5 + 0.5 * Sin(tNow / 200.0 + A_Index)
+            EscenaElipse(g, (Round(220 * tw) << 24) | (255 << 16) | (30 << 8) | 30, cx - 1.5, cy - 1.5, 3, 3)
+        }
+    case "fenix":
+        loop 7 {
+            cx := (A_Index - 0.5) * w / 7
+            fl := 0.5 + 0.5 * Sin(tNow / 140.0 + A_Index)
+            alt := 12 + 13 * fl
+            EscenaPoligono(g, (210 << 24) | (255 << 16) | (Round(120 + 100 * fl) << 8) | 20, [[cx - 4, h - 2], [cx + 4, h - 2], [cx + 2, h - 2 - alt * 0.6], [cx, h - 2 - alt], [cx - 2, h - 2 - alt * 0.6]])
+        }
+    case "diamantes":
+        loop 5 {
+            cx := Mod(A_Index * 79, Round(w - 20)) + 10
+            cy := 10 + Mod(A_Index * 17, Round(h - 24)) + Sin(tNow / 400.0 + A_Index) * 4
+            tw := 0.6 + 0.4 * Sin(tNow / 220.0 + A_Index * 2)
+            c := (Round(220 * tw) << 24) | (180 << 16) | (240 << 8) | 255
+            EscenaPoligono(g, c, [[cx, cy - 5], [cx + 4, cy - 1], [cx, cy + 5], [cx - 4, cy - 1]])
+        }
+        cx := w * 0.5
+        EscenaPoligono(g, (220 << 24) | (255 << 16) | (215 << 8) | 40, [[cx - 10, h - 4], [cx - 10, h - 12], [cx - 4, h - 8], [cx, h - 14], [cx + 4, h - 8], [cx + 10, h - 12], [cx + 10, h - 4]])
+    case "solnika":
+        cx := w * 0.5, cy := h * 0.42
+        EscenaElipse(g, (230 << 24) | (255 << 16) | (250 << 8) | 230, cx - 11, cy - 11, 22, 22)
+        loop 12 {
+            a := (A_Index - 1) * 0.523 + Sin(tNow / 800.0) * 0.1
+            EscenaLinea(g, (210 << 24) | (255 << 16) | (250 << 8) | 200, cx + Cos(a) * 13, cy + Sin(a) * 13, cx + Cos(a) * 19, cy + Sin(a) * 19, 2)
+        }
+    case "limitless":
+        loop 7 {
+            cx := Mod(A_Index * 59, Round(w - 16)) + 8
+            cy := 12 + Mod(A_Index * 19, Round(h - 30)) + Sin(tNow / 360.0 + A_Index) * 5
+            tw := 0.5 + 0.5 * Sin(tNow / 250.0 + A_Index)
+            c := (A_Index < 4) ? ((Round(160 * tw) << 24) | (79 << 16) | (195 << 8) | 247) : ((Round(160 * tw) << 24) | (138 << 16) | (43 << 8) | 226)
+            d := 5 + tw * 4
+            EscenaElipse(g, c, cx - d / 2, cy - d / 2, d, d)
+        }
+    case "maldicion":
+        ; Energía maldita ascendiendo (humo/llama oscura) — SIN cortes
+        loop 5 {
+            bx := (A_Index - 0.5) * w / 5
+            px := bx, py := h
+            loop 5 {
+                prog := A_Index / 5
+                nx := bx + Sin(tNow / 250.0 + A_Index + bx) * 4 * prog
+                ny := h - A_Index * (h * 0.18)
+                a := Round(170 * (1 - prog))
+                EscenaLinea(g, (a << 24) | (200 << 16) | (25 << 8) | 25, px, py, nx, ny, 2)
+                px := nx, py := ny
+            }
+        }
+        loop 6 {
+            cx := Mod(A_Index * 67, Round(w - 10)) + 5
+            cy := Mod(h - tNow / 14.0 - A_Index * 36, h) - 5
+            tw := 0.5 + 0.5 * Sin(tNow / 180.0 + A_Index)
+            EscenaElipse(g, (Round(210 * tw) << 24) | (255 << 16) | (40 << 8) | 30, cx - 1.6, cy - 1.6, 3.2, 3.2)
+        }
+    case "lavanda":
+        ; Campo de lavanda (espigas densas azul-moradas)
+        verdeL := (200 << 24) | (70 << 16) | (150 << 8) | 80
+        loop 8 {
+            cx := (A_Index - 0.5) * w / 8
+            EscenaLinea(g, verdeL, cx, h, cx, h - 15, 1.4)
+            loop 5 {
+                yy := h - 8 - A_Index * 1.8
+                EscenaElipse(g, (210 << 24) | (150 << 16) | (110 << 8) | 230, cx - 1.6, yy - 1.6, 3.2, 3.2)
+            }
+        }
+    case "atardecer":
+        ; Atardecer: franjas cálidas + medio sol en el horizonte
+        loop 4 {
+            a := 120 - A_Index * 22
+            EscenaRect(g, (a << 24) | (255 << 16) | (Round(120 - A_Index * 15) << 8) | (80 + A_Index * 20), 0, h - 4 - A_Index * 4, w, 4)
+        }
+        EscenaPie(g, (220 << 24) | (255 << 16) | (150 << 8) | 40, w * 0.5 - 16, h - 16, 32, 32, 180, 180)
+    case "jungla":
+        ; Selva: árboles de copa redonda frondosa + lianas colgando
+        tronco := (220 << 24) | (74 << 16) | (48 << 8) | 24
+        v1 := (220 << 24) | (30 << 16) | (110 << 8) | 45
+        v2 := (210 << 24) | (60 << 16) | (150 << 8) | 70
+        loop 5 {
+            lx := A_Index * w / 6
+            ll := 12 + Mod(A_Index * 7, 14)
+            EscenaLinea(g, v1, lx, 0, lx + Sin(tNow / 700.0 + A_Index) * 3, ll, 1.4)
+            EscenaElipse(g, v2, lx - 2, ll - 2, 4, 5)
+        }
+        loop 3 {
+            cx := (A_Index - 0.5) * w / 3
+            EscenaRect(g, tronco, cx - 2.5, h - 14, 5, 14)
+            EscenaElipse(g, v1, cx - 11, h - 24, 14, 14)
+            EscenaElipse(g, v1, cx - 2, h - 25, 14, 14)
+            EscenaElipse(g, v2, cx - 6, h - 20, 12, 12)
+            EscenaElipse(g, v2, cx + 2, h - 21, 11, 11)
+        }
+    case "sangre":
+        ; Sangre goteando del borde superior + charco abajo
+        rojo := (225 << 24) | (150 << 16) | (0 << 8) | 8
+        rojoB := (235 << 24) | (200 << 16) | (10 << 8) | 18
+        loop 7 {
+            cx := (A_Index - 0.5) * w / 7
+            dl := 7 + Mod(A_Index * 5, 13) + Sin(tNow / 500.0 + A_Index) * 2
+            EscenaRect(g, rojo, cx - 1.5, 0, 3, dl)
+            EscenaElipse(g, rojo, cx - 2.5, dl - 2, 5, 6)
+            gy := Mod(tNow / 8.0 + A_Index * 40, h)
+            if (gy > dl + 4)
+                EscenaElipse(g, rojoB, cx - 1.5, gy, 3, 4)
+        }
+        EscenaPoligono(g, rojo, [[0, h], [0, h - 4], [w, h - 6], [w, h]])
+        loop 4 {
+            cx := (A_Index - 0.5) * w / 4
+            EscenaElipse(g, rojo, cx - 8, h - 9, 16, 9)
+        }
+    case "lava":
+        ; Lava burbujeante abajo con burbujas que suben + chispas
+        EscenaPoligono(g, (230 << 24) | (255 << 16) | (110 << 8) | 0, [[0, h], [0, h - 8], [w, h - 8], [w, h]])
+        EscenaPoligono(g, (215 << 24) | (210 << 16) | (40 << 8) | 0, [[0, h], [0, h - 4], [w, h - 4], [w, h]])
+        loop 6 {
+            cx := (A_Index - 0.5) * w / 6
+            bub := Abs(Sin(tNow / 600.0 + A_Index))
+            by := h - 4 - bub * 8
+            d := 3 + bub * 4
+            EscenaElipse(g, (230 << 24) | (255 << 16) | (Round(140 + 100 * bub) << 8) | 20, cx - d / 2, by - d / 2, d, d)
+        }
+        loop 4 {
+            cx := Mod(A_Index * 83, Round(w - 10)) + 5
+            sy := h - 8 - Mod(tNow / 10.0 + A_Index * 30, 24)
+            EscenaElipse(g, (220 << 24) | (255 << 16) | (210 << 8) | 60, cx - 1.2, sy - 1.2, 2.6, 2.6)
+        }
+    case "electrico":
+        ; Rayos en zigzag destellando + chispas
+        on := (Sin(tNow / 120.0) > 0.3) || (Sin(tNow / 55.0) > 0.7)
+        loop 3 {
+            bx := (A_Index - 0.5) * w / 3 + Sin(tNow / 300.0 + A_Index) * 5
+            col := ((on ? 240 : 90) << 24) | (180 << 16) | (220 << 8) | 255
+            px := bx, py := 0.0
+            loop 5 {
+                nx := bx + (Mod(A_Index, 2) ? 6 : -6)
+                ny := A_Index * (h / 5)
+                EscenaLinea(g, col, px, py, nx, ny, 2)
+                px := nx, py := ny
+            }
+        }
+        loop 6 {
+            cx := Mod(A_Index * 61, Round(w - 10)) + 5
+            cy := Mod(A_Index * 47, Round(h - 10)) + 5
+            tw := 0.5 + 0.5 * Sin(tNow / 100.0 + A_Index)
+            EscenaElipse(g, (Round(220 * tw) << 24) | (200 << 16) | (230 << 8) | 255, cx - 1.5, cy - 1.5, 3, 3)
+        }
+    case "glitch":
+        ; Artefactos corruptos (RGB split) + líneas de escaneo
+        loop 7 {
+            seed := A_Index * 97 + (tNow // 200) * 13
+            bx := Mod(seed * 7, Round(w - 30))
+            by := Mod(seed * 11, Round(h - 10))
+            bw := 12 + Mod(seed, 40)
+            bh := 3 + Mod(seed, 6)
+            EscenaRect(g, (150 << 24) | (0 << 16) | (255 << 8) | 255, bx - 2, by, bw, bh)
+            EscenaRect(g, (150 << 24) | (255 << 16) | (0 << 8) | 255, bx + 2, by, bw, bh)
+            EscenaRect(g, (180 << 24) | (230 << 16) | (230 << 8) | 230, bx, by, bw, bh)
+        }
+        loop 3 {
+            sy := Mod(tNow / 6.0 + A_Index * h / 3, h)
+            EscenaRect(g, (60 << 24) | (0 << 16) | (255 << 8) | 180, 0, sy, w, 1.5)
+        }
+    case "veneno":
+        ; Charco tóxico ondulado + burbujas que revientan + goteo
+        toxico := (220 << 24) | (160 << 16) | (255 << 8) | 20
+        toxD := (230 << 24) | (120 << 16) | (200 << 8) | 10
+        pts := []
+        pts.Push([0, h])
+        x := 0.0
+        while (x <= w) {
+            pts.Push([x, h - 6 + 2.5 * Sin(x / 20.0 + tNow / 500.0)])
+            x += 10
+        }
+        pts.Push([w, h])
+        EscenaPoligono(g, toxico, pts)
+        loop 6 {
+            cx := (A_Index - 0.5) * w / 6
+            by := h - 6 - Abs(Sin(tNow / 500.0 + A_Index * 1.1)) * 9
+            d := 3 + Abs(Sin(tNow / 500.0 + A_Index * 1.1)) * 4
+            EscenaAnillo(g, toxD, cx - d / 2, by - d / 2, d, 1.4)
+        }
+        loop 3 {
+            cx := A_Index * w / 4
+            gy := Mod(tNow / 14.0 + A_Index * 50, h)
+            EscenaElipse(g, toxico, cx - 2, gy, 4, 6)
+        }
+    case "cobre":
+        ; Tuberías de cobre con remaches + una válvula (steampunk)
+        cob := (230 << 24) | (200 << 16) | (115 << 8) | 60
+        cobL := (200 << 24) | (235 << 16) | (160 << 8) | 100
+        cobD := (230 << 24) | (140 << 16) | (75 << 8) | 35
+        loop 2 {
+            py := h - 6 - (A_Index - 1) * 9
+            EscenaRect(g, cob, 0, py, w, 6)
+            EscenaRect(g, cobL, 0, py, w, 1.5)
+            EscenaRect(g, cobD, 0, py + 5, w, 1)
+            loop 9 {
+                rx := (A_Index - 0.5) * w / 9
+                EscenaElipse(g, cobD, rx - 1.5, py + 2, 3, 3)
+            }
+        }
+        EscenaAnillo(g, cob, w - 24, h - 26, 16, 3)
+        loop 8 {
+            a := (A_Index - 1) * 0.785
+            EscenaLinea(g, cob, w - 16 + Cos(a) * 8, h - 18 + Sin(a) * 8, w - 16 + Cos(a) * 11, h - 18 + Sin(a) * 11, 2)
+        }
+    case "vino":
+        ; Copas de vino + racimo de uvas
+        vino := (215 << 24) | (110 << 16) | (10 << 8) | 40
+        vidrio := (90 << 24) | (220 << 16) | (220 << 8) | 235
+        uva := (215 << 24) | (90 << 16) | (20 << 8) | 70
+        loop 3 {
+            cx := (A_Index - 0.5) * w / 3
+            EscenaPie(g, vidrio, cx - 7, h - 22, 14, 16, 0, 180)
+            EscenaPie(g, vino, cx - 5.5, h - 19, 11, 11, 0, 180)
+            EscenaRect(g, vidrio, cx - 0.7, h - 12, 1.4, 8)
+            EscenaRect(g, vidrio, cx - 5, h - 4, 10, 1.6)
+        }
+        ox := w - 22, oy := 6
+        loop 6 {
+            gx := ox + Mod(A_Index - 1, 3) * 5
+            gy := oy + ((A_Index - 1) // 3) * 5
+            EscenaElipse(g, uva, gx - 2.5, gy - 2.5, 5, 5)
+        }
+    case "bambu":
+        ; Cañas de bambú verticales en los LATERALES (marco), hojas que se mecen
+        caña := (210 << 24) | (90 << 16) | (170 << 8) | 70
+        nodo := (220 << 24) | (50 << 16) | (110 << 8) | 45
+        hoja := (200 << 24) | (110 << 16) | (190 << 8) | 90
+        xs := [5, 14, w - 14, w - 5]
+        for idx, cx in xs {
+            EscenaRect(g, caña, cx - 2.5, 0, 5, h)
+            yy := 6.0
+            while (yy < h) {
+                EscenaRect(g, nodo, cx - 2.5, yy, 5, 1.6)
+                yy += 15
+            }
+            loop 3 {
+                ly := 16 + (A_Index - 1) * (h / 3)
+                sway := Sin(tNow / 600.0 + idx + A_Index) * 4
+                dir := (cx < w / 2) ? 1 : -1
+                EscenaPoligono(g, hoja, [[cx + dir * 2, ly], [cx + dir * (13 + sway), ly - 5], [cx + dir * 3, ly + 4]])
+            }
+        }
+    case "sakura":
+        ; Rama de cerezo ARRIBA con flores colgando (los pétalos caen como partículas)
+        rama := (200 << 24) | (110 << 16) | (75 << 8) | 55
+        EscenaLinea(g, rama, 0, 6, w, 14, 2.5)
+        EscenaLinea(g, rama, w * 0.3, 9, w * 0.3 + 10, 2, 1.6)
+        EscenaLinea(g, rama, w * 0.7, 12, w * 0.7 + 8, 5, 1.6)
+        loop 6 {
+            fx := A_Index * w / 7
+            fy := 12 + fx * 8 / w + Mod(A_Index, 2) * 5
+            loop 5 {
+                ang := (A_Index - 1) * 1.2566 + Sin(tNow / 900.0) * 0.1
+                EscenaElipse(g, (225 << 24) | (255 << 16) | (160 << 8) | 205, fx + Cos(ang) * 3.6 - 2.4, fy + Sin(ang) * 3.6 - 2.4, 4.8, 4.8)
+            }
+            EscenaElipse(g, (235 << 24) | (255 << 16) | (225 << 8) | 90, fx - 1.6, fy - 1.6, 3.2, 3.2)
+        }
+    case "rosa":
+        ; Rosas rojas en capas con tallo y hoja
+        loop 4 {
+            cx := (A_Index - 0.5) * w / 4
+            EscenaLinea(g, (200 << 24) | (30 << 16) | (110 << 8) | 40, cx, h, cx, h - 11, 1.6)
+            EscenaPoligono(g, (200 << 24) | (30 << 16) | (120 << 8) | 45, [[cx, h - 6], [cx + 7, h - 9], [cx + 2, h - 4]])
+            ry := h - 14
+            EscenaElipse(g, (235 << 24) | (150 << 16) | (10 << 8) | 30, cx - 5.5, ry - 5.5, 11, 11)
+            EscenaElipse(g, (235 << 24) | (205 << 16) | (25 << 8) | 55, cx - 3.4, ry - 3.4, 6.8, 6.8)
+            EscenaElipse(g, (240 << 24) | (255 << 16) | (70 << 8) | 95, cx - 1.5, ry - 1.5, 3, 3)
+        }
+    case "lila":
+        ; Lavanda: tallos con espigas de capullos lila
+        loop 6 {
+            cx := (A_Index - 0.5) * w / 6
+            EscenaLinea(g, (200 << 24) | (70 << 16) | (140 << 8) | 70, cx, h, cx, h - 18, 1.4)
+            loop 6 {
+                yy := h - 7 - A_Index * 1.9
+                offx := (Mod(A_Index, 2) ? 1.6 : -1.6)
+                EscenaElipse(g, (215 << 24) | (175 << 16) | (115 << 8) | 225, cx + offx - 2, yy - 2, 4, 4)
+            }
+        }
+    case "melocoton":
+        ; Melocotones colgando de una rama ARRIBA (se mecen)
+        rama := (200 << 24) | (90 << 16) | (60 << 8) | 40
+        EscenaLinea(g, rama, 0, 7, w, 7, 2.2)
+        loop 4 {
+            cx := (A_Index - 0.5) * w / 4 + Sin(tNow / 700.0 + A_Index) * 2
+            EscenaLinea(g, rama, cx, 7, cx, 14, 1.2)
+            fy := 21
+            EscenaElipse(g, (225 << 24) | (255 << 16) | (175 << 8) | 135, cx - 7, fy - 7, 14, 15)
+            EscenaElipse(g, (140 << 24) | (255 << 16) | (120 << 8) | 95, cx - 1, fy - 5, 6, 8)
+            EscenaLinea(g, (150 << 24) | (210 << 16) | (110 << 8) | 80, cx, fy - 7, cx, fy + 7, 1.2)
+            EscenaPoligono(g, (210 << 24) | (70 << 16) | (170 << 8) | 70, [[cx, fy - 7], [cx + 8, fy - 11], [cx + 1, fy - 4]])
+        }
+    case "naranja":
+        ; Naranjas colgando de una rama ARRIBA (se mecen)
+        rama := (200 << 24) | (90 << 16) | (60 << 8) | 40
+        EscenaLinea(g, rama, 0, 7, w, 7, 2.2)
+        loop 4 {
+            cx := (A_Index - 0.5) * w / 4 + Sin(tNow / 700.0 + A_Index * 1.3) * 2
+            EscenaLinea(g, rama, cx, 7, cx, 13, 1.2)
+            fy := 20
+            EscenaElipse(g, (228 << 24) | (255 << 16) | (140 << 8) | 20, cx - 7, fy - 7, 14, 14)
+            EscenaElipse(g, (110 << 24) | (255 << 16) | (210 << 8) | 130, cx - 4, fy - 5, 5, 4)
+            EscenaPoligono(g, (210 << 24) | (50 << 16) | (160 << 8) | 55, [[cx, fy - 7], [cx + 7, fy - 10], [cx + 1, fy - 4]])
+        }
+    case "miel":
+        ; Panal en la esquina superior-derecha + abeja volando
+        amb  := (215 << 24) | (255 << 16) | (190 << 8) | 30
+        ambD := (235 << 24) | (210 << 16) | (140 << 8) | 10
+        celdas := [[0, 0], [1, 0], [0.5, 0.87], [-0.5, 0.87], [1.5, 0.87], [1, 1.74]]
+        ox := w - 28, oy := 8
+        for ci, c in celdas {
+            cx := ox + c[1] * 13
+            cy := oy + c[2] * 13
+            rr := 7
+            hex := []
+            loop 6 {
+                a := (A_Index - 1) * 1.0472 + 0.5236
+                hex.Push([cx + Cos(a) * rr, cy + Sin(a) * rr])
+            }
+            EscenaPoligono(g, (Mod(ci, 2) ? amb : ambD), hex)
+        }
+        ; Abeja en trayectoria
+        bt := tNow / 700.0
+        bx := w * 0.42 + Cos(bt) * (w * 0.30)
+        by := 18 + Sin(bt * 2) * 10
+        EscenaElipse(g, (150 << 24) | (255 << 16) | (255 << 8) | 255, bx - 5, by - 6, 5, 4)
+        EscenaElipse(g, (150 << 24) | (255 << 16) | (255 << 8) | 255, bx + 1, by - 6, 5, 4)
+        EscenaElipse(g, (235 << 24) | (255 << 16) | (200 << 8) | 20, bx - 4, by - 3, 8, 6)
+        EscenaRect(g, (235 << 24) | (30 << 16) | (24 << 8) | 16, bx - 2, by - 3, 1.6, 6)
+        EscenaRect(g, (235 << 24) | (30 << 16) | (24 << 8) | 16, bx + 1, by - 3, 1.6, 6)
+    case "chicle":
+        ; Pompas de chicle grandes flotando hacia arriba (a la deriva)
+        loop 6 {
+            d := 12 + Mod(A_Index * 7, 16)
+            cx := Mod(A_Index * 67, Round(w - 20)) + 10 + Sin(tNow / 800.0 + A_Index) * 8
+            cy := Mod(h - (tNow / 22.0) - A_Index * 45, h + 30) - 15
+            EscenaElipse(g, (60 << 24) | (255 << 16) | (120 << 8) | 190, cx - d / 2, cy - d / 2, d, d)
+            EscenaAnillo(g, (190 << 24) | (255 << 16) | (90 << 8) | 170, cx - d / 2, cy - d / 2, d, 1.6)
+            EscenaElipse(g, (210 << 24) | (255 << 16) | (235 << 8) | 245, cx - d / 2 + d * 0.25, cy - d / 2 + d * 0.25, d * 0.22, d * 0.22)
+        }
+    case "gema":
+        ; Gemas talladas (esmeraldas facetadas)
+        loop 4 {
+            cx := (A_Index - 0.5) * w / 4
+            EscenaPoligono(g, (225 << 24) | (20 << 16) | (200 << 8) | 130, [[cx - 6, h - 14], [cx + 6, h - 14], [cx + 8, h - 9], [cx - 8, h - 9]])
+            EscenaPoligono(g, (225 << 24) | (10 << 16) | (155 << 8) | 95, [[cx - 8, h - 9], [cx + 8, h - 9], [cx, h - 1]])
+            EscenaLinea(g, (170 << 24) | (200 << 16) | (255 << 8) | 230, cx - 3, h - 14, cx, h - 9, 1)
+            EscenaLinea(g, (170 << 24) | (200 << 16) | (255 << 8) | 230, cx + 3, h - 14, cx, h - 9, 1)
+        }
+    case "neon":
+        ; Marco de neón parpadeante por los bordes de la ventana
+        flick := (Sin(tNow / 90.0) > -0.85) ? 1.0 : 0.4
+        flick *= 0.72 + 0.28 * Sin(tNow / 130.0)
+        aG := Round(90 * flick), aC := Round(255 * flick)
+        glow := (aG << 24) | (rC << 16) | (gC << 8) | bC
+        core := (aC << 24) | (Min(255, rC + 70) << 16) | (Min(255, gC + 70) << 8) | Min(255, bC + 70)
+        m := 3
+        bordes := [[m, m, w - m, m], [m, h - m, w - m, h - m], [m, m, m, h - m], [w - m, m, w - m, h - m]]
+        for b in bordes {
+            EscenaLinea(g, glow, b[1], b[2], b[3], b[4], 5)
+        }
+        for b in bordes {
+            EscenaLinea(g, core, b[1], b[2], b[3], b[4], 1.8)
+        }
+    case "oro":
+        ; Tesoro: lingotes de oro apilados + destellos + monedas cayendo
+        oroC := (235 << 24) | (255 << 16) | (205 << 8) | 40
+        oroL := (210 << 24) | (255 << 16) | (240 << 8) | 150
+        oroD := (225 << 24) | (200 << 16) | (150 << 8) | 10
+        lingotes := [[w * 0.26, h - 6], [w * 0.26 - 9, h - 6], [w * 0.26 + 9, h - 6], [w * 0.26, h - 12], [w * 0.26 + 9, h - 12], [w * 0.72, h - 6], [w * 0.72 + 10, h - 6], [w * 0.72 + 5, h - 12]]
+        for L in lingotes {
+            bx := L[1], by := L[2]
+            EscenaPoligono(g, oroD, [[bx - 8, by], [bx + 8, by], [bx + 6, by - 6], [bx - 6, by - 6]])
+            EscenaPoligono(g, oroC, [[bx - 7, by - 1], [bx + 7, by - 1], [bx + 5.5, by - 5.5], [bx - 5.5, by - 5.5]])
+            EscenaRect(g, oroL, bx - 5, by - 6, 10, 1)
+        }
+        loop 5 {
+            cx := Mod(A_Index * 73, Round(w - 20)) + 10
+            cy := h - 6 - Mod(A_Index * 5, 12)
+            tw := 0.5 + 0.5 * Sin(tNow / 200.0 + A_Index * 2)
+            if (tw > 0.65) {
+                s := 2 + tw * 2
+                EscenaLinea(g, oroL, cx - s, cy, cx + s, cy, 1)
+                EscenaLinea(g, oroL, cx, cy - s, cx, cy + s, 1)
+            }
+        }
+        loop 3 {
+            cx := Mod(A_Index * 97, Round(w - 16)) + 8
+            cy := Mod((tNow / 12.0) + A_Index * 60, h + 20) - 10
+            EscenaElipse(g, oroC, cx - 5, cy - 5, 10, 10)
+            EscenaAnillo(g, oroD, cx - 5, cy - 5, 10, 1)
+            EscenaElipse(g, oroL, cx - 2, cy - 2, 3, 3)
+        }
+    case "cactus":
+        ; Desierto: sol arriba + duna de arena + cactus
+        sol := (210 << 24) | (255 << 16) | (200 << 8) | 40
+        EscenaElipse(g, sol, w - 26, 6, 16, 16)
+        loop 8 {
+            ra := (A_Index - 1) * 0.785 + Sin(tNow / 1200.0) * 0.1
+            EscenaLinea(g, sol, w - 18 + Cos(ra) * 13, 14 + Sin(ra) * 13, w - 18 + Cos(ra) * 18, 14 + Sin(ra) * 18, 1.6)
+        }
+        EscenaPoligono(g, (200 << 24) | (235 << 16) | (205 << 8) | 140, [[0, h], [0, h - 5], [w, h - 7], [w, h]])
+        verde := (220 << 24) | (60 << 16) | (140 << 8) | 70
+        loop 3 {
+            cx := (A_Index - 0.5) * w / 3
+            EscenaRect(g, verde, cx - 3, h - 20, 6, 18)
+            EscenaRect(g, verde, cx - 8, h - 15, 5, 3)
+            EscenaRect(g, verde, cx - 8, h - 21, 3, 6)
+            EscenaRect(g, verde, cx + 3, h - 13, 5, 3)
+            EscenaRect(g, verde, cx + 5, h - 19, 3, 6)
+        }
+    case "spotify":
+        ; Ecualizador de barras (verde) animado
+        verde := (220 << 24) | (30 << 16) | (215 << 8) | 96
+        loop 11 {
+            cx := (A_Index - 0.5) * w / 11
+            bh := 5 + Round(14 * (0.5 + 0.5 * Sin(tNow / 180.0 + A_Index * 0.7)))
+            EscenaRect(g, verde, cx - 2.5, h - bh, 5, bh)
+        }
+    case "pokebola":
+        ; Pokébolas (mitad roja, banda y botón)
+        loop 3 {
+            cx := (A_Index - 0.5) * w / 3
+            cy := h - 10 - Abs(Sin(tNow / 400.0 + A_Index * 1.7)) * 11   ; rebote
+            d := 16
+            EscenaElipse(g, (238 << 24) | (245 << 16) | (245 << 8) | 245, cx - d / 2, cy - d / 2, d, d)
+            EscenaPie(g, (238 << 24) | (230 << 16) | (40 << 8) | 40, cx - d / 2, cy - d / 2, d, d, 180, 180)
+            EscenaRect(g, (240 << 24) | (20 << 16) | (20 << 8) | 20, cx - d / 2, cy - 1.5, d, 3)
+            EscenaElipse(g, (240 << 24) | (20 << 16) | (20 << 8) | 20, cx - 3, cy - 3, 6, 6)
+            EscenaElipse(g, (240 << 24) | (245 << 16) | (245 << 8) | 245, cx - 1.8, cy - 1.8, 3.6, 3.6)
+        }
+    case "bloques":
+        ; Bloques de tierra/césped en el suelo + bloques flotando (bob)
+        loop 6 {
+            cx := (A_Index - 0.5) * w / 6
+            s := 16
+            EscenaRect(g, (230 << 24) | (120 << 16) | (78 << 8) | 40, cx - s / 2, h - s, s, s)
+            EscenaRect(g, (235 << 24) | (90 << 16) | (170 << 8) | 60, cx - s / 2, h - s, s, 5)
+        }
+        loop 3 {
+            cx := w * (0.2 + A_Index * 0.27)
+            cy := 16 + Sin(tNow / 500.0 + A_Index * 2) * 5
+            s := 12
+            EscenaRect(g, (200 << 24) | (120 << 16) | (78 << 8) | 40, cx - s / 2, cy - s / 2, s, s)
+            EscenaRect(g, (210 << 24) | (90 << 16) | (170 << 8) | 60, cx - s / 2, cy - s / 2, s, 4)
+        }
+    case "nubes":
+        ; Nubes esponjosas flotando por ARRIBA, a la deriva
+        nube := fondoClaro ? ((170 << 24) | (235 << 16) | (242 << 8) | 252) : ((210 << 24) | (245 << 16) | (250 << 8) | 255)
+        loop 4 {
+            drift := Mod(tNow / 50.0 + A_Index * w / 4, w + 70) - 35
+            cy := 4 + Mod(A_Index * 9, 22)
+            EscenaElipse(g, nube, drift - 13, cy, 26, 13)
+            EscenaElipse(g, nube, drift - 4, cy - 6, 18, 16)
+            EscenaElipse(g, nube, drift + 7, cy, 18, 13)
+        }
+    case "luna":
+        ; Luna arriba-derecha + estrellas titilando por todo el cielo
+        EscenaElipse(g, (225 << 24) | (245 << 16) | (240 << 8) | 205, w - 30, 6, 17, 17)   ; luna pálida
+        EscenaElipse(g, (90 << 24) | (200 << 16) | (195 << 8) | 165, w - 26, 9, 4, 4)       ; cráteres
+        EscenaElipse(g, (80 << 24) | (200 << 16) | (195 << 8) | 165, w - 19, 15, 3, 3)
+        loop 13 {
+            sx := Mod(A_Index * 73, Round(w - 16)) + 8
+            sy := 4 + Mod(A_Index * 13, 32)
+            tw := 0.4 + 0.6 * (0.5 + 0.5 * Sin(tNow / 240.0 + A_Index))
+            s := 1.5 + tw * 2
+            EscenaElipse(g, (Round(235 * tw) << 24) | (255 << 16) | (255 << 8) | 255, sx - s / 2, sy - s / 2, s, s)
+        }
+    case "planeta":
+        ; Planeta con anillo arriba-derecha + luna orbitando + estrellas
+        cxp := w * 0.82
+        cyp := 18.0
+        loop 6 {
+            sx := Mod(A_Index * 67, Round(w - 30)) + 8
+            sy := 4 + Mod(A_Index * 11, 26)
+            tw := 0.4 + 0.6 * (0.5 + 0.5 * Sin(tNow / 220.0 + A_Index))
+            EscenaElipse(g, (Round(220 * tw) << 24) | (255 << 16) | (255 << 8) | 255, sx - 1, sy - 1, 2.2, 2.2)
+        }
+        EscenaElipse(g, (230 << 24) | (rC << 16) | (gC << 8) | bC, cxp - 10, cyp - 10, 20, 20)
+        EscenaElipse(g, (120 << 24) | (Min(255, rC + 70) << 16) | (Min(255, gC + 70) << 8) | Min(255, bC + 70), cxp - 6, cyp - 7, 8, 6)  ; brillo
+        pen := 0
+        DllCall("gdiplus\GdipCreatePen1", "UInt", (210 << 24) | (255 << 16) | (220 << 8) | 150, "Float", 1.5, "Int", 2, "Ptr*", &pen)
+        DllCall("gdiplus\GdipDrawEllipse", "Ptr", g, "Ptr", pen, "Float", cxp - 18, "Float", cyp - 4, "Float", 36, "Float", 9)
+        DllCall("gdiplus\GdipDeletePen", "Ptr", pen)
+        ; Luna orbitando (ángulo animado)
+        oa := tNow / 600.0
+        EscenaElipse(g, (235 << 24) | (235 << 16) | (235 << 8) | 245, cxp + Cos(oa) * 17 - 2, cyp + Sin(oa) * 6 - 2, 4, 4)
+    ; ─────────── ESCENAS POR CATEGORÍA (respaldo) ───────────
+    case "nieve":
+        col := fondoClaro ? ((180 << 24) | (150 << 16) | (185 << 8) | 220) : ((210 << 24) | (240 << 16) | (248 << 8) | 255)
+        colHielo := fondoClaro ? ((160 << 24) | (140 << 16) | (180 << 8) | 220) : ((190 << 24) | (200 << 16) | (230 << 8) | 255)
+        ; Carámbanos colgando del borde SUPERIOR (largos variables)
+        loop 11 {
+            cx := (A_Index - 0.5) * w / 11
+            ic := 8 + Mod(A_Index * 5, 12)
+            EscenaPoligono(g, colHielo, [[cx - 3, 0], [cx + 3, 0], [cx, ic]])
+        }
+        ; Ventisquero abajo
+        EscenaPoligono(g, col, [[0, h], [0, h - 5], [w, h - 5], [w, h]])
+        loop 5 {
+            cx := (A_Index - 0.5) * w / 5
+            rr := w / 8
+            EscenaElipse(g, col, cx - rr, h - 13, rr * 2, 26)
+        }
+    case "hojas":
+        ; Bosque: pinos triangulares con tronco
+        verde := fondoClaro ? ((210 << 24) | (35 << 16) | (105 << 8) | 45) : ((210 << 24) | (45 << 16) | (120 << 8) | 50)
+        tronco := (220 << 24) | (74 << 16) | (48 << 8) | 24
+        xs := [0.10, 0.30, 0.52, 0.72, 0.90]
+        for idx, fx in xs {
+            cx := fx * w
+            alturaT := 13 + Mod(idx * 5, 8)    ; 13–20 px
+            tw := alturaT * 0.5
+            EscenaPoligono(g, tronco, [[cx - 1.5, h], [cx + 1.5, h], [cx + 1.5, h - 3], [cx - 1.5, h - 3]])
+            EscenaPoligono(g, verde, [[cx - tw, h - 3], [cx + tw, h - 3], [cx, h - 3 - alturaT * 0.62]])
+            EscenaPoligono(g, verde, [[cx - tw * 0.75, h - 3 - alturaT * 0.4], [cx + tw * 0.75, h - 3 - alturaT * 0.4], [cx, h - 3 - alturaT]])
+        }
+    case "brasas":
+        ; Lava + llamas que parpadean
+        EscenaPoligono(g, (210 << 24) | (180 << 16) | (20 << 8) | 10, [[0, h], [0, h - 5], [w, h - 5], [w, h]])
+        loop 9 {
+            cx := (A_Index - 0.5) * w / 9
+            fl := 0.5 + 0.5 * Sin(tNow / 150.0 + A_Index)
+            alt := 9 + 11 * fl
+            half := w / 28
+            EscenaPoligono(g, (200 << 24) | (255 << 16) | (Round(90 + 90 * fl) << 8) | 20,
+                [[cx - half, h - 3], [cx + half, h - 3], [cx, h - 3 - alt]])
+        }
+    case "burbujas":
+        ; Mar: dos capas de olas senoidales que se mueven
+        loop 2 {
+            capa := A_Index
+            fase := tNow / 700.0 + capa * 1.7
+            baseY := h - (capa = 1 ? 4 : 9)
+            aA := capa = 1 ? 150 : 95
+            pts := []
+            pts.Push([0, h])
+            x := 0.0
+            while (x <= w) {
+                pts.Push([x, baseY + 3.5 * Sin(x / 26.0 + fase)])
+                x += 12
+            }
+            pts.Push([w, h])
+            EscenaPoligono(g, (aA << 24) | (rC << 16) | (gC << 8) | bC, pts)
+        }
+    case "petalos":
+        ; Pradera: césped + florecillas rosas
+        verde := (180 << 24) | (70 << 16) | (150 << 8) | 70
+        EscenaPoligono(g, verde, [[0, h], [0, h - 4], [w, h - 4], [w, h]])
+        loop 6 {
+            cx := (A_Index - 0.5) * w / 6
+            tallo := 8 + Mod(A_Index * 5, 6)   ; 8–13 px
+            EscenaPoligono(g, verde, [[cx - 1, h - 3], [cx + 1, h - 3], [cx + 1, h - 3 - tallo], [cx - 1, h - 3 - tallo]])
+            fy := h - 3 - tallo
+            loop 5 {
+                ang := (A_Index - 1) * 1.2566
+                px := cx + Cos(ang) * 3.0
+                py := fy + Sin(ang) * 3.0
+                EscenaElipse(g, (210 << 24) | (255 << 16) | (140 << 8) | 195, px - 2.0, py - 2.0, 4.0, 4.0)
+            }
+            EscenaElipse(g, (230 << 24) | (255 << 16) | (215 << 8) | 70, cx - 1.5, fy - 1.5, 3.0, 3.0)
+        }
+    case "estrellas":
+        ; Cielo nocturno: estrellas titilando ARRIBA + montañas abajo
+        loop 14 {
+            sx := Mod(A_Index * 71, Round(w - 14)) + 7
+            sy := 4 + Mod(A_Index * 17, 34)
+            tw := 0.35 + 0.65 * (0.5 + 0.5 * Sin(tNow / 230.0 + A_Index * 1.3))
+            s := 1.4 + tw * 2
+            EscenaElipse(g, (Round(230 * tw) << 24) | (255 << 16) | (255 << 8) | 255, sx - s / 2, sy - s / 2, s, s)
+        }
+        ; Estrella fugaz periódica (cruza cada ~6 s)
+        sf := Mod(tNow / 16.0, w + 120) - 60
+        if (sf > 0 && sf < w) {
+            EscenaLinea(g, (170 << 24) | (255 << 16) | (255 << 8) | 255, sf, 10, sf - 16, 18, 2)
+            EscenaElipse(g, (235 << 24) | (255 << 16) | (255 << 8) | 255, sf - 1.5, 8.5, 3, 3)
+        }
+        oscuroCol := (190 << 24) | (30 << 16) | (26 << 8) | 54
+        EscenaPoligono(g, oscuroCol,
+            [[0, h], [0, h - 8], [w * 0.18, h - 20], [w * 0.34, h - 10],
+             [w * 0.52, h - 22], [w * 0.68, h - 11], [w * 0.84, h - 19], [w, h - 12], [w, h]])
+    case "matrix":
+        ; Placa base: línea de circuito con nodos
+        pen := 0
+        DllCall("gdiplus\GdipCreatePen1", "UInt", (180 << 24) | (40 << 16) | (255 << 8) | 110, "Float", 1.5, "Int", 2, "Ptr*", &pen)
+        DllCall("gdiplus\GdipDrawLine", "Ptr", g, "Ptr", pen, "Float", 0, "Float", h - 7, "Float", w, "Float", h - 7)
+        DllCall("gdiplus\GdipDeletePen", "Ptr", pen)
+        loop 7 {
+            cx := (A_Index - 0.5) * w / 7
+            EscenaElipse(g, (220 << 24) | (60 << 16) | (255 << 8) | 130, cx - 2.5, h - 9.5, 5, 5)
+            EscenaPoligono(g, (160 << 24) | (40 << 16) | (255 << 8) | 110, [[cx - 0.8, h - 7], [cx + 0.8, h - 7], [cx + 0.8, h], [cx - 0.8, h]])
+        }
+    case "chispas":
+        ; Destellos dorados (rombos brillantes) a lo largo del borde
+        oro := fondoClaro ? ((210 << 24) | (200 << 16) | (150 << 8) | 20) : ((220 << 24) | (255 << 16) | (215 << 8) | 110)
+        loop 7 {
+            cx := (A_Index - 0.5) * w / 7
+            br := 0.5 + 0.5 * Sin(tNow / 260.0 + A_Index)
+            s := 4 + 3 * br
+            EscenaPoligono(g, oro, [[cx, h - 3 - s], [cx + s * 0.5, h - 3], [cx, h - 3 + 0], [cx - s * 0.5, h - 3]])
+        }
+    case "lluvia":
+        ; Charco: línea de agua + arcos de onda
+        agua := (140 << 24) | (rC << 16) | (gC << 8) | bC
+        EscenaPoligono(g, agua, [[0, h], [0, h - 4], [w, h - 4], [w, h]])
+        pen := 0
+        DllCall("gdiplus\GdipCreatePen1", "UInt", (110 << 24) | (rC << 16) | (gC << 8) | bC, "Float", 1.2, "Int", 2, "Ptr*", &pen)
+        loop 5 {
+            cx := (A_Index - 0.5) * w / 5
+            rip := 5 + Mod(tNow // 120 + A_Index * 3, 9)
+            DllCall("gdiplus\GdipDrawArc", "Ptr", g, "Ptr", pen, "Float", cx - rip, "Float", h - 5 - rip * 0.4, "Float", rip * 2, "Float", rip * 0.8, "Float", 180, "Float", 180)
+        }
+        DllCall("gdiplus\GdipDeletePen", "Ptr", pen)
+    default:
+        ; Línea decorativa con banderines triangulares (tinte del tema)
+        baseCol := (130 << 24) | (rC << 16) | (gC << 8) | bC
+        EscenaPoligono(g, baseCol, [[0, h], [0, h - 3], [w, h - 3], [w, h]])
+        loop 8 {
+            cx := (A_Index - 0.5) * w / 8
+            EscenaPoligono(g, (170 << 24) | (rC << 16) | (gC << 8) | bC, [[cx - 5, h - 3], [cx + 5, h - 3], [cx, h - 11]])
+        }
+    }
 }
 
 InstalarSubclassParticulas() {
@@ -2437,6 +3706,7 @@ optLogoGiratorio := Integer(IniRead(configPath, "Optimizacion", "LogoGiratorio",
 optDecoraciones  := Integer(IniRead(configPath, "Optimizacion", "Decoraciones",  "1")) = 1
 optConfeti       := Integer(IniRead(configPath, "Optimizacion", "Confeti",       "1")) = 1
 optTypeReveal    := Integer(IniRead(configPath, "Optimizacion", "TypeReveal",    "1")) = 1
+optEscena        := Integer(IniRead(configPath, "Optimizacion", "Escena",        "1")) = 1
 
 barra := miGui.Add("Text", "x0 y0 w400 h25 Background" colorBarra " Center", "MacroSmart V29")
 barra.SetFont("s13 c" colorTextoBarra " Bold", "Segoe UI Semibold")
@@ -2474,6 +3744,7 @@ luzActiva := miGui.Add("Progress", "x40 y130 w20 h20 c" colorBotonNormal " Backg
 luzAccion := miGui.Add("Progress", "x70 y130 w20 h20 c" colorBotonNormal " Background" colorFondoPrincipal, 100)
 luzApagado := miGui.Add("Progress", "x100 y130 w20 h20 c" colorLuzApagado " Background" colorFondoPrincipal, 100)
 OnMessage(0x0201, ManejarClickLuces)
+OnMessage(0x0003, OnMiGuiMove)   ; WM_MOVE → reposicionar overlays EN VIVO al mover la ventana
 
 ; Barra principal: Apariencia (Temas, RGB, Partículas) · Toggle Historial
 ; Posiciones originales: tema(240), RGB y part ocupan los huecos de hist y notas, hist va al hueco que dejó reset
@@ -2996,7 +4267,7 @@ DesbloquearPremium() {
     popup.Add("Text", "x0 y0 w360 h32 Background050010 Center cFFD700", "  💎  T E M A   M I T I C O   💎  ")
     popup.SetFont("s11 cFFFFFF", "Segoe UI")
     popup.Add("Text", "x10 y42 w340 h20 Center cFF00FF", "✦ ✧ ✦ ✧ ✦ ✧ ✦ ✧ ✦ ✧ ✦ ✧ ✦ ✧ ✦")
-    popup.Add("Text", "x10 y68 w340 h24 Center cFFFFFF", "Has desbloqueado  💎 P R E M I U M 💎")
+    popup.Add("Text", "x10 y68 w340 h24 Center cFFFFFF", "Has desbloqueado  ♦ P R E M I U M ♦")
     popup.Add("Text", "x10 y96 w340 h20 Center c00FFCC", "El tema definitivo — multi-RGB en todo.")
     popup.Add("Text", "x10 y116 w340 h20 Center cFFD700", "100 veces mejor que el resto.")
     popup.Add("Text", "x10 y140 w340 h20 Center cFF00FF", "✦ ✧ ✦ ✧ ✦ ✧ ✦ ✧ ✦ ✧ ✦ ✧ ✦ ✧ ✦")
@@ -3858,6 +5129,7 @@ AbrirPanelOptimizacion(*) {
         {var: "optDecoraciones",  label: "Decoraciones",         desc: "Efectos los temas"},
         {var: "optConfeti",       label: "Confeti",              desc: "Confeti en milestones"},
         {var: "optTypeReveal",    label: "Type Reveal",          desc: "Revelado progresivo de texto"},
+        {var: "optEscena",        label: "Escena del tema",      desc: "Decorado del borde (lo más pesado — apágalo si va lento)"},
     ]
 
     for t in toggles {
@@ -3899,7 +5171,7 @@ AbrirPanelOptimizacion(*) {
 
 OptGetValor(varName) {
     global optHoverAccent, optHoverBreath, optShimmerBarra, optPulsoBarra
-    global optPulsoLogo, optLogoGiratorio, optDecoraciones, optConfeti, optTypeReveal
+    global optPulsoLogo, optLogoGiratorio, optDecoraciones, optConfeti, optTypeReveal, optEscena
     switch varName {
         case "optHoverAccent":   return optHoverAccent
         case "optHoverBreath":   return optHoverBreath
@@ -3910,11 +5182,13 @@ OptGetValor(varName) {
         case "optDecoraciones":  return optDecoraciones
         case "optConfeti":       return optConfeti
         case "optTypeReveal":    return optTypeReveal
+        case "optEscena":        return optEscena
     }
     return false
 }
 
 OptToggleCallback(varName, ctrl, *) {
+    global optEscena
     global configPath
     global optHoverAccent, optHoverBreath, optShimmerBarra, optPulsoBarra
     global optPulsoLogo, optLogoGiratorio, optDecoraciones, optConfeti, optTypeReveal
@@ -3929,6 +5203,7 @@ OptToggleCallback(varName, ctrl, *) {
         case "optDecoraciones":  optDecoraciones  := val
         case "optConfeti":       optConfeti       := val
         case "optTypeReveal":    optTypeReveal    := val
+        case "optEscena":        optEscena        := val
     }
     iniKey := StrReplace(varName, "opt", "")
     IniWrite(val ? 1 : 0, configPath, "Optimizacion", iniKey)
@@ -3937,7 +5212,7 @@ OptToggleCallback(varName, ctrl, *) {
 OptSetTodos(val) {
     global configPath
     global optHoverAccent, optHoverBreath, optShimmerBarra, optPulsoBarra
-    global optPulsoLogo, optLogoGiratorio, optDecoraciones, optConfeti, optTypeReveal
+    global optPulsoLogo, optLogoGiratorio, optDecoraciones, optConfeti, optTypeReveal, optEscena
     optHoverAccent   := val
     optHoverBreath   := val
     optShimmerBarra  := val
@@ -3947,6 +5222,7 @@ OptSetTodos(val) {
     optDecoraciones  := val
     optConfeti       := val
     optTypeReveal    := val
+    optEscena        := val
     v := val ? 1 : 0
     IniWrite(v, configPath, "Optimizacion", "HoverAccent")
     IniWrite(v, configPath, "Optimizacion", "HoverBreath")
@@ -3957,6 +5233,7 @@ OptSetTodos(val) {
     IniWrite(v, configPath, "Optimizacion", "Decoraciones")
     IniWrite(v, configPath, "Optimizacion", "Confeti")
     IniWrite(v, configPath, "Optimizacion", "TypeReveal")
+    IniWrite(v, configPath, "Optimizacion", "Escena")
 }
 
 OptTodoOn(*) {
@@ -3989,9 +5266,9 @@ CerrarPanelOptimizacion() {
 ; ═══════════════════════════════════════════════════════════════
 TutorialPaginas() {
     return [
-    { ico: Chr(0x1F4D6), tit: "Bienvenido a AFK Smart",
-      txt: "Este macro automatiza el farmeo AFK en Brawlhalla.`n`n"
-         . "Detecta píxeles en la pantalla y reacciona solo: entra a partidas, juega, sale y reintenta — para que ganes oro y XP sin estar delante.`n`n"
+    { ico: Chr(0x1F4D6), tit: "Tutorial AFK Smart",
+      txt: "Este macro automatiza principalmente el farmeo AFK en Brawlhalla y otros juegos.`n`n"
+         . "Detecta píxeles en la pantalla y hace acciones especificas: farmea, juega y sigue. Para conseguir oro, xp y darte una pequeña ventaja en algunos juegos.`n`n"
          . "Usa los botones  ◀ Anterior  y  Siguiente ▶  de abajo para pasar las páginas de este libro." },
 
     { ico: Chr(0x25B6), tit: "Empezar: Iniciar y Parar",
@@ -4005,7 +5282,7 @@ TutorialPaginas() {
       txt: "Cambian QUÉ hace el macro:`n`n"
          . "• 🌐 tct — farmeo público: abre Brawlhalla y juega partidas normales.`n`n"
          . "• 🔒 sp — farmeo privado: sala propia con bots.`n`n"
-         . "• ⚔ frt — modo spam: clica y cicla teclas (1-7) sin parar.`n`n"
+         . "• ⚔ frt — modo fruta: da clicks sin parar y (1-7) sin parar.`n`n"
          . "• ∅ dstv — solo detector: vigila una zona en círculo y pulsa Espacio. Sin AFK ni abrir el juego." },
 
     { ico: Chr(0x1F3A8), tit: "Apariencia y personalización",
@@ -4013,6 +5290,14 @@ TutorialPaginas() {
          . "• 🎨 RGB: anima los colores en arcoíris — barra, botones, logo o texto. Atajo Ctrl+R.`n`n"
          . "• ✨ Partículas: ajusta cantidad, velocidad, tamaño y opacidad de las partículas de fondo.`n`n"
          . "• ▣ Mini: modo compacto flotante (solo el logo)." },
+
+    { ico: Chr(0x1F3DE), tit: "Decoración por tema",
+      txt: "Cada tema tiene partículas Y una escena animada propia en el borde, según lo que ES su nombre:`n`n"
+         . "❄ Hielo→nieve · 🌴 Jungla→árboles · 🌋 Magma→lava · 🌊 Océano→olas`n"
+         . "🩸 Sangre→goteo · ⚡ Eléctrico→rayos · 🍯 Miel→panal · 🍷 Vino→copas`n"
+         . "🌸 Sakura→flores · 💎 Esmeralda→gemas · 🪙 Dorado→oro...`n`n"
+         . "Hace falta tener las PARTÍCULAS activadas (✨) para ver las escenas.`n`n"
+         . "Gojo y Sukuna tienen decoración propia (Six Eyes / cortes 解)." },
 
     { ico: Chr(0x1F6E0), tit: "Botones de herramientas",
       txt: "En la ventana del historial (fila inferior):`n`n"
@@ -4025,12 +5310,12 @@ TutorialPaginas() {
          . "• ↑ Update — busca actualizaciones.`n"
          . "• ⚙ Optimizar — enciende/apaga efectos." },
 
-    { ico: Chr(0x26A1), tit: "Rendimiento",
-      txt: "Toca el medidor ⚡ (arriba) para ciclar los presets:`n`n"
+    { ico: Chr(0x26A1), tit: "Rendimiento (si va lento)",
+      txt: "Toca el medidor ⚡ (abajo-izq) para ciclar los presets:`n`n"
          . "• Eco — mínimo consumo, sin animaciones.`n"
          . "• Ligero · Normal · Ultra — más fluidez, más CPU.`n`n"
          . "La detección funciona IGUAL en todos; los presets solo afectan a lo visual.`n`n"
-         . "El botón ⚙ Optimizar permite apagar efectos sueltos (hover, brillos, decoraciones, confeti, revelado de texto...) sin cambiar el preset." },
+         . "En ⚙ Optimizar puedes apagar efectos sueltos sin cambiar el preset. Si te va lento, apaga 'Escena del tema' (lo más pesado) o baja las ✨ Partículas." },
 
     { ico: Chr(0x1F4DC), tit: "Historial",
       txt: "Registra cada acción del macro con hora y un color según el tipo de evento.`n`n"
@@ -4088,8 +5373,6 @@ AbrirTutorial(*) {
     global colorFondoPrincipal, colorTextoPrincipal, colorBarra, colorTextoBarra
     global colorBotonNormal, colorBotonHover, colorBtnTexto
 
-    ; Toggle: si ya hay ventana (visible o no), ciérrala y sal. Usamos IsObject
-    ; (no tutGuiVisible) para que nunca quede una ventana "huérfana" imposible de cerrar.
     if (IsObject(tutGui)) {
         CerrarTutorial()
         return
@@ -4097,9 +5380,8 @@ AbrirTutorial(*) {
 
     tutPagina := 1
     tutGui := Gui("+AlwaysOnTop -Caption +ToolWindow")
-    tutGuiVisible := true   ; marcar YA, antes de cualquier paso que pueda fallar
+    tutGuiVisible := true   ; marcar YA (antes de cualquier paso que pueda fallar)
     tutGui.BackColor := colorFondoPrincipal
-    ; Cierre por teclado (Esc) y por Alt+F4 / sistema (Close) — respaldo fiable
     tutGui.OnEvent("Escape", CerrarTutorial)
     tutGui.OnEvent("Close", CerrarTutorial)
     W := 460
@@ -4152,7 +5434,7 @@ AbrirTutorial(*) {
 
     TutorialRender()
     tutGui.Show("w" W " h410 Center")
-    try RedondearVentana(tutGui.Hwnd, 14)   ; en try: si falla, la ventana sigue cerrable
+    try RedondearVentana(tutGui.Hwnd, 14)
 }
 
 TutorialRender() {
@@ -4185,7 +5467,7 @@ CerrarTutorial(*) {
         try LimpiarHoverGui(tutGui)
         try tutGui.Destroy()
     }
-    tutGui := ""   ; soltar la referencia para que el toggle sepa que está cerrado
+    tutGui := ""
 }
 
 AbrirPanelRGB(*) {
@@ -4728,10 +6010,10 @@ DesbloquearGamer() {
     popup.SetFont("s13 c00FFFF Bold", "Segoe UI")
     popup.Add("Text", "x0 y0 w340 h30 Background130E2E Center cFFFF00", "  ★ PACK SECRETO DESBLOQUEADO ★  ")
     popup.SetFont("s11 cFFFFFF", "Segoe UI")
-    popup.Add("Text", "x10 y40 w320 h20 Center cFF00AA", "★ ─ ◆ ─ ☀ ─ 🎮 ─ 🎵 ─ ⌖ ─ ⛏")
+    popup.Add("Text", "x10 y40 w320 h20 Center cFF00AA", "★ ─ ◆ ─ ☀ ─ ✦ ─ ♪ ─ ⌖ ─ ⛏")
     popup.Add("Text", "x10 y64 w320 h22 Center c00FFFF", "Has desbloqueado el PACK GAMER")
     popup.Add("Text", "x10 y90 w320 h20 Center cFFFF00", "7 temas nuevos en el selector")
-    popup.Add("Text", "x10 y112 w320 h20 Center cFF00AA", "★ ─ ◆ ─ ☀ ─ 🎮 ─ 🎵 ─ ⌖ ─ ⛏")
+    popup.Add("Text", "x10 y112 w320 h20 Center cFF00AA", "★ ─ ◆ ─ ☀ ─ ✦ ─ ♪ ─ ⌖ ─ ⛏")
     popup.Show("w340 h140 Center")
     RedondearVentana(popup.Hwnd, 14)
     SetTimer(() => popup.Destroy(), -4500)
@@ -6383,6 +7665,23 @@ ReposicionarOverlayDeco() {
     overlayDecoraciones.GetPos(&ox, &oy, &ow, &oh)
     if (ox != mx || oy != my + BAR_H || ow != mw || oh != mh - BAR_H)
         overlayDecoraciones.Move(mx, my + BAR_H, mw, mh - BAR_H)
+}
+
+; WM_MOVE de la ventana principal → pegar los overlays (decoración + partículas)
+; a la nueva posición EN VIVO, incluso durante el arrastre (el bucle modal de
+; arrastre suspende los timers, así que sin esto los overlays se "congelan").
+OnMiGuiMove(wParam, lParam, msg, hwnd) {
+    global miGui, overlayDecoraciones, overlayPartMain, modoMini
+    static BAR_H := 25
+    if (modoMini || !IsObject(miGui) || hwnd != miGui.Hwnd)
+        return
+    try {
+        miGui.GetPos(&mx, &my, &mw, &mh)
+        if (IsObject(overlayDecoraciones))
+            overlayDecoraciones.Move(mx, my + BAR_H, mw, mh - BAR_H)
+        if (IsObject(overlayPartMain))
+            overlayPartMain.Move(mx, my + BAR_H, mw, mh - BAR_H)
+    }
 }
 
 InvalidarOverlayDeco() {

@@ -5,6 +5,7 @@
 brawlmacro_heartbeat.txt
 brawlmacro_watchdog.log
 brawlmacro_watchdog.pid
+brawlmacro_historial.log
 
 # Stats migradas a config.ini en v27.9.2 — el archivo viejo no va al repo
 brawlmacro_stats.ini
