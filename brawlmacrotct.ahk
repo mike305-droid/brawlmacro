@@ -3,12 +3,24 @@
 CoordMode("Pixel", "Screen")
 CoordMode("Mouse", "Screen")
 
+; Blindaje anti-crash global: cualquier error sin capturar (p. ej. en un timer
+; de un solo disparo lanzado durante un cambio de tema) por defecto muestra un
+; diálogo y CIERRA el script entero. Lo registramos en un log y devolvemos true
+; para que el macro siga vivo en vez de cerrarse/reiniciarse de golpe.
+OnError(ManejarErrorGlobal)
+ManejarErrorGlobal(err, mode) {
+    try FileAppend(FormatTime(, "yyyy-MM-dd HH:mm:ss") " ERROR: " err.Message
+        " @ " err.File ":" err.Line " (" err.What ") Extra=" err.Extra "`n",
+        A_ScriptDir "\brawlmacro_errores.log")
+    return true
+}
+
 ; ===== CONFIGURACION =====
 configPath := A_ScriptDir "\brawlmacro_config.ini"
 global eggsBackupPath := A_ScriptDir "\brawlmacro_eggs.txt"
 global heartbeatPath := A_ScriptDir "\brawlmacro_heartbeat.txt"
 global historialLogPath := A_ScriptDir "\brawlmacro_historial.log"
-global VERSION_ACTUAL := "30.6.0"
+global VERSION_ACTUAL := "30.6.3"
 
 ; ===== TEMAS =====
 temas := [
@@ -183,7 +195,7 @@ pasosNormales.Push({ tipo:"pimg", nombre:"ingame...",     color:0x70C9D3, catego
 pasosNormales.Push({ tipo:"pimg", nombre:"INTHEGAME1",    color:0x38373E, categoria:4, accion:"c", hold:400, tolerancia:1, delayClick:30, delayTecla:80, cooldown:5000, bloqueoGlobal:170000, tct:true, lastUsed:0, x1:792, y1:488, x2:794, y2:496 })
 pasosNormales.Push({ tipo:"pimg", nombre:"INTHEGAME2",    color:0x38373E, categoria:4, accion:"c", hold:400, tolerancia:1, delayClick:30, delayTecla:80, cooldown:5000, bloqueoGlobal:170000, sp:true, lastUsed:0, x1:792, y1:488, x2:794, y2:496 })
 pasosNormales.Push({ tipo:"pimg", nombre:"creatingmap",   color:0x918D2D, categoria:4, tolerancia:2, hold:100, delayClick:500, delayTecla:500, cooldown:500, sp:true, lastUsed:0, x1:607, y1:243, x2:617, y2:254 })
-pasosNormales.Push({ tipo:"pimg", nombre:"detector",      color:0xFFFFFF, categoria:4, tolerancia:1, cooldown:500, dstv:true, lastUsed:0, x1:893, y1:483, x2:1025, y2:615, circuloDetector:true, circuloRadio:67, circuloCantidad:100, circuloOffsetX:1, circuloOffsetY:19 })
+pasosNormales.Push({ tipo:"pimg", nombre:"detector",      color:0xFFFFFF, categoria:4, tolerancia:0, cooldown:500, dstv:true, lastUsed:0, x1:893, y1:483, x2:1025, y2:615, circuloDetector:true, circuloRadio:67, circuloCantidad:100, circuloOffsetX:1, circuloOffsetY:19 })
 
 ; ─── FASE 5: PARTIDA TERMINADA (cat 1) ─────────────────────────────
 pasosNormales.Push({ tipo:"pimg", nombre:"gamedone1",     color:0x000033, categoria:1, accion:"c", hold:400, tolerancia:1, delayClick:30, delayTecla:80, cooldown:500, tct:true, sp:true, lastUsed:0, x1:941, y1:40, x2:959, y2:43 })
@@ -223,13 +235,17 @@ global ultimaDeteccionReal := 0   ; A_TickCount de la ULTIMA deteccion REAL de p
 global tiempoLanzamientoSteam := 0 ; timestamp del Run Steam, para abortar Win+typing si hay deteccion en esos 30s
 global ultimoPasoEjecutado := ""
 global modoDestruccion := false
+; ── Ciclo automático: jugar N horas → Alt+F4 + descanso M min → volver a jugar → repetir ──
+global cicloActivo := true, cicloInicio := "", enDescanso := false, descansoInicio := ""
+global CICLO_SEG := 28800, DESCANSO_SEG := 2700   ; 8 h jugando / 45 min descanso (configurable en [Ciclo])
+global cicloLabel := ""   ; etiqueta que muestra cuánto falta para el descanso
 global historialVisible := true, accionEnCurso := false, contadorEsc := 0
 global perfilActivo := 1  ; 1=tct, 2=sp, 3=frt — los pasos sin marcar valen para tct y sp
 
-; ===== DETECTOR CIRCULAR (perfil dstv): 100 cruces "+" alrededor de un círculo =====
+; ===== DETECTOR CIRCULAR (perfil dstv): 100 cruces (cuadrados 3×3) alrededor de un círculo =====
 ; Estado del enganche + caché de las posiciones generadas + recursos GDI reutilizables
 ; para capturar la región del círculo en memoria una sola vez por frame (ver CapturarCirculo).
-global circuloPuntos := [], circuloPuntosOrigen := "", circuloLockIdx := 0
+global circuloPuntos := [], circuloPuntosOrigen := "", circuloLockIdx := 0, circuloLockColores := []
 global circuloHDCMem := 0, circuloHBMP := 0, circuloHBMPOld := 0, circuloHDCScreen := 0
 global circuloBuf := 0, circuloBufW := 0, circuloBufH := 0, circuloBufOX := 0, circuloBufOY := 0
 
@@ -271,6 +287,7 @@ global miniGui := "", modoMini := false, logoMacroMini := "", miniSubclassCb := 
 global barraMini := "", miniBarraSubclassCb := 0
 global overlayPartMini := "", particulasMini := [], overlayDecoMini := "", overlayDecoMiniSubCb := 0
 global btnIniciar, btnParar, btnCodigo, btnReset, btnHistorial, btnTema, btnMin, btnClose, btnUpdate, btnOverlay, btnRGBBtn, btnStatsBtn, btnWebhook, btnLogros, btnPart, btnPerfil, btnMini, btnOptimizar, btnTutorial
+global btnMiniIniciar := "", btnMiniParar := "", btnMiniCerrar := ""
 global hoverAccent := "", hoverAnimStep := 0, hoverAccentTop := "", hoverAccentHist := ""
 global hoverAccentBot := "", hoverAccentRight := "", hoverAccentBotHist := "", hoverAccentRightHist := ""
 global glowTitulo := "", sepEstado := "", sepAccion := ""  ; polish visual estático
@@ -502,29 +519,29 @@ MostrarEstadisticas(*) {
     barraSt.OnEvent("Click", (*) => CerrarStatsGui())
 
     ; Tiempo total — destacado
-    lblHdr := sg.Add("Text", "x16 y38 w" (W - 32) " h14 Center BackgroundTrans c" colorTextoPrincipal, Chr(0x23F0) "  Tiempo total")
-    lblHdr.SetFont("s9", "Segoe UI")
+    lblHdr := sg.Add("Text", "x16 y38 w" (W - 32) " h14 Center BackgroundTrans c" colorTextoPrincipal, "Tiempo total")
+    lblHdr.SetFont("s8", "Segoe UI")
     lblT := sg.Add("Text", "x16 y54 w" (W - 32) " h30 Center BackgroundTrans c" colorTextoPrincipal, horas "h " mins "m")
     lblT.SetFont("s18 Bold", "Segoe UI Semibold")
 
     ; Separador
-    sg.Add("Text", "x35 y92 w" (W - 70) " h1 Background" colorBarra, "")
+    sg.Add("Text", "x35 y92 w" (W - 70) " h1 Background" MezclarHex(colorBarra, colorFondoPrincipal, 0.55), "")
 
     ; Bloque secuencias
     halfW := Round(W / 2)
-    lblSHdr := sg.Add("Text", "x10 y102 w" (halfW - 10) " h14 Center BackgroundTrans c" colorTextoPrincipal, Chr(0x1F504) " Secuencias")
-    lblSHdr.SetFont("s9", "Segoe UI")
+    lblSHdr := sg.Add("Text", "x10 y102 w" (halfW - 10) " h14 Center BackgroundTrans c" colorTextoPrincipal, "Secuencias")
+    lblSHdr.SetFont("s8", "Segoe UI")
     lblS := sg.Add("Text", "x10 y118 w" (halfW - 10) " h26 Center BackgroundTrans c" colorHist2, totalS)
     lblS.SetFont("s15 Bold", "Segoe UI Semibold")
 
     ; Bloque destrucciones
-    lblDHdr := sg.Add("Text", "x" halfW " y102 w" (halfW - 10) " h14 Center BackgroundTrans c" colorTextoPrincipal, Chr(0x1F4A5) " Destrucciones")
-    lblDHdr.SetFont("s9", "Segoe UI")
+    lblDHdr := sg.Add("Text", "x" halfW " y102 w" (halfW - 10) " h14 Center BackgroundTrans c" colorTextoPrincipal, "Destrucciones")
+    lblDHdr.SetFont("s8", "Segoe UI")
     lblD := sg.Add("Text", "x" halfW " y118 w" (halfW - 10) " h26 Center BackgroundTrans c" colorCooldown, totalD)
     lblD.SetFont("s15 Bold", "Segoe UI Semibold")
 
     ; Separador
-    sg.Add("Text", "x35 y152 w" (W - 70) " h1 Background" colorBarra, "")
+    sg.Add("Text", "x35 y152 w" (W - 70) " h1 Background" MezclarHex(colorBarra, colorFondoPrincipal, 0.55), "")
 
     ; Sesión actual
     lblSesHdr := sg.Add("Text", "x16 y162 w" (W - 32) " h14 Center BackgroundTrans c" colorTextoPrincipal, "Sesión actual")
@@ -1217,12 +1234,10 @@ InstalarSubclassMiniLogo() {
     global logoMacroMini, miniSubclassCb
     if (!IsObject(logoMacroMini))
         return
-    ; Limpiar callback anterior si existía
-    if (miniSubclassCb) {
-        try DllCall("Comctl32.dll\RemoveWindowSubclass", "Ptr", logoMacroMini.Hwnd, "Ptr", miniSubclassCb, "Ptr", 2)
-        miniSubclassCb := 0
-    }
-    miniSubclassCb := CallbackCreate(MiniLogoSubclassProc, "F", 6)
+    ; Callback único reutilizado entre recreaciones del mini (la ventana anterior
+    ; ya fue destruida, así que basta con re-instalarlo sobre el control nuevo).
+    if (!miniSubclassCb)
+        miniSubclassCb := CallbackCreate(MiniLogoSubclassProc, "F", 6)
     DllCall("Comctl32.dll\SetWindowSubclass", "Ptr", logoMacroMini.Hwnd, "Ptr", miniSubclassCb, "Ptr", 2, "Ptr", 0)
 }
 
@@ -1230,11 +1245,12 @@ ToggleMiniMode(*) {
     global modoMini, miGui, historialGui, historialVisible, miniGui, logoMacroMini, barraMini
     global colorFondoPrincipal, colorBarra, colorTextoBarra, colorBotonNormal, colorBtnTexto, colorLogoMacro
     global overlayPartMain, overlayPartHist, miniBarraSubclassCb
-    global overlayPartMini, particulasMini, overlayDecoMini, overlayDecoraciones
+    global overlayPartMini, particulasMini, overlayDecoMini, overlayDecoraciones, configPath
 
     if (modoMini) {
         ; ── Salir de mini mode ──
         modoMini := false
+        try IniWrite(0, configPath, "UI", "MiniMode")
         if (IsObject(overlayPartMini))
             try overlayPartMini.Destroy()
         overlayPartMini := ""
@@ -1262,6 +1278,7 @@ ToggleMiniMode(*) {
 
     ; ── Entrar en mini mode ──
     modoMini := true
+    try IniWrite(1, configPath, "UI", "MiniMode")
     miGui.GetPos(&mx, &my)
     miGui.Hide()
     historialGui.Hide()
@@ -1282,52 +1299,67 @@ CrearMiniGui(posX, posY) {
     global colorFondoPrincipal, colorBarra, colorTextoBarra, colorLogoMacro, colorBotonNormal, colorBtnTexto
     global overlayPartMini, particulasMini, particulasActivas
     global overlayDecoMini, overlayDecoMiniSubCb, DECO_COLORKEY_HEX, DECO_COLORKEY_BGR
-    static MINI_W := 120, MINI_H := 125, BAR_H := 25
+    global btnMiniIniciar, btnMiniParar, btnMiniCerrar, rgbBotones, colorRGBActual
+    static MINI_W := 120, MINI_H := 140, BAR_H := 25, MINI_OVL_H := 85
 
     miniGui := Gui("+AlwaysOnTop -Caption +ToolWindow")
     miniGui.BackColor := colorFondoPrincipal
 
-    ; Barra superior completa con texto "Smart" y efecto ondas
+    ; Barra superior: arrastrar con un clic, DOBLE CLIC para volver a la ventana grande
     barraMini := miniGui.Add("Text", "x0 y0 w" MINI_W " h" BAR_H " Background" colorBarra " Center +0x201", "Smart")
     barraMini.SetFont("s11 c" colorTextoBarra " Bold", "Segoe UI Semibold")
     barraMini.OnEvent("Click", ArrastrarMiniVentana)
+    barraMini.OnEvent("DoubleClick", ToggleMiniMode)   ; doble clic = restaurar ventana grande
 
-    ; Botón restaurar — pequeño 5x5 justo debajo de la barra, arriba-derecha
-    btnRestore := miniGui.Add("Text", "x" (MINI_W - 10) " y" (BAR_H + 2) " w5 h5 +0x201 Background" colorBotonNormal, "")
-    btnRestore.OnEvent("Click", ToggleMiniMode)
-
-    ; Logo giratorio — posición original centrada a la izquierda
+    ; Logo giratorio — MISMA posición (la decoración mini sigue centrada en él)
     logoMacroMini := miniGui.Add("Text", "x15 y" (BAR_H + 5) " w80 h80 Center BackgroundTrans c" colorLogoMacro " +0x1", Chr(9881))
     logoMacroMini.SetFont("s48 c" colorLogoMacro " Bold", "Segoe UI Symbol")
     InstalarSubclassMiniLogo()
 
-    ; Instalar subclass de ondas en la barra mini (mismo efecto que la barra principal)
-    if (miniBarraSubclassCb)
-        miniBarraSubclassCb := 0
-    miniBarraSubclassCb := CallbackCreate(BarraSubclassProc, "F", 6)
+    ; ── 3 botones abajo: ▶ Iniciar · ■ Parar · ✕ Cerrar (salir del macro) ──
+    btnMiniIniciar := miniGui.Add("Text", "x6 y114 w46 h22 +0x201 Center Background" colorBotonNormal " c" colorBtnTexto, Chr(9654))
+    btnMiniParar   := miniGui.Add("Text", "x54 y114 w40 h22 +0x201 Center Background" colorBotonNormal " c" colorBtnTexto, Chr(9632))
+    btnMiniCerrar  := miniGui.Add("Text", "x96 y114 w18 h22 +0x201 Center Background" colorBotonNormal " c" colorBtnTexto, Chr(215))
+    for b in [btnMiniIniciar, btnMiniParar, btnMiniCerrar]
+        b.SetFont("s11 c" colorBtnTexto " Bold", "Segoe UI Symbol")
+    btnMiniIniciar.OnEvent("Click", Iniciar)
+    btnMiniParar.OnEvent("Click", Parar)
+    btnMiniCerrar.OnEvent("Click", Cerrar)
+    RegistrarHover(btnMiniIniciar, () => (rgbBotones ? colorRGBActual : colorBotonNormal))
+    RegistrarHover(btnMiniParar,   () => (rgbBotones ? colorRGBActual : colorBotonNormal),
+                                   () => MezclarHex(colorCooldown, colorBotonNormal, 0.45))
+    RegistrarHover(btnMiniCerrar,  () => (rgbBotones ? colorRGBActual : colorBotonNormal), () => "C42B1C")
+
+    ; Instalar subclass de ondas en la barra mini (mismo efecto que la barra principal).
+    ; El callback se crea UNA vez y se reutiliza en cada recreación del mini —
+    ; antes se creaba uno nuevo por cambio de tema sin liberar el anterior (fuga).
+    if (!miniBarraSubclassCb)
+        miniBarraSubclassCb := CallbackCreate(BarraSubclassProc, "F", 6)
     DllCall("Comctl32.dll\SetWindowSubclass", "Ptr", barraMini.Hwnd, "Ptr", miniBarraSubclassCb, "Ptr", 10, "Ptr", 0)
 
     miniGui.Show("x" posX " y" posY " w" MINI_W " h" MINI_H)
     RedondearVentana(miniGui.Hwnd, 14)
 
-    ; ── Overlay de partículas para mini ──
+    ; ── Overlay de partículas + escena (decoración pequeña) para mini ──
+    ; El overlay solo cubre hasta encima de los botones (MINI_OVL_H), así la
+    ; decoración no pinta sobre los botones de abajo.
     if (particulasActivas) {
         try WinSetStyle("+0x02000000", "ahk_id " miniGui.Hwnd)
         overlayPartMini := Gui("+AlwaysOnTop -Caption +ToolWindow +E0x80020")
         overlayPartMini.Opt("+Owner" miniGui.Hwnd)
-        overlayPartMini.Show("x" posX " y" (posY + BAR_H) " w" MINI_W " h" (MINI_H - BAR_H) " NoActivate")
-        InicializarParticulas(particulasMini, MINI_W, MINI_H - BAR_H, 15)
+        overlayPartMini.Show("x" posX " y" (posY + BAR_H) " w" MINI_W " h" MINI_OVL_H " NoActivate")
+        InicializarParticulas(particulasMini, MINI_W, MINI_OVL_H, 15)
     }
 
     ; ── Overlay de decoraciones (Sukuna slashes / Gojo aura) para mini ──
     overlayDecoMini := Gui("+AlwaysOnTop -Caption +ToolWindow +E0x80020")
     overlayDecoMini.Opt("+Owner" miniGui.Hwnd)
     overlayDecoMini.BackColor := DECO_COLORKEY_HEX
-    overlayDecoMini.Show("x" posX " y" (posY + BAR_H) " w" MINI_W " h" (MINI_H - BAR_H) " NoActivate")
+    overlayDecoMini.Show("x" posX " y" (posY + BAR_H) " w" MINI_W " h" MINI_OVL_H " NoActivate")
     DllCall("SetLayeredWindowAttributes", "Ptr", overlayDecoMini.Hwnd, "UInt", DECO_COLORKEY_BGR, "UChar", 255, "UInt", 1)
-    if (overlayDecoMiniSubCb)
-        overlayDecoMiniSubCb := 0
-    overlayDecoMiniSubCb := CallbackCreate(DecoOverlaySubclassProc, "F", 6)
+    ; Callback único reutilizado entre recreaciones (antes fugaba uno por cambio de tema)
+    if (!overlayDecoMiniSubCb)
+        overlayDecoMiniSubCb := CallbackCreate(DecoOverlaySubclassProc, "F", 6)
     DllCall("Comctl32.dll\SetWindowSubclass", "Ptr", overlayDecoMini.Hwnd, "Ptr", overlayDecoMiniSubCb, "Ptr", 27, "Ptr", 0)
 }
 
@@ -1823,9 +1855,9 @@ AplicarConfigParticulas() {
 ; pero el usuario quiere mantener la decoración (toggle "Decoración del tema").
 ActualizarEscenaSola() {
     global miGui, overlayPartMain, temaEnTransicion, optEscena
-    global particulasActivas, presetParticulas
+    global particulasActivas, presetParticulas, modoMini
     static BAR_H := 25
-    if (temaEnTransicion || !optEscena)
+    if (temaEnTransicion || !optEscena || modoMini)
         return
     if (particulasActivas && presetParticulas > 0)
         return  ; las partículas ya están pintando la escena, no duplicar
@@ -1871,6 +1903,7 @@ ActualizarParticulas() {
         return
 
     static BAR_H := 25  ; alto de la barra de título excluida del overlay
+    static MINI_OVL_H := 85  ; alto del overlay mini (deja hueco a los 3 botones de abajo)
 
     ; ── Si cambió el EFECTO del tema, re-inicializar las partículas para que
     ;    adopten la nueva dirección/forma (nieve cae, brasas suben, etc.) ──
@@ -1896,7 +1929,7 @@ ActualizarParticulas() {
     ; basura del estado minimizado y las partículas se apiñarían ahí.
     ; Todo dentro de try/catch porque durante minimize/restore Windows puede dejar
     ; las ventanas en estados transitorios donde GetPos/Move tiran excepciones.
-    try if (IsObject(miGui) && IsObject(overlayPartMain) && !DllCall("IsIconic", "Ptr", miGui.Hwnd, "Int")) {
+    try if (!modoMini && IsObject(miGui) && IsObject(overlayPartMain) && !DllCall("IsIconic", "Ptr", miGui.Hwnd, "Int")) {
         miGui.GetPos(&mx, &my, &mw, &mh)
         overlayPartMain.GetPos(&ox, &oy, &ow, &oh)
         targetY := my + BAR_H
@@ -1917,7 +1950,7 @@ ActualizarParticulas() {
         }
         PintarOverlayParticulas(overlayPartMain.Hwnd, mw, targetH, particulasMain, "", true)
     }
-    try if (IsObject(historialGui) && IsObject(overlayPartHist) && historialVisible
+    try if (!modoMini && IsObject(historialGui) && IsObject(overlayPartHist) && historialVisible
         && !DllCall("IsIconic", "Ptr", historialGui.Hwnd, "Int")) {
         historialGui.GetPos(&hx, &hy, &hw, &hh)
         overlayPartHist.GetPos(&ox, &oy, &ow, &oh)
@@ -1949,7 +1982,7 @@ ActualizarParticulas() {
         miniGui.GetPos(&mnx, &mny, &mnw, &mnh)
         overlayPartMini.GetPos(&opx, &opy, &opw, &oph)
         tgtY := mny + BAR_H
-        tgtH := mnh - BAR_H
+        tgtH := MINI_OVL_H
         if (mnx != opx || tgtY != opy || mnw != opw || tgtH != oph)
             overlayPartMini.Move(mnx, tgtY, mnw, tgtH)
         for p in particulasMini {
@@ -1964,14 +1997,14 @@ ActualizarParticulas() {
             else if (p.y > tgtH + 8)
                 p.y := -8
         }
-        PintarOverlayParticulas(overlayPartMini.Hwnd, mnw, tgtH, particulasMini)
+        PintarOverlayParticulas(overlayPartMini.Hwnd, mnw, tgtH, particulasMini, "", true)
     }
     ; Reposicionar overlay deco mini
     try if (modoMini && IsObject(miniGui) && IsObject(overlayDecoMini)) {
         miniGui.GetPos(&mnx2, &mny2, &mnw2, &mnh2)
         overlayDecoMini.GetPos(&odx, &ody, &odw, &odh)
         tgtY2 := mny2 + BAR_H
-        tgtH2 := mnh2 - BAR_H
+        tgtH2 := MINI_OVL_H
         if (mnx2 != odx || tgtY2 != ody || mnw2 != odw || tgtH2 != odh)
             overlayDecoMini.Move(mnx2, tgtY2, mnw2, tgtH2)
     }
@@ -2096,8 +2129,11 @@ PintarOverlayParticulas(overlayHwnd, w, h, particulas, excludeRect := "", conEsc
     ; es ESPECÍFICA por tema (bambú→cañas, miel→panal...), no por categoría.
     if (conEscena && optEscena) {
         deco := temaPremiumActivo ? "premium" : DecoDeTema(temas[temaActual])
-        if (deco != "")
+        if (deco != "") {
+            TestTrace("ES> " deco " w=" w " h=" h)
             PintarEscenaTema(g, w, h, deco, rC, gC, bC, fondoClaro)
+            TestTrace("ES ok")
+        }
     }
 
     for i, p in particulas {
@@ -2321,7 +2357,16 @@ PintarEscenaTema(g, w, h, ef, rC, gC, bC, fondoClaro) {
     switch ef {
     ; ─────────── DECORACIONES ESPECÍFICAS POR TEMA ───────────
     case "hielo":
-        ; Cristales de hielo en el borde inferior + destellos titilando arriba
+        ; Carámbanos colgando arriba (con goteo) + cristales de hielo en el borde
+        ; inferior + grietas en el suelo helado + destellos y copos titilando
+        loop 4 {
+            cx := (A_Index - 0.5) * w / 4 + w * 0.06
+            il := 9 + Mod(A_Index * 8, 13)
+            EscenaPoligono(g, (210 << 24) | (160 << 16) | (215 << 8) | 245, [[cx - 4, 0], [cx + 4, 0], [cx + 1.5, il], [cx - 1.5, il]])
+            EscenaLinea(g, (235 << 24) | (255 << 16) | (255 << 8) | 255, cx - 2.5, 0, cx - 0.5, il * 0.75, 1)
+            dy := Mod(tNow / 14.0 + A_Index * 23, 30)
+            EscenaElipse(g, (Round(200 * (1 - dy / 30)) << 24) | (190 << 16) | (230 << 8) | 255, cx - 1, il + dy, 2, 2.5)
+        }
         loop 5 {
             cx := (A_Index - 0.5) * w / 5
             hh := 15 + Mod(A_Index * 7, 11)
@@ -2329,22 +2374,77 @@ PintarEscenaTema(g, w, h, ef, rC, gC, bC, fondoClaro) {
             EscenaLinea(g, (235 << 24) | (255 << 16) | (255 << 8) | 255, cx, h - hh, cx - 5, h - hh + 6, 1.4)
             EscenaLinea(g, (210 << 24) | (40 << 16) | (110 << 8) | 190, cx + 5, h - hh + 6, cx + 4, h, 1.2)
         }
+        loop 2 {
+            lx := w * (0.28 + A_Index * 0.34)
+            EscenaLinea(g, (130 << 24) | (90 << 16) | (160 << 8) | 220, lx, h - 1, lx + 12, h - 8, 1)
+            EscenaLinea(g, (130 << 24) | (90 << 16) | (160 << 8) | 220, lx + 12, h - 8, lx + 5, h - 13, 1)
+        }
         loop 4 {
             sx := Mod(A_Index * 73, Round(w - 12)) + 6
             sy := 6 + Mod(A_Index * 11, 18)
             tw := 0.5 + 0.5 * Sin(tNow / 220.0 + A_Index)
             EscenaElipse(g, (Round(225 * tw) << 24) | (170 << 16) | (215 << 8) | 255, sx - 2, sy - 2, 4, 4)
         }
-    case "iglu":
-        ; Suelo nevado + iglús (cúpula con bloques y entrada) + nieve cayendo
-        EscenaRect(g, (190 << 24) | (200 << 16) | (220 << 8) | 240, 0, h - 5, w, 5)
         loop 2 {
+            fx := Mod(A_Index * 97, Round(w - 16)) + 8
+            fy := 8 + Mod(A_Index * 17, 16)
+            rot := tNow / 900.0 + A_Index * 1.2
+            tw := 0.5 + 0.5 * Sin(tNow / 260.0 + A_Index * 3)
+            colF := (Round(220 * tw) << 24) | (255 << 16) | (255 << 8) | 255
+            EscenaLinea(g, colF, fx - Cos(rot) * 4, fy - Sin(rot) * 4, fx + Cos(rot) * 4, fy + Sin(rot) * 4, 1)
+            EscenaLinea(g, colF, fx - Cos(rot + 1.047) * 4, fy - Sin(rot + 1.047) * 4, fx + Cos(rot + 1.047) * 4, fy + Sin(rot + 1.047) * 4, 1)
+            EscenaLinea(g, colF, fx - Cos(rot + 2.094) * 4, fy - Sin(rot + 2.094) * 4, fx + Cos(rot + 2.094) * 4, fy + Sin(rot + 2.094) * 4, 1)
+        }
+    case "iglu":
+        ; Aurora boreal ondulando arriba + estrellas titilando + pinos nevados +
+        ; suelo nevado con iglús (bloques de hielo, entrada y humo) + nieve cayendo
+        loop 2 {
+            capa := A_Index
+            fase := tNow / 1500.0 + capa * 2.1
+            ay := h * (0.06 + capa * 0.06)
+            aA := capa = 1 ? 60 : 40
+            pts := []
+            pts.Push([0, 0])
+            x := 0.0
+            while (x <= w) {
+                yy := ay + Sin(x / 34.0 + fase) * (5 + capa * 3)
+                pts.Push([x, yy])
+                x += w / 12
+            }
+            pts.Push([w, 0])
+            EscenaPoligono(g, (aA << 24) | (rC << 16) | (gC << 8) | bC, pts)
+        }
+        loop 5 {
+            sx := Mod(A_Index * 67, Round(w - 6)) + 3
+            sy := 3 + Mod(A_Index * 13, Round(h * 0.3))
+            tw := 0.4 + 0.6 * (0.5 + 0.5 * Sin(tNow / 260.0 + A_Index * 2))
+            EscenaElipse(g, (Round(220 * tw) << 24) | (255 << 16) | (255 << 8) | 255, sx - 1, sy - 1, 2, 2)
+        }
+        loop 3 {
+            px := w * (0.08 + A_Index * 0.32)
+            ph := 15 + Mod(A_Index * 5, 6)
+            EscenaPoligono(g, (160 << 24) | (45 << 16) | (95 << 8) | 75, [[px, h - ph - 4], [px - 7, h - 4], [px + 7, h - 4]])
+            EscenaPoligono(g, (200 << 24) | (235 << 16) | (245 << 8) | 255, [[px, h - ph - 4], [px - 5, h - 9], [px + 5, h - 9]])
+        }
+        EscenaRect(g, (215 << 24) | (235 << 16) | (245 << 8) | 255, 0, h - 5, w, 5)
+        loop 2 {
+            esPrimero := (A_Index = 1)
             cx := A_Index * w / 3 + w * 0.06
-            EscenaPie(g, (220 << 24) | (200 << 16) | (215 << 8) | 240, cx - 18, h - 23, 36, 38, 180, 180)
-            EscenaLinea(g, (170 << 24) | (130 << 16) | (155 << 8) | 195, cx - 17, h - 10, cx + 17, h - 10, 1.2)
-            EscenaLinea(g, (170 << 24) | (130 << 16) | (155 << 8) | 195, cx - 6, h - 5, cx - 7, h - 19, 1)
-            EscenaLinea(g, (170 << 24) | (130 << 16) | (155 << 8) | 195, cx + 6, h - 5, cx + 7, h - 19, 1)
+            EscenaPie(g, (235 << 24) | (242 << 16) | (252 << 8) | 255, cx - 18, h - 23, 36, 38, 180, 180)
+            loop 3 {
+                k := A_Index * 5
+                lw := 18 * (1 - k / 19)
+                EscenaLinea(g, (130 << 24) | (170 << 16) | (200 << 8) | 230, cx - lw, h - 5 - k, cx + lw, h - 5 - k, 1)
+            }
+            EscenaLinea(g, (170 << 24) | (130 << 16) | (155 << 8) | 195, cx - 17, h - 5, cx + 17, h - 5, 1.2)
             EscenaPie(g, (215 << 24) | (70 << 16) | (100 << 8) | 150, cx - 6, h - 11, 12, 15, 180, 180)
+            if (esPrimero) {
+                loop 3 {
+                    rise := Mod(tNow / 18.0 + A_Index * 14, 26)
+                    al := Round(110 * (1 - rise / 26))
+                    EscenaElipse(g, (al << 24) | (235 << 16) | (240 << 8) | 245, cx + 6 + A_Index, h - 23 - rise, 3 + A_Index, 3 + A_Index)
+                }
+            }
         }
         loop 6 {
             sx := Mod(A_Index * 53, Round(w - 8)) + 4
@@ -2352,6 +2452,44 @@ PintarEscenaTema(g, w, h, ef, rC, gC, bC, fondoClaro) {
             EscenaElipse(g, (210 << 24) | (255 << 16) | (255 << 8) | 255, sx - 1.5, sy - 1.5, 3, 3)
         }
     case "gotas":
+        ; Superficie del agua ondulando arriba + pez nadando + burbujas subiendo +
+        ; algas meciéndose en las esquinas, además de gotas y ondas en el suelo
+        wy := h * 0.16
+        pts := []
+        pts.Push([0, 0])
+        x := 0.0
+        while (x <= w) {
+            yy := wy + Sin(x / 28.0 + tNow / 700.0) * 3
+            pts.Push([x, yy])
+            x += w / 14
+        }
+        pts.Push([w, 0])
+        EscenaPoligono(g, (60 << 24) | (rC << 16) | (gC << 8) | bC, pts)
+        loop 2 {
+            esIzq := (A_Index = 1)
+            ax := esIzq ? w * 0.08 : w * 0.92
+            dirSign := esIzq ? 1 : -1
+            py := h
+            loop 3 {
+                sway := Sin(tNow / 600.0 + A_Index * 0.8) * (2 + A_Index) * dirSign
+                nx := ax + sway
+                ny := h - A_Index * 6
+                EscenaLinea(g, (190 << 24) | (60 << 16) | (170 << 8) | 110, ax, py, nx, ny, 1.6)
+                ax := nx
+                py := ny
+            }
+        }
+        fx := w * 0.5 + Sin(tNow / 2200.0) * w * 0.35
+        fy := h * 0.45 + Sin(tNow / 500.0) * 3
+        dir := Cos(tNow / 2200.0) >= 0 ? 1 : -1
+        EscenaElipse(g, (200 << 24) | (rC << 16) | (gC << 8) | bC, fx - 5, fy - 3, 10, 6)
+        EscenaPoligono(g, (200 << 24) | (rC << 16) | (gC << 8) | bC, [[fx - 5 * dir, fy], [fx - 9 * dir, fy - 3], [fx - 9 * dir, fy + 3]])
+        EscenaElipse(g, (230 << 24) | (255 << 16) | (255 << 8) | 255, fx + 2 * dir, fy - 1.5, 1.6, 1.6)
+        loop 5 {
+            bx := Mod(A_Index * 59, Round(w - 8)) + 4
+            by := h - Mod(tNow / 11.0 + A_Index * 26, h)
+            EscenaAnillo(g, (160 << 24) | (255 << 16) | (255 << 8) | 255, bx - 1.5, by - 1.5, 3, 0.8)
+        }
         loop 6 {
             cx := Mod(A_Index * 61, Round(w - 10)) + 5
             gy := Mod(tNow / 9.0 + A_Index * 35, h)
@@ -2366,23 +2504,67 @@ PintarEscenaTema(g, w, h, ef, rC, gC, bC, fondoClaro) {
         }
         DllCall("gdiplus\GdipDeletePen", "Ptr", pen)
     case "menta":
+        ; Ramitas meciéndose con la brisa + hojitas cayendo en péndulo
         verde := (205 << 24) | (90 << 16) | (200 << 8) | 130
         loop 5 {
             cx := (A_Index - 0.5) * w / 5
-            EscenaLinea(g, verde, cx, h, cx, h - 13, 1.4)
-            EscenaElipse(g, verde, cx - 7, h - 13, 7, 5)
-            EscenaElipse(g, verde, cx, h - 13, 7, 5)
-            EscenaElipse(g, verde, cx - 5, h - 8, 6, 4)
-            EscenaElipse(g, verde, cx, h - 8, 6, 4)
+            sway := Sin(tNow / 650.0 + A_Index * 0.9) * 2.5
+            EscenaLinea(g, verde, cx, h, cx + sway, h - 13, 1.4)
+            EscenaElipse(g, verde, cx + sway - 7, h - 13, 7, 5)
+            EscenaElipse(g, verde, cx + sway, h - 13, 7, 5)
+            EscenaElipse(g, verde, cx + sway * 0.6 - 5, h - 8, 6, 4)
+            EscenaElipse(g, verde, cx + sway * 0.6, h - 8, 6, 4)
+        }
+        loop 4 {
+            fy := Mod(tNow / 28.0 + A_Index * (h / 4.0), h + 14) - 7
+            fx := Mod(A_Index * 71, Round(w - 16)) + 8 + Sin(fy / 14.0 + A_Index) * 7
+            EscenaElipse(g, (185 << 24) | (110 << 16) | (215 << 8) | 150, fx - 3, fy - 2, 6, 4)
+            EscenaLinea(g, (150 << 24) | (70 << 16) | (170 << 8) | 110, fx - 2, fy, fx + 2, fy, 1)
+        }
+        ; Lucecitas (luciérnagas) parpadeando entre las hojas
+        loop 2 {
+            lx := Mod(A_Index * 113, Round(w - 10)) + 5
+            ly := h * 0.3 + Mod(A_Index * 17, Round(h * 0.4))
+            tw := 0.3 + 0.7 * (0.5 + 0.5 * Sin(tNow / 380.0 + A_Index * 2))
+            EscenaElipse(g, (Round(200 * tw) << 24) | (210 << 16) | (255 << 8) | 160, lx - 1.5, ly - 1.5, 3, 3)
         }
     case "pasto":
+        ; Césped con el viento en OLEADAS (recorre el prado) + florecillas + mariposa
         verde := (205 << 24) | (70 << 16) | (160 << 8) | 60
         loop 15 {
             cx := A_Index * w / 16
             hh := 8 + Mod(A_Index * 5, 10)
-            sway := Sin(tNow / 600.0 + A_Index) * 2
+            sway := Sin(tNow / 600.0 - cx / 30.0) * 3
             EscenaLinea(g, verde, cx, h, cx + sway, h - hh, 1.6)
         }
+        loop 3 {
+            fx := A_Index * w / 4 + 8
+            sway := Sin(tNow / 600.0 - fx / 30.0) * 2
+            EscenaElipse(g, (215 << 24) | (255 << 16) | (235 << 8) | 120, fx + sway - 2, h - 13, 4, 4)
+        }
+        ; mariposa en vuelo errático con aleteo
+        bx := w * 0.5 + Sin(tNow / 1000.0) * w * 0.34
+        by := h - 22 + Sin(tNow / 470.0) * 6
+        flap := Abs(Sin(tNow / 110.0))
+        EscenaElipse(g, (210 << 24) | (255 << 16) | (170 << 8) | 60, bx - 4 * flap - 1, by - 2, 4 * flap + 1, 4)
+        EscenaElipse(g, (210 << 24) | (255 << 16) | (170 << 8) | 60, bx, by - 2, 4 * flap + 1, 4)
+        EscenaLinea(g, (200 << 24) | (60 << 16) | (50 << 8) | 30, bx, by - 3, bx, by + 3, 1.2)
+        ; Sol con rayos arriba a la izquierda
+        sx2 := w * 0.1
+        sy2 := h * 0.12
+        rot2 := tNow / 2200.0
+        loop 6 {
+            ang := rot2 + (A_Index - 1) * 1.047
+            EscenaLinea(g, (130 << 24) | (255 << 16) | (220 << 8) | 90, sx2, sy2, sx2 + Cos(ang) * 9, sy2 + Sin(ang) * 9, 1.3)
+        }
+        EscenaElipse(g, (210 << 24) | (255 << 16) | (225 << 8) | 100, sx2 - 5, sy2 - 5, 10, 10)
+        ; Mariquita caminando por el césped
+        lbx := Mod(tNow / 40.0, w + 16) - 8
+        lby := h - 4
+        EscenaElipse(g, (220 << 24) | (220 << 16) | (40 << 8) | 40, lbx - 2.5, lby - 2.5, 5, 4)
+        EscenaLinea(g, (230 << 24) | (30 << 16) | (30 << 8) | 30, lbx, lby - 2.5, lbx, lby + 1.5, 1)
+        EscenaElipse(g, (230 << 24) | (30 << 16) | (30 << 8) | 30, lbx - 1.5, lby - 1.2, 1, 1)
+        EscenaElipse(g, (230 << 24) | (30 << 16) | (30 << 8) | 30, lbx + 1, lby, 1, 1)
     case "vainilla":
         ; Cupcakes de vainilla: envoltorio + crema + cereza (contraste para fondo claro)
         loop 3 {
@@ -2426,53 +2608,127 @@ PintarEscenaTema(g, w, h, ef, rC, gC, bC, fondoClaro) {
             EscenaRect(g, col, cx - 2, h - 4 - dl, 4, dl)
             EscenaElipse(g, col, cx - 3, h - 4 - dl - 2, 6, 6)
         }
+        ; El zigzag se EXPRIME en vivo: se dibuja progresivamente con el bote
+        ; siguiendo la punta, pausa breve y vuelve a empezar
+        prog := Min(1.0, Mod(tNow, 3400) / 2800.0)
+        segsLlenos := prog * 9
         px := 4.0, py := 14.0
         loop 9 {
             nx := px + w / 9
             ny := Mod(A_Index, 2) ? 22.0 : 12.0
-            EscenaLinea(g, colD, px, py, nx, ny, 2.6)
+            if (A_Index <= Floor(segsLlenos)) {
+                EscenaLinea(g, colD, px, py, nx, ny, 2.6)
+            } else if (A_Index = Floor(segsLlenos) + 1) {
+                f := segsLlenos - Floor(segsLlenos)
+                mx2 := px + (nx - px) * f
+                my2 := py + (ny - py) * f
+                EscenaLinea(g, colD, px, py, mx2, my2, 2.6)
+                EscenaPoligono(g, (235 << 24) | (230 << 16) | (60 << 8) | 40, [[mx2 - 1.5, my2 - 4], [mx2 + 1.5, my2 - 4], [mx2, my2]])
+                EscenaRect(g, (235 << 24) | (230 << 16) | (180 << 8) | 30, mx2 - 4, my2 - 16, 8, 12)
+            }
             px := nx, py := ny
         }
     case "palmera":
-        EscenaElipse(g, (205 << 24) | (255 << 16) | (210 << 8) | 60, w - 24, 6, 16, 16)
+        ; Playa viva: sol con rayos girando lento + orilla con espuma + palmeras
+        ; meciéndose con cocos
+        sol := (205 << 24) | (255 << 16) | (210 << 8) | 60
+        EscenaElipse(g, sol, w - 24, 6, 16, 16)
+        loop 8 {
+            ra := (A_Index - 1) * 0.785 + tNow / 4000.0
+            EscenaLinea(g, sol, w - 16 + Cos(ra) * 12, 14 + Sin(ra) * 12, w - 16 + Cos(ra) * 16, 14 + Sin(ra) * 16, 1.4)
+        }
+        pts := []
+        pts.Push([0, h])
+        x := 0.0
+        while (x <= w) {
+            pts.Push([x, h - 4 + 2 * Sin(x / 18.0 + tNow / 550.0)])
+            x += 10
+        }
+        pts.Push([w, h])
+        EscenaPoligono(g, (140 << 24) | (90 << 16) | (200 << 8) | 215, pts)
         tronco := (210 << 24) | (150 << 16) | (100 << 8) | 50
         verde := (210 << 24) | (40 << 16) | (160 << 8) | 80
         loop 2 {
             cx := A_Index * w / 3
-            EscenaLinea(g, tronco, cx, h, cx - 3, h - 20, 3)
-            ty := h - 20
+            EscenaLinea(g, tronco, cx, h - 3, cx - 3, h - 23, 3)
+            ty := h - 23
             loop 5 {
-                ang := 3.4 + (A_Index - 1) * 0.45
+                ang := 3.4 + (A_Index - 1) * 0.45 + Sin(tNow / 700.0 + A_Index) * 0.1
                 EscenaLinea(g, verde, cx - 3, ty, cx - 3 + Cos(ang) * 14, ty + Sin(ang) * 9 + 9, 2)
             }
+            EscenaElipse(g, (220 << 24) | (110 << 16) | (70 << 8) | 35, cx - 6, ty + 1, 4, 4)
+            EscenaElipse(g, (220 << 24) | (110 << 16) | (70 << 8) | 35, cx - 1, ty + 2, 4, 4)
         }
     case "ceniza":
+        ; Suelo de rescoldos LATIENDO + columnas de humo serpenteante + ceniza cayendo
+        EscenaRect(g, (160 << 24) | (45 << 16) | (40 << 8) | 38, 0, h - 5, w, 5)
+        loop 6 {
+            ex := (A_Index - 0.5) * w / 6
+            gl := 0.5 + 0.5 * Sin(tNow / 320.0 + A_Index * 1.7)
+            EscenaElipse(g, (Round(60 + 70 * gl) << 24) | (255 << 16) | (150 << 8) | 50, ex - 8, h - 10, 16, 9)   ; halo del rescoldo
+            EscenaElipse(g, (Round(140 + 100 * gl) << 24) | (255 << 16) | (Round(70 + 90 * gl) << 8) | 15, ex - 4, h - 7, 8, 5)
+        }
+        ; humo que serpentea hacia arriba, se ensancha y se desvanece
+        loop 3 {
+            colH := A_Index
+            sx := w * (0.2 + (colH - 1) * 0.3)
+            sy := h - 10.0
+            while (sy > 8) {
+                prog := (h - sy) / h
+                off := Sin(tNow / 900.0 + sy / 14.0 + colH * 2) * (3 + prog * 9)
+                EscenaElipse(g, (Round(65 * (1 - prog)) << 24) | (175 << 16) | (175 << 8) | 175, sx + off - 3 - prog * 4, sy - 4, 6 + prog * 8, 6 + prog * 8)
+                sy -= 11
+            }
+        }
+        ; copos de ceniza cayendo con vaivén
         loop 7 {
             cx := Mod(A_Index * 53, Round(w - 10)) + 5 + Sin(tNow / 500.0 + A_Index) * 5
-            cy := Mod(h - tNow / 18.0 - A_Index * 30, h + 20) - 10
-            d := 3 + Mod(A_Index, 3) * 2
-            EscenaElipse(g, (90 << 24) | (160 << 16) | (160 << 8) | 160, cx - d / 2, cy - d / 2, d, d)
+            cy := Mod(tNow / 18.0 + A_Index * 30, h + 20) - 10
+            d := 2 + Mod(A_Index, 3) * 1.5
+            EscenaElipse(g, (110 << 24) | (185 << 16) | (185 << 8) | 185, cx - d / 2, cy - d / 2, d, d)
         }
+        ; chispas naranjas escapando de los rescoldos
         loop 3 {
-            cx := Mod(A_Index * 97, Round(w - 10)) + 5
-            cy := Mod(h - tNow / 12.0 - A_Index * 50, h) - 5
-            EscenaElipse(g, (210 << 24) | (255 << 16) | (120 << 8) | 30, cx - 1.5, cy - 1.5, 3, 3)
+            cx := Mod(A_Index * 97, Round(w - 10)) + 5 + Sin(tNow / 250.0 + A_Index * 3) * 4
+            cy := Mod(h - tNow / 9.0 - A_Index * 50, h) - 5
+            EscenaElipse(g, (220 << 24) | (255 << 16) | (140 << 8) | 30, cx - 1.5, cy - 1.5, 3, 3)
         }
     case "grafito":
-        ; Trazos de boceto de fondo + lápices de grafito apoyados abajo
+        ; Hoja cuadriculada de fondo + boceto de un círculo a compás + trazos de
+        ; boceto + lápices (grafito y uno de color) apoyados abajo + virutas
+        loop 6 {
+            gx := A_Index * w / 6
+            EscenaLinea(g, (35 << 24) | (rC << 16) | (gC << 8) | bC, gx, 2, gx, h - 6, 1)
+        }
         loop 9 {
             x1 := A_Index * w / 9
             EscenaLinea(g, (60 << 24) | (rC << 16) | (gC << 8) | bC, x1 - 12, h - 3, x1 + 4, h - 17, 1.1)
         }
+        ccx := w * 0.66
+        ccy := h * 0.32
+        crad := 16 + 2 * Sin(tNow / 1100.0)
+        EscenaAnillo(g, (130 << 24) | (rC << 16) | (gC << 8) | bC, ccx - crad, ccy - crad, crad * 2, 1)
+        EscenaLinea(g, (90 << 24) | (rC << 16) | (gC << 8) | bC, ccx - crad - 4, ccy, ccx + crad + 4, ccy, 0.8)
+        EscenaLinea(g, (90 << 24) | (rC << 16) | (gC << 8) | bC, ccx, ccy - crad - 4, ccx, ccy + crad + 4, 0.8)
         loop 3 {
             bx := w * 0.12 + (A_Index - 1) * (w * 0.3)
             by := h - 5 - Mod(A_Index, 2) * 4
             EscenaRect(g, (235 << 24) | (235 << 16) | (140 << 8) | 160, bx - 4, by - 3, 3.5, 4)              ; goma
             EscenaRect(g, (220 << 24) | (180 << 16) | (180 << 8) | 190, bx - 0.5, by - 3, 1.5, 4)            ; virola
-            EscenaRect(g, (235 << 24) | (235 << 16) | (195 << 8) | 50, bx, by - 3, 28, 4)                    ; cuerpo madera
-            EscenaRect(g, (120 << 24) | (255 << 16) | (235 << 8) | 150, bx, by - 3, 28, 1)                   ; brillo
-            EscenaPoligono(g, (235 << 24) | (215 << 16) | (165 << 8) | 95, [[bx + 28, by - 3], [bx + 28, by + 1], [bx + 36, by - 1]])  ; punta madera
+            EscenaRect(g, (235 << 24) | (235 << 16) | (195 << 8) | 235, bx, by - 3, 28, 4)                   ; cuerpo madera
+            EscenaRect(g, (150 << 24) | (255 << 16) | (250 << 8) | 215, bx, by - 3, 28, 1)                   ; brillo
+            EscenaPoligono(g, (235 << 24) | (215 << 16) | (165 << 8) | 235, [[bx + 28, by - 3], [bx + 28, by + 1], [bx + 36, by - 1]])  ; punta madera
             EscenaPoligono(g, (245 << 24) | (55 << 16) | (55 << 8) | 65, [[bx + 33.5, by - 1.7], [bx + 36, by - 1], [bx + 33.5, by - 0.3]])  ; mina
+        }
+        rbx := w * 0.42
+        rby := h - 9
+        EscenaRect(g, (230 << 24) | (210 << 16) | (60 << 8) | 60, rbx, rby - 1.5, 24, 3)              ; cuerpo lápiz rojo
+        EscenaPoligono(g, (230 << 24) | (235 << 16) | (200 << 8) | 170, [[rbx + 24, rby - 1.5], [rbx + 24, rby + 1.5], [rbx + 31, rby]])  ; punta madera
+        EscenaPoligono(g, (245 << 24) | (110 << 16) | (40 << 8) | 40, [[rbx + 28.5, rby - 0.6], [rbx + 31, rby], [rbx + 28.5, rby + 0.6]])  ; mina roja
+        loop 3 {
+            shx := w * (0.2 + A_Index * 0.22)
+            shy := h - 2.5
+            EscenaPoligono(g, (150 << 24) | (225 << 16) | (200 << 8) | 130, [[shx, shy], [shx + 4, shy - 2.5], [shx + 7, shy - 0.5], [shx + 3, shy + 1]])
         }
     case "abisal":
         loop 10 {
@@ -2556,6 +2812,7 @@ PintarEscenaTema(g, w, h, ef, rC, gC, bC, fondoClaro) {
         pulseX := Mod(tNow / 6.0, w)
         EscenaElipse(g, colBright, pulseX - 2.5, h - 6.5, 5, 5)
     case "pinos":
+        ; Pinar nocturno: niebla baja que deriva + luciérnagas titilando entre los árboles
         EscenaPoligono(g, (70 << 24) | (200 << 16) | (210 << 8) | 215, [[0, h], [0, h - 5], [w, h - 5], [w, h]])
         verde := (215 << 24) | (30 << 16) | (75 << 8) | 45
         loop 6 {
@@ -2563,6 +2820,17 @@ PintarEscenaTema(g, w, h, ef, rC, gC, bC, fondoClaro) {
             ph := 16 + Mod(A_Index * 5, 8)
             EscenaPoligono(g, verde, [[cx - 7, h - 4], [cx + 7, h - 4], [cx, h - 4 - ph * 0.55]])
             EscenaPoligono(g, verde, [[cx - 5, h - 4 - ph * 0.4], [cx + 5, h - 4 - ph * 0.4], [cx, h - 4 - ph]])
+        }
+        loop 3 {
+            nx := Mod(tNow / 120.0 + A_Index * w / 3, w + 80) - 40
+            EscenaElipse(g, (45 << 24) | (220 << 16) | (225 << 8) | 230, nx - 30, h - 10 - A_Index * 3, 60, 7)
+        }
+        loop 4 {
+            lx := Mod(A_Index * 73, Round(w - 16)) + 8 + Sin(tNow / 800.0 + A_Index * 2) * 6
+            ly := h - 12 - Mod(A_Index * 7, 14) + Sin(tNow / 600.0 + A_Index) * 3
+            tw := 0.5 + 0.5 * Sin(tNow / 350.0 + A_Index * 1.7)
+            if (tw > 0.45)
+                EscenaElipse(g, (Round(220 * tw) << 24) | (255 << 16) | (230 << 8) | 90, lx - 1.5, ly - 1.5, 3, 3)
         }
     case "cafe":
         taza := (220 << 24) | (235 << 16) | (240 << 8) | 245
@@ -2579,13 +2847,30 @@ PintarEscenaTema(g, w, h, ef, rC, gC, bC, fondoClaro) {
         }
         DllCall("gdiplus\GdipDeletePen", "Ptr", pen)
     case "portal":
+        ; Vórtice: anillos pulsando + partículas ABSORBIDAS en espiral + arcos de energía
         cx := w * 0.5, cy := h * 0.5
         loop 5 {
             r := 6 + A_Index * 5 + Sin(tNow / 300.0 + A_Index) * 2
             a := Round(150 / A_Index)
             EscenaAnillo(g, (a << 24) | (170 << 16) | (60 << 8) | 255, cx - r, cy - r, r * 2, 1.6)
         }
-        EscenaElipse(g, (200 << 24) | (210 << 16) | (140 << 8) | 255, cx - 3, cy - 3, 6, 6)
+        ; partículas espiralando hacia el centro (succión)
+        loop 8 {
+            sp := Mod(tNow / 1400.0 + A_Index * 0.125, 1.0)
+            rr := (1 - sp) * 46 + 4
+            a := sp * 14 + A_Index * 0.785
+            EscenaElipse(g, (Round(90 + 150 * sp) << 24) | (200 << 16) | (120 << 8) | 255, cx + Cos(a) * rr * 1.35 - 1.8, cy + Sin(a) * rr * 0.75 - 1.8, 3.6, 3.6)
+        }
+        ; arcos de energía chisporroteando alrededor
+        loop 3 {
+            aa := tNow / 350.0 + A_Index * 2.094
+            r1 := 24 + Sin(tNow / 180.0 + A_Index) * 4
+            EscenaLinea(g, (170 << 24) | (220 << 16) | (140 << 8) | 255, cx + Cos(aa) * r1 * 1.3, cy + Sin(aa) * r1 * 0.72, cx + Cos(aa + 0.5) * (r1 + 7) * 1.3, cy + Sin(aa + 0.5) * (r1 + 7) * 0.72, 1.3)
+        }
+        ; núcleo brillante latiendo
+        np := 0.5 + 0.5 * Sin(tNow / 220.0)
+        EscenaElipse(g, (Round(80 + 60 * np) << 24) | (210 << 16) | (150 << 8) | 255, cx - 8, cy - 6, 16, 12)
+        EscenaElipse(g, (230 << 24) | (230 << 16) | (180 << 8) | 255, cx - 3.5, cy - 3, 7, 6)
     case "tundra":
         loop 5 {
             cx := A_Index * w / 6
@@ -2609,43 +2894,117 @@ PintarEscenaTema(g, w, h, ef, rC, gC, bC, fondoClaro) {
         EscenaRect(g, sub, sx - 2, h - 21, 4, 6)
         EscenaElipse(g, (220 << 24) | (120 << 16) | (210 << 8) | 255, sx - 4, h - 13, 5, 5)
     case "espadas":
-        EscenaLinea(g, (220 << 24) | (210 << 16) | (215 << 8) | 230, w / 2 - 14, h - 2, w / 2 + 14, h - 20, 2.5)
-        EscenaLinea(g, (220 << 24) | (210 << 16) | (215 << 8) | 230, w / 2 + 14, h - 2, w / 2 - 14, h - 20, 2.5)
-        EscenaLinea(g, (220 << 24) | (180 << 16) | (140 << 8) | 30, w / 2 - 9, h - 6, w / 2 - 3, h - 9, 2)
-        EscenaLinea(g, (220 << 24) | (180 << 16) | (140 << 8) | 30, w / 2 + 9, h - 6, w / 2 + 3, h - 9, 2)
-        EscenaPoligono(g, (220 << 24) | (255 << 16) | (210 << 8) | 40, [[w / 2 - 8, h - 22], [w / 2 - 8, h - 30], [w / 2 - 3, h - 26], [w / 2, h - 32], [w / 2 + 3, h - 26], [w / 2 + 8, h - 30], [w / 2 + 8, h - 22]])
-    case "retrowave":
-        sx := w * 0.5, sy := 18
-        loop 6 {
-            a := Round(220 * (1 - A_Index / 8))
-            EscenaPie(g, (a << 24) | (255 << 16) | (90 << 8) | (A_Index * 25), sx - 16, sy - 16 + A_Index * 3, 32, 32, 180, 180)
-        }
-        col := (160 << 24) | (255 << 16) | (40 << 8) | 200
-        loop 6 {
-            EscenaLinea(g, col, (A_Index - 1) * w / 5, h, w / 2 + ((A_Index - 3) * 8), h - 14, 1.2)
-        }
-        EscenaLinea(g, col, 0, h - 5, w, h - 5, 1.2)
-    case "chat":
-        loop 4 {
-            cx := Mod(A_Index * 89, Round(w - 40)) + 20
-            cy := 10 + Mod(A_Index * 13, Round(h - 30)) + Sin(tNow / 500.0 + A_Index) * 4
-            EscenaRect(g, (200 << 24) | (88 << 16) | (101 << 8) | 242, cx - 12, cy - 7, 24, 13)
-            EscenaPoligono(g, (200 << 24) | (88 << 16) | (101 << 8) | 242, [[cx - 8, cy + 6], [cx - 2, cy + 6], [cx - 8, cy + 11]])
-            loop 3 {
-                EscenaElipse(g, (220 << 24) | (255 << 16) | (255 << 8) | 255, cx - 6 + (A_Index - 1) * 5, cy - 1.5, 3, 3)
+        ; Espadas cruzadas: brillo recorriendo las hojas + chispas del choque + corona pulsante
+        cx := w / 2
+        acero := (220 << 24) | (210 << 16) | (215 << 8) | 230
+        EscenaLinea(g, acero, cx - 14, h - 2, cx + 14, h - 20, 2.5)
+        EscenaLinea(g, acero, cx + 14, h - 2, cx - 14, h - 20, 2.5)
+        ; gleam: un punto de luz viaja por cada hoja
+        gp := Mod(tNow / 1100.0, 1.0)
+        EscenaElipse(g, (235 << 24) | (255 << 16) | (255 << 8) | 255, cx - 14 + 28 * gp - 2, h - 2 - 18 * gp - 2, 4, 4)
+        EscenaElipse(g, (235 << 24) | (255 << 16) | (255 << 8) | 255, cx + 14 - 28 * gp - 2, h - 2 - 18 * gp - 2, 4, 4)
+        EscenaLinea(g, (220 << 24) | (180 << 16) | (140 << 8) | 30, cx - 9, h - 6, cx - 3, h - 9, 2)
+        EscenaLinea(g, (220 << 24) | (180 << 16) | (140 << 8) | 30, cx + 9, h - 6, cx + 3, h - 9, 2)
+        ; chispas que saltan del cruce (estallido periódico)
+        sp := Mod(tNow, 1400) / 1400.0
+        if (sp < 0.45) {
+            loop 5 {
+                a := A_Index * 1.25 + 0.4
+                rr := sp * 26
+                aA := Round(230 * (1 - sp / 0.45))
+                EscenaElipse(g, (aA << 24) | (255 << 16) | (220 << 8) | 90, cx + Cos(a) * rr - 1.2, h - 11 - Sin(a) * rr * 0.8 - 1.2, 2.4, 2.4)
             }
         }
+        ; corona con pulso dorado + joya
+        pulso := 0.5 + 0.5 * Sin(tNow / 400.0)
+        EscenaPoligono(g, (Round(190 + 50 * pulso) << 24) | (255 << 16) | (Round(190 + 40 * pulso) << 8) | 40, [[cx - 8, h - 22], [cx - 8, h - 30], [cx - 3, h - 26], [cx, h - 32], [cx + 3, h - 26], [cx + 8, h - 30], [cx + 8, h - 22]])
+        EscenaElipse(g, (220 << 24) | (255 << 16) | (60 << 8) | 90, cx - 1.5, h - 26.5, 3, 3)
+    case "retrowave":
+        ; Sol retro con bandas + horizonte + rejilla en perspectiva que AVANZA
+        sx := w * 0.5, sy := 16
+        loop 7 {
+            a := Round(225 * (1 - A_Index / 9))
+            EscenaPie(g, (a << 24) | (255 << 16) | (60 << 8) | (130 + A_Index * 15), sx - 17, sy - 17 + A_Index * 2.6, 34, 34, 180, 180)
+        }
+        ; bandas oscuras que cortan el sol (look clásico synthwave)
+        loop 3 {
+            EscenaRect(g, (200 << 24) | (15 << 16) | (5 << 8) | 30, sx - 18, sy - 2 + A_Index * 4, 36, 1.2 + A_Index * 0.4)
+        }
+        col := (170 << 24) | (255 << 16) | (40 << 8) | 200
+        EscenaLinea(g, (220 << 24) | (255 << 16) | (70 << 8) | 220, 0, h - 16, w, h - 16, 1.6)
+        ; verticales en abanico desde el punto de fuga
+        loop 9 {
+            fx := (A_Index - 5) * (w / 7)
+            EscenaLinea(g, col, sx + fx * 0.12, h - 16, sx + fx, h, 1.1)
+        }
+        ; horizontales que aceleran hacia el espectador (scroll infinito)
+        tt := Mod(tNow / 900.0, 1.0)
+        loop 4 {
+            p := Mod(tt + (A_Index - 1) * 0.25, 1.0)
+            yy := h - 16 + p * p * 16
+            EscenaLinea(g, (Round(60 + 160 * p) << 24) | (255 << 16) | (40 << 8) | 200, 0, yy, w, yy, 1 + p * 1.2)
+        }
+    case "chat":
+        ; Burbujas con líneas de texto + "escribiendo..." con puntos saltarines + ❤ pop
+        loop 3 {
+            cx := Mod(A_Index * 89, Round(w - 40)) + 20
+            cy := 10 + Mod(A_Index * 13, Round(h - 34)) + Sin(tNow / 500.0 + A_Index) * 4
+            EscenaRect(g, (200 << 24) | (88 << 16) | (101 << 8) | 242, cx - 12, cy - 7, 24, 13)
+            EscenaPoligono(g, (200 << 24) | (88 << 16) | (101 << 8) | 242, [[cx - 8, cy + 6], [cx - 2, cy + 6], [cx - 8, cy + 11]])
+            EscenaRect(g, (210 << 24) | (255 << 16) | (255 << 8) | 255, cx - 8, cy - 4, 16, 2)
+            EscenaRect(g, (160 << 24) | (255 << 16) | (255 << 8) | 255, cx - 8, cy, 11, 2)
+        }
+        ; burbuja "escribiendo..." — los 3 puntos saltan en secuencia
+        tx := w * 0.72, ty := h - 18
+        EscenaRect(g, (210 << 24) | (70 << 16) | (80 << 8) | 200, tx - 14, ty - 7, 28, 14)
+        loop 3 {
+            bounce := Sin(tNow / 180.0 - (A_Index - 1) * 0.9)
+            off := bounce > 0 ? bounce * 3.5 : 0
+            EscenaElipse(g, (230 << 24) | (255 << 16) | (255 << 8) | 255, tx - 8 + (A_Index - 1) * 6.5, ty - 1.5 - off, 3.5, 3.5)
+        }
+        ; reacción ❤ que aparece con "pop" y se queda un momento (ciclo 2.4s)
+        hp := Mod(tNow, 2400) / 2400.0
+        if (hp < 0.55) {
+            hs := Min(1.0, hp / 0.12)
+            hx := w * 0.22, hy := h - 16
+            d := 9 * hs
+            EscenaElipse(g, (230 << 24) | (240 << 16) | (70 << 8) | 90, hx - d * 0.55, hy - d * 0.35, d * 0.62, d * 0.62)
+            EscenaElipse(g, (230 << 24) | (240 << 16) | (70 << 8) | 90, hx - d * 0.07, hy - d * 0.35, d * 0.62, d * 0.62)
+            EscenaPoligono(g, (230 << 24) | (240 << 16) | (70 << 8) | 90, [[hx - d * 0.52, hy], [hx + d * 0.52, hy], [hx, hy + d * 0.55]])
+        }
     case "mira":
-        cx := w * 0.5, cy := h * 0.5
-        col := (220 << 24) | (255 << 16) | (70 << 8) | 85
-        EscenaAnillo(g, col, cx - 12, cy - 12, 24, 1.6)
-        EscenaLinea(g, col, cx - 18, cy, cx - 6, cy, 2)
-        EscenaLinea(g, col, cx + 6, cy, cx + 18, cy, 2)
-        EscenaLinea(g, col, cx, cy - 18, cx, cy - 6, 2)
-        EscenaLinea(g, col, cx, cy + 6, cx, cy + 18, 2)
+        ; La mira PATRULLA buscando blancos; cada ~3 s fija uno (lock rojo + onda)
+        cx := w * 0.5 + Sin(tNow / 1300.0) * w * 0.18 + Sin(tNow / 700.0) * 6
+        cy := h * 0.5 + Cos(tNow / 1100.0) * h * 0.15
+        lockT := Mod(tNow, 3000) / 3000.0
+        locked := lockT > 0.82
+        col := locked ? ((240 << 24) | (255 << 16) | (60 << 8) | 60) : ((210 << 24) | (255 << 16) | (70 << 8) | 85)
+        EscenaAnillo(g, col, cx - 12, cy - 12, 24, locked ? 2.2 : 1.4)
+        ; marcas tácticas del anillo exterior, rotando
+        loop 4 {
+            a := tNow / 800.0 + (A_Index - 1) * 1.5708
+            EscenaLinea(g, col, cx + Cos(a) * 15, cy + Sin(a) * 15, cx + Cos(a) * 20, cy + Sin(a) * 20, 1.6)
+        }
+        ; cruz interior — respira, y se CONTRAE al fijar blanco
+        gap := locked ? 4 : 6 + Sin(tNow / 250.0) * 1.5
+        EscenaLinea(g, col, cx - 18, cy, cx - gap, cy, 2)
+        EscenaLinea(g, col, cx + gap, cy, cx + 18, cy, 2)
+        EscenaLinea(g, col, cx, cy - 18, cx, cy - gap, 2)
+        EscenaLinea(g, col, cx, cy + gap, cx, cy + 18, 2)
         EscenaElipse(g, col, cx - 1.5, cy - 1.5, 3, 3)
+        ; onda expansiva del lock
+        if (locked) {
+            lp := (lockT - 0.82) / 0.18
+            EscenaAnillo(g, (Round(200 * (1 - lp)) << 24) | (255 << 16) | (60 << 8) | 60, cx - 12 - lp * 14, cy - 12 - lp * 14, 24 + lp * 28, 1.5)
+        }
     case "cielo":
-        EscenaElipse(g, (210 << 24) | (255 << 16) | (235 << 8) | 130, w - 26, 6, 18, 18)
+        ; Sol con rayos girando + nubes a la deriva + pájaros aleteando
+        scx := w - 17, scy := 15
+        EscenaElipse(g, (210 << 24) | (255 << 16) | (235 << 8) | 130, scx - 9, scy - 9, 18, 18)
+        loop 8 {
+            a := (A_Index - 1) * 0.785 + tNow / 3000.0
+            EscenaLinea(g, (160 << 24) | (255 << 16) | (235 << 8) | 130, scx + Cos(a) * 11, scy + Sin(a) * 11, scx + Cos(a) * 15, scy + Sin(a) * 15, 1.6)
+        }
         nube := (200 << 24) | (255 << 16) | (255 << 8) | 255
         loop 3 {
             drift := Mod(tNow / 55.0 + A_Index * w / 3, w + 60) - 30
@@ -2654,36 +3013,88 @@ PintarEscenaTema(g, w, h, ef, rC, gC, bC, fondoClaro) {
             EscenaElipse(g, nube, drift - 3, cy - 5, 15, 13)
             EscenaElipse(g, nube, drift + 6, cy, 15, 11)
         }
+        ; pájaros (uves aleteando) cruzando a media altura
+        loop 3 {
+            bx := Mod(tNow / 38.0 + A_Index * w / 3, w + 30) - 15
+            by2 := h * 0.45 + Mod(A_Index * 9, 14) + Sin(tNow / 700.0 + A_Index) * 3
+            wf := 3 + Sin(tNow / 150.0 + A_Index * 2) * 2.5
+            EscenaLinea(g, (190 << 24) | (90 << 16) | (110 << 8) | 140, bx - 5, by2 - wf, bx, by2, 1.4)
+            EscenaLinea(g, (190 << 24) | (90 << 16) | (110 << 8) | 140, bx, by2, bx + 5, by2 - wf, 1.4)
+        }
     case "matrixlluvia":
+        ; Columnas de código con CABEZA blanca brillante + estela que se apaga
         loop 12 {
-            cx := (A_Index - 0.5) * w / 12
-            loop 4 {
-                cy := Mod(tNow / 7.0 + A_Index * (h / 4) + cx * 3, h)
-                a := 230 - (A_Index - 1) * 55
-                EscenaRect(g, (a << 24) | (40 << 16) | (255 << 8) | 90, cx - 1.5, cy, 3, 4)
+            colM := A_Index
+            cx := (colM - 0.5) * w / 12
+            vel := 6.0 + Mod(colM * 7, 5)
+            headY := Mod(tNow / vel + colM * 37, h + 30) - 15
+            loop 6 {
+                ty := headY - A_Index * 5
+                if (ty < -4 || ty > h)
+                    continue
+                a := 235 - A_Index * 38
+                EscenaRect(g, (a << 24) | (40 << 16) | (Round(255 - A_Index * 14) << 8) | 90, cx - 1.5, ty, 3, 4)
             }
+            if (headY > -4 && headY < h)
+                EscenaRect(g, (250 << 24) | (190 << 16) | (255 << 8) | 190, cx - 1.5, headY, 3, 4)
         }
     case "naruto":
+        ; Remolinos que GIRAN de verdad (rasengan) + motas de chakra orbitando
         loop 2 {
             cx := A_Index * w / 3
             cy := h - 14
+            rot := tNow / 350.0 * (Mod(A_Index, 2) ? 1 : -1)
             px := cx, py := cy
             loop 16 {
-                a := A_Index * 0.6
+                a := A_Index * 0.6 + rot
                 r := A_Index * 0.7
                 nx := cx + Cos(a) * r
                 ny := cy + Sin(a) * r
-                EscenaLinea(g, (220 << 24) | (255 << 16) | (120 << 8) | 20, px, py, nx, ny, 2)
+                if (A_Index > 1)
+                    EscenaLinea(g, (220 << 24) | (255 << 16) | (120 << 8) | 20, px, py, nx, ny, 2)
                 px := nx, py := ny
+            }
+            loop 3 {
+                oa := tNow / 280.0 + A_Index * 2.09
+                EscenaElipse(g, (200 << 24) | (120 << 16) | (200 << 8) | 255, cx + Cos(oa) * 13 - 1.5, cy + Sin(oa) * 13 - 1.5, 3, 3)
             }
         }
     case "onepiece":
-        cx := w * 0.5, cy := h * 0.5
-        EscenaLinea(g, (210 << 24) | (235 << 16) | (235 << 8) | 235, cx - 12, cy + 8, cx + 12, cy - 8, 3)
-        EscenaLinea(g, (210 << 24) | (235 << 16) | (235 << 8) | 235, cx + 12, cy + 8, cx - 12, cy - 8, 3)
-        EscenaPie(g, (220 << 24) | (240 << 16) | (200 << 8) | 70, cx - 12, cy - 10, 24, 16, 180, 180)
-        EscenaRect(g, (220 << 24) | (240 << 16) | (200 << 8) | 70, cx - 13, cy - 3, 26, 3)
-        EscenaRect(g, (220 << 24) | (200 << 16) | (40 << 8) | 40, cx - 13, cy - 2, 26, 1.5)
+        ; Mar en movimiento + Jolly Roger del Sombrero de Paja balanceándose + gaviotas
+        loop 2 {
+            capa := A_Index
+            fase := tNow / 600.0 + capa * 1.4
+            baseY := h - (capa = 1 ? 3 : 7)
+            pts := []
+            pts.Push([0, h])
+            x := 0.0
+            while (x <= w) {
+                pts.Push([x, baseY + 2.5 * Sin(x / 20.0 + fase)])
+                x += 10
+            }
+            pts.Push([w, h])
+            EscenaPoligono(g, ((capa = 1 ? 150 : 100) << 24) | (rC << 16) | (gC << 8) | bC, pts)
+        }
+        cx := w * 0.5 + Sin(tNow / 900.0) * 4
+        cy := h * 0.42 + Sin(tNow / 700.0) * 2
+        hueso := (210 << 24) | (235 << 16) | (235 << 8) | 235
+        EscenaLinea(g, hueso, cx - 12, cy + 8, cx + 12, cy - 8, 3)
+        EscenaLinea(g, hueso, cx + 12, cy + 8, cx - 12, cy - 8, 3)
+        ; calavera con cuencas
+        EscenaElipse(g, hueso, cx - 7, cy - 9, 14, 12)
+        EscenaElipse(g, (220 << 24) | (30 << 16) | (30 << 8) | 30, cx - 4.5, cy - 5, 3, 4)
+        EscenaElipse(g, (220 << 24) | (30 << 16) | (30 << 8) | 30, cx + 1.5, cy - 5, 3, 4)
+        ; sombrero de paja con banda roja
+        EscenaPie(g, (225 << 24) | (240 << 16) | (200 << 8) | 70, cx - 11, cy - 16, 22, 14, 180, 180)
+        EscenaRect(g, (225 << 24) | (240 << 16) | (200 << 8) | 70, cx - 13, cy - 10, 26, 2.6)
+        EscenaRect(g, (225 << 24) | (200 << 16) | (40 << 8) | 40, cx - 11, cy - 11.5, 22, 2)
+        ; gaviotas cruzando
+        loop 2 {
+            gvx := Mod(tNow / 30.0 + A_Index * w / 2, w + 30) - 15
+            gvy := 8 + A_Index * 7 + Sin(tNow / 400.0 + A_Index) * 2
+            EscenaLinea(g, (170 << 24) | (235 << 16) | (235 << 8) | 240, gvx - 4, gvy, gvx, gvy - 2.5, 1.3)
+            EscenaLinea(g, (170 << 24) | (235 << 16) | (235 << 8) | 240, gvx, gvy - 2.5, gvx + 4, gvy, 1.3)
+        }
     case "eclipse":
         loop 8 {
             sx := Mod(A_Index * 71, Round(w - 14)) + 7
@@ -2717,40 +3128,100 @@ PintarEscenaTema(g, w, h, ef, rC, gC, bC, fondoClaro) {
             EscenaElipse(g, (Round(220 * tw) << 24) | (255 << 16) | (30 << 8) | 30, cx - 1.5, cy - 1.5, 3, 3)
         }
     case "fenix":
+        ; Llamas en el suelo + FÉNIX volando con alas batiendo y estela de chispas
         loop 7 {
             cx := (A_Index - 0.5) * w / 7
             fl := 0.5 + 0.5 * Sin(tNow / 140.0 + A_Index)
-            alt := 12 + 13 * fl
+            alt := 10 + 11 * fl
             EscenaPoligono(g, (210 << 24) | (255 << 16) | (Round(120 + 100 * fl) << 8) | 20, [[cx - 4, h - 2], [cx + 4, h - 2], [cx + 2, h - 2 - alt * 0.6], [cx, h - 2 - alt], [cx - 2, h - 2 - alt * 0.6]])
         }
+        fx := Mod(tNow / 28.0, w + 70) - 35
+        fy := h * 0.32 + Sin(tNow / 600.0) * 8
+        flap := Sin(tNow / 160.0)
+        cuerpo := (235 << 24) | (255 << 16) | (150 << 8) | 30
+        ala    := (220 << 24) | (255 << 16) | (90 << 8) | 20
+        ; estela de chispas doradas desvaneciéndose
+        loop 6 {
+            tp := A_Index / 6.0
+            ty := h * 0.32 + Sin((tNow - A_Index * 130) / 600.0) * 8
+            EscenaElipse(g, (Round(170 * (1 - tp)) << 24) | (255 << 16) | (190 << 8) | 60, fx - 12 - A_Index * 7, ty - 2, 4 - tp * 2, 4 - tp * 2)
+        }
+        EscenaPoligono(g, ala, [[fx - 6, fy], [fx - 18, fy - 4], [fx - 16, fy + 3]])      ; cola
+        EscenaElipse(g, cuerpo, fx - 7, fy - 3, 14, 7)                                     ; cuerpo
+        EscenaElipse(g, cuerpo, fx + 5, fy - 4, 6, 6)                                      ; cabeza
+        EscenaPoligono(g, (235 << 24) | (255 << 16) | (220 << 8) | 80, [[fx + 11, fy - 2], [fx + 15, fy - 1], [fx + 11, fy]])  ; pico
+        EscenaPoligono(g, ala, [[fx - 2, fy - 1], [fx - 8, fy - 6 - flap * 7], [fx + 4, fy - 3]])   ; ala arriba
+        EscenaPoligono(g, ala, [[fx - 2, fy + 1], [fx - 8, fy + 4 + flap * 5], [fx + 4, fy + 2]])   ; ala abajo
     case "diamantes":
+        ; Diamantes facetados con destello en CRUZ al brillar + lluvia de motitas + corona con gemas
         loop 5 {
             cx := Mod(A_Index * 79, Round(w - 20)) + 10
             cy := 10 + Mod(A_Index * 17, Round(h - 24)) + Sin(tNow / 400.0 + A_Index) * 4
             tw := 0.6 + 0.4 * Sin(tNow / 220.0 + A_Index * 2)
             c := (Round(220 * tw) << 24) | (180 << 16) | (240 << 8) | 255
             EscenaPoligono(g, c, [[cx, cy - 5], [cx + 4, cy - 1], [cx, cy + 5], [cx - 4, cy - 1]])
+            EscenaLinea(g, (Round(160 * tw) << 24) | (255 << 16) | (255 << 8) | 255, cx - 4, cy - 1, cx + 4, cy - 1, 1)
+            if (tw > 0.9) {
+                sp := (tw - 0.9) / 0.1
+                EscenaLinea(g, (Round(220 * sp) << 24) | (255 << 16) | (255 << 8) | 255, cx - 7, cy, cx + 7, cy, 1.2)
+                EscenaLinea(g, (Round(220 * sp) << 24) | (255 << 16) | (255 << 8) | 255, cx, cy - 8, cx, cy + 8, 1.2)
+            }
+        }
+        ; motitas de brillo cayendo lento
+        loop 4 {
+            gx := Mod(A_Index * 61, Round(w - 12)) + 6
+            gy := Mod(tNow / 50.0 + A_Index * 45, h + 10) - 5
+            EscenaElipse(g, (170 << 24) | (230 << 16) | (245 << 8) | 255, gx - 1.2, gy - 1.2, 2.4, 2.4)
         }
         cx := w * 0.5
         EscenaPoligono(g, (220 << 24) | (255 << 16) | (215 << 8) | 40, [[cx - 10, h - 4], [cx - 10, h - 12], [cx - 4, h - 8], [cx, h - 14], [cx + 4, h - 8], [cx + 10, h - 12], [cx + 10, h - 4]])
+        ; gemas de la corona titilando
+        loop 3 {
+            gt := 0.5 + 0.5 * Sin(tNow / 260.0 + A_Index * 2.1)
+            EscenaElipse(g, (Round(120 + 130 * gt) << 24) | (255 << 16) | (90 << 8) | 120, cx - 7 + (A_Index - 1) * 7 - 1.5, h - 9, 3, 3)
+        }
     case "solnika":
+        ; Sol de Nika: halo que respira + rayos girando + chispas contrarrotando
         cx := w * 0.5, cy := h * 0.42
+        halo := 0.5 + 0.5 * Sin(tNow / 900.0)
+        EscenaElipse(g, (Round(40 + 50 * halo) << 24) | (255 << 16) | (250 << 8) | 210, cx - 17, cy - 17, 34, 34)
         EscenaElipse(g, (230 << 24) | (255 << 16) | (250 << 8) | 230, cx - 11, cy - 11, 22, 22)
         loop 12 {
-            a := (A_Index - 1) * 0.523 + Sin(tNow / 800.0) * 0.1
-            EscenaLinea(g, (210 << 24) | (255 << 16) | (250 << 8) | 200, cx + Cos(a) * 13, cy + Sin(a) * 13, cx + Cos(a) * 19, cy + Sin(a) * 19, 2)
+            a := (A_Index - 1) * 0.523 + tNow / 2400.0
+            len := (Mod(A_Index, 2) ? 19 : 16) + halo * 2
+            EscenaLinea(g, (210 << 24) | (255 << 16) | (250 << 8) | 200, cx + Cos(a) * 13, cy + Sin(a) * 13, cx + Cos(a) * len, cy + Sin(a) * len, 2)
+        }
+        loop 5 {
+            a := -tNow / 1500.0 + A_Index * 1.2566
+            tw := 0.5 + 0.5 * Sin(tNow / 240.0 + A_Index * 2)
+            EscenaElipse(g, (Round(200 * tw) << 24) | (255 << 16) | (255 << 8) | 240, cx + Cos(a) * 24 - 1.5, cy + Sin(a) * 24 - 1.5, 3, 3)
         }
     case "lavanda":
-        ; Campo de lavanda (espigas densas azul-moradas)
+        ; Campo de lavanda meciéndose en ola + pétalos a la deriva
         verdeL := (200 << 24) | (70 << 16) | (150 << 8) | 80
         loop 8 {
             cx := (A_Index - 0.5) * w / 8
-            EscenaLinea(g, verdeL, cx, h, cx, h - 15, 1.4)
+            sway := Sin(tNow / 750.0 - cx / 40.0) * 2.2
+            EscenaLinea(g, verdeL, cx, h, cx + sway, h - 15, 1.4)
             loop 5 {
                 yy := h - 8 - A_Index * 1.8
-                EscenaElipse(g, (210 << 24) | (150 << 16) | (110 << 8) | 230, cx - 1.6, yy - 1.6, 3.2, 3.2)
+                EscenaElipse(g, (210 << 24) | (150 << 16) | (110 << 8) | 230, cx + sway * ((h - yy) / 15.0) - 1.6, yy - 1.6, 3.2, 3.2)
             }
         }
+        loop 3 {
+            py2 := Mod(tNow / 32.0 + A_Index * (h / 3.0), h + 10) - 5
+            px2 := Mod(A_Index * 89, Round(w - 14)) + 7 + Sin(py2 / 15.0 + A_Index) * 6
+            EscenaElipse(g, (180 << 24) | (170 << 16) | (130 << 8) | 235, px2 - 1.8, py2 - 1.4, 3.6, 2.8)
+        }
+        ; Abeja zumbando sobre el campo de lavanda
+        bx2 := w * 0.5 + Cos(tNow / 600.0) * w * 0.38
+        by2 := h * 0.55 + Sin(tNow / 420.0) * 6
+        flapB := Abs(Sin(tNow / 90.0)) * 3
+        EscenaElipse(g, (140 << 24) | (255 << 16) | (255 << 8) | 255, bx2 - 4, by2 - 3 - flapB, 3, 2)
+        EscenaElipse(g, (140 << 24) | (255 << 16) | (255 << 8) | 255, bx2 + 1, by2 - 3 - flapB, 3, 2)
+        EscenaElipse(g, (220 << 24) | (255 << 16) | (210 << 8) | 40, bx2 - 3, by2 - 2, 6, 4)
+        EscenaLinea(g, (230 << 24) | (40 << 16) | (40 << 8) | 40, bx2 - 2, by2 - 2, bx2 - 2, by2 + 2, 1)
+        EscenaLinea(g, (230 << 24) | (40 << 16) | (40 << 8) | 40, bx2, by2 - 2, bx2, by2 + 2, 1)
     case "atardecer":
         ; Atardecer: franjas cálidas + medio sol en el horizonte
         loop 4 {
@@ -2899,9 +3370,18 @@ PintarEscenaTema(g, w, h, ef, rC, gC, bC, fondoClaro) {
         loop 3 {
             cx := (A_Index - 0.5) * w / 3
             EscenaPie(g, vidrio, cx - 7, h - 22, 14, 16, 0, 180)
-            EscenaPie(g, vino, cx - 5.5, h - 19, 11, 11, 0, 180)
+            ; vino oscilando dentro de la copa (superficie inclinada, remolino)
+            tilt := Sin(tNow / 500.0 + A_Index * 1.3) * 2
+            EscenaPie(g, vino, cx - 5.5, h - 19 + Abs(tilt) * 0.3, 11, 11, 0, 180)
+            EscenaLinea(g, (230 << 24) | (160 << 16) | (30 << 8) | 60, cx - 5.5, h - 19 + tilt, cx + 5.5, h - 19 - tilt, 1.4)
             EscenaRect(g, vidrio, cx - 0.7, h - 12, 1.4, 8)
             EscenaRect(g, vidrio, cx - 5, h - 4, 10, 1.6)
+            ; burbuja subiendo y destello en el cristal
+            bub := Mod(tNow / 600.0 + A_Index * 0.7, 1.0)
+            EscenaElipse(g, (Round(150 * (1 - bub)) << 24) | (255 << 16) | (180 << 8) | 200, cx - 1 + Sin(bub * 9) * 2, h - 14 - bub * 5, 2, 2)
+            tw := 0.5 + 0.5 * Sin(tNow / 700.0 + A_Index * 2.1)
+            if (tw > 0.75)
+                EscenaLinea(g, (Round(200 * tw) << 24) | (255 << 16) | (255 << 8) | 255, cx - 6, h - 21, cx - 3, h - 22, 1.2)
         }
         ox := w - 22, oy := 6
         loop 6 {
@@ -2944,33 +3424,73 @@ PintarEscenaTema(g, w, h, ef, rC, gC, bC, fondoClaro) {
             }
             EscenaElipse(g, (240 << 24) | (255 << 16) | (210 << 8) | 80, fx - 1.8, fy - 1.8, 3.6, 3.6)
         }
+        ; Pajarito cruzando el cielo
+        bxs := Mod(tNow / 30.0, w + 20) - 10
+        bys := h * 0.06
+        flapS := Sin(tNow / 150.0) * 2
+        EscenaLinea(g, (190 << 24) | (140 << 16) | (90 << 8) | 110, bxs - 4, bys - flapS, bxs, bys, 1.2)
+        EscenaLinea(g, (190 << 24) | (140 << 16) | (90 << 8) | 110, bxs, bys, bxs + 4, bys - flapS, 1.2)
+        ; Pétalos acumulados en el suelo
+        loop 3 {
+            px3 := w * (0.15 + A_Index * 0.32)
+            EscenaElipse(g, (200 << 24) | (255 << 16) | (215 << 8) | 225, px3 - 4, h - 3, 8, 3)
+        }
     case "rosa":
-        ; Rosas rojas en capas con tallo y hoja
+        ; Rosas meciéndose suave + pétalos cayendo en zigzag
         loop 4 {
             cx := (A_Index - 0.5) * w / 4
-            EscenaLinea(g, (200 << 24) | (30 << 16) | (110 << 8) | 40, cx, h, cx, h - 11, 1.6)
+            sway := Sin(tNow / 800.0 + A_Index * 1.1) * 1.8
+            EscenaLinea(g, (200 << 24) | (30 << 16) | (110 << 8) | 40, cx, h, cx + sway, h - 11, 1.6)
             EscenaPoligono(g, (200 << 24) | (30 << 16) | (120 << 8) | 45, [[cx, h - 6], [cx + 7, h - 9], [cx + 2, h - 4]])
             ry := h - 14
-            EscenaElipse(g, (235 << 24) | (150 << 16) | (10 << 8) | 30, cx - 5.5, ry - 5.5, 11, 11)
-            EscenaElipse(g, (235 << 24) | (205 << 16) | (25 << 8) | 55, cx - 3.4, ry - 3.4, 6.8, 6.8)
-            EscenaElipse(g, (240 << 24) | (255 << 16) | (70 << 8) | 95, cx - 1.5, ry - 1.5, 3, 3)
+            EscenaElipse(g, (235 << 24) | (150 << 16) | (10 << 8) | 30, cx + sway - 5.5, ry - 5.5, 11, 11)
+            EscenaElipse(g, (235 << 24) | (205 << 16) | (25 << 8) | 55, cx + sway - 3.4, ry - 3.4, 6.8, 6.8)
+            EscenaElipse(g, (240 << 24) | (255 << 16) | (70 << 8) | 95, cx + sway - 1.5, ry - 1.5, 3, 3)
+        }
+        loop 3 {
+            py2 := Mod(tNow / 30.0 + A_Index * (h / 3.0), h + 10) - 5
+            px2 := Mod(A_Index * 83, Round(w - 14)) + 7 + Sin(py2 / 16.0 + A_Index) * 6
+            EscenaElipse(g, (190 << 24) | (220 << 16) | (40 << 8) | 70, px2 - 2.5, py2 - 1.8, 5, 3.6)
+        }
+        ; Corazoncitos flotando hacia arriba, desvaneciéndose
+        loop 2 {
+            hxr := Mod(A_Index * 101, Round(w - 14)) + 7
+            hyr := h - Mod(tNow / 26.0 + A_Index * (h / 2.0), h + 14)
+            al := Round(200 * (1 - (h - hyr) / h))
+            colH := (al << 24) | (240 << 16) | (90 << 8) | 140
+            EscenaElipse(g, colH, hxr - 2.5, hyr - 2, 3, 3)
+            EscenaElipse(g, colH, hxr + 0.5, hyr - 2, 3, 3)
+            EscenaPoligono(g, colH, [[hxr - 2.5, hyr - 0.5], [hxr + 3.5, hyr - 0.5], [hxr + 0.5, hyr + 3]])
         }
     case "lila":
-        ; Racimos de lilas (conos de florecillas moradas) — distinto de lavanda
+        ; Racimos de lilas meciéndose — distinto de lavanda — con florecillas a la deriva
         loop 4 {
             cx := (A_Index - 0.5) * w / 4
-            EscenaLinea(g, (200 << 24) | (70 << 16) | (130 << 8) | 70, cx, h, cx, h - 11, 1.6)
+            sway := Sin(tNow / 820.0 + A_Index * 1.4) * 1.8
+            EscenaLinea(g, (200 << 24) | (70 << 16) | (130 << 8) | 70, cx, h, cx + sway, h - 11, 1.6)
             EscenaElipse(g, (200 << 24) | (60 << 16) | (140 << 8) | 70, cx - 6, h - 10, 7, 4)
             EscenaElipse(g, (200 << 24) | (60 << 16) | (140 << 8) | 70, cx + 1, h - 10, 7, 4)
             loop 10 {
                 row := (A_Index - 1) // 3
                 colp := Mod(A_Index - 1, 3)
                 spread := 6 - row * 1.5
-                fx := cx + (colp - 1) * spread
+                fx := cx + sway + (colp - 1) * spread
                 fy := h - 13 - row * 4.5
                 EscenaElipse(g, (220 << 24) | (180 << 16) | (120 << 8) | 235, fx - 2.4, fy - 2.4, 4.8, 4.8)
             }
         }
+        loop 3 {
+            py2 := Mod(tNow / 34.0 + A_Index * (h / 3.0), h + 10) - 5
+            px2 := Mod(A_Index * 97, Round(w - 14)) + 7 + Sin(py2 / 14.0 + A_Index) * 5
+            EscenaElipse(g, (175 << 24) | (190 << 16) | (135 << 8) | 240, px2 - 1.6, py2 - 1.6, 3.2, 3.2)
+        }
+        ; Mariposa malva revoloteando entre los racimos
+        bxl := w * 0.5 + Sin(tNow / 1100.0) * w * 0.3
+        byl := h * 0.4 + Sin(tNow / 500.0) * 5
+        flapL := Abs(Sin(tNow / 120.0))
+        EscenaElipse(g, (210 << 24) | (200 << 16) | (140 << 8) | 230, bxl - 4 * flapL - 1, byl - 2, 4 * flapL + 1, 4)
+        EscenaElipse(g, (210 << 24) | (200 << 16) | (140 << 8) | 230, bxl, byl - 2, 4 * flapL + 1, 4)
+        EscenaLinea(g, (200 << 24) | (60 << 16) | (40 << 8) | 80, bxl, byl - 3, bxl, byl + 3, 1.2)
     case "melocoton":
         ; Melocotones colgando de una rama ARRIBA (se mecen)
         rama := (200 << 24) | (90 << 16) | (60 << 8) | 40
@@ -3023,8 +3543,8 @@ PintarEscenaTema(g, w, h, ef, rC, gC, bC, fondoClaro) {
         EscenaRect(g, (235 << 24) | (30 << 16) | (24 << 8) | 16, bx - 2, by - 3, 1.6, 6)
         EscenaRect(g, (235 << 24) | (30 << 16) | (24 << 8) | 16, bx + 1, by - 3, 1.6, 6)
     case "chicle":
-        ; Pompas de chicle subiendo + charco abajo. Borde OSCURO para que resalten
-        ; sobre el fondo rosa del tema (si no, rosa sobre rosa = invisible).
+        ; Pompa GIGANTE que se infla y EXPLOTA + gumballs rodando + hilos pegajosos
+        ; Borde OSCURO para que resalte sobre el fondo rosa del tema.
         borde := (215 << 24) | (90 << 16) | (10 << 8) | 80     ; magenta-morado oscuro (contraste)
         gum   := (220 << 24) | (233 << 16) | (30 << 8) | 99    ; rosa chicle saturado
         ; charco de chicle pegado abajo
@@ -3034,23 +3554,66 @@ PintarEscenaTema(g, w, h, ef, rC, gC, bC, fondoClaro) {
             bw := 16 + Mod(A_Index * 5, 10)
             EscenaElipse(g, gum, cx - bw / 2, h - 9, bw, 9)
         }
-        ; pompas subiendo
-        loop 7 {
-            d := 11 + Mod(A_Index * 7, 15)
+        ; hilos de chicle estirándose del charco (pegajosos)
+        loop 4 {
+            hx := w * (0.13 + (A_Index - 1) * 0.25)
+            str := 6 + 5 * Sin(tNow / 600.0 + A_Index * 1.8)
+            if (str > 6)
+                EscenaLinea(g, (170 << 24) | (240 << 16) | (80 << 8) | 150, hx, h - 6, hx + 2, h - 6 - str, 1.4)
+        }
+        ; gumballs de colores rodando sobre el charco
+        gcols := [(230 << 24) | (255 << 16) | (90 << 8) | 90, (230 << 24) | (90 << 16) | (170 << 8) | 255, (230 << 24) | (255 << 16) | (210 << 8) | 60, (230 << 24) | (120 << 16) | (220 << 8) | 120]
+        loop 4 {
+            gx := Mod(tNow / 45.0 + (A_Index - 1) * w / 4, w + 16) - 8
+            EscenaElipse(g, gcols[A_Index], gx - 4, h - 13, 8, 8)
+            EscenaElipse(g, (200 << 24) | (255 << 16) | (255 << 8) | 255, gx - 2, h - 12, 2.5, 2.5)
+        }
+        ; pompa central que se INFLA... y explota en trocitos (ciclo de 3s)
+        bt := Mod(tNow, 3000) / 3000.0
+        bx := w * 0.5, byy := h * 0.42
+        if (bt < 0.8) {
+            bd := 6 + bt / 0.8 * 26
+            EscenaElipse(g, (150 << 24) | (245 << 16) | (90 << 8) | 165, bx - bd / 2, byy - bd / 2, bd, bd)
+            EscenaAnillo(g, borde, bx - bd / 2, byy - bd / 2, bd, 2)
+            EscenaElipse(g, (235 << 24) | (255 << 16) | (255 << 8) | 255, bx - bd / 2 + bd * 0.25, byy - bd / 2 + bd * 0.2, bd * 0.22, bd * 0.22)
+        } else {
+            pp := (bt - 0.8) / 0.2
+            loop 6 {
+                a := A_Index * 1.047
+                EscenaElipse(g, (Round(220 * (1 - pp)) << 24) | (245 << 16) | (90 << 8) | 165, bx + Cos(a) * (14 + pp * 18) - 2, byy + Sin(a) * (14 + pp * 18) - 2, 4, 4)
+            }
+        }
+        ; pompas pequeñas subiendo
+        loop 5 {
+            d := 8 + Mod(A_Index * 7, 9)
             cx := Mod(A_Index * 67, Round(w - 20)) + 10 + Sin(tNow / 800.0 + A_Index) * 8
             cy := Mod(h - (tNow / 22.0) - A_Index * 40, h + 30) - 15
-            EscenaElipse(g, (165 << 24) | (245 << 16) | (90 << 8) | 165, cx - d / 2, cy - d / 2, d, d)   ; relleno rosa
-            EscenaAnillo(g, borde, cx - d / 2, cy - d / 2, d, 2)                                          ; borde oscuro
-            EscenaElipse(g, (240 << 24) | (255 << 16) | (255 << 8) | 255, cx - d / 2 + d * 0.28, cy - d / 2 + d * 0.22, d * 0.26, d * 0.26)  ; brillo
+            EscenaElipse(g, (150 << 24) | (245 << 16) | (90 << 8) | 165, cx - d / 2, cy - d / 2, d, d)
+            EscenaAnillo(g, borde, cx - d / 2, cy - d / 2, d, 1.6)
+            EscenaElipse(g, (230 << 24) | (255 << 16) | (255 << 8) | 255, cx - d / 2 + d * 0.28, cy - d / 2 + d * 0.22, d * 0.26, d * 0.26)
         }
     case "gema":
-        ; Gemas talladas (esmeraldas facetadas)
+        ; Esmeraldas facetadas con BARRIDO de luz recorriéndolas + destellos en cruz
+        sweep := Mod(tNow / 1600.0, 1.0) * (w + 60) - 30
         loop 4 {
             cx := (A_Index - 0.5) * w / 4
             EscenaPoligono(g, (225 << 24) | (20 << 16) | (200 << 8) | 130, [[cx - 6, h - 14], [cx + 6, h - 14], [cx + 8, h - 9], [cx - 8, h - 9]])
             EscenaPoligono(g, (225 << 24) | (10 << 16) | (155 << 8) | 95, [[cx - 8, h - 9], [cx + 8, h - 9], [cx, h - 1]])
             EscenaLinea(g, (170 << 24) | (200 << 16) | (255 << 8) | 230, cx - 3, h - 14, cx, h - 9, 1)
             EscenaLinea(g, (170 << 24) | (200 << 16) | (255 << 8) | 230, cx + 3, h - 14, cx, h - 9, 1)
+            ; la cara superior se ilumina cuando pasa el barrido
+            d := Abs(cx - sweep)
+            if (d < 22) {
+                aL := Round(190 * (1 - d / 22))
+                EscenaPoligono(g, (aL << 24) | (210 << 16) | (255 << 8) | 235, [[cx - 6, h - 14], [cx + 6, h - 14], [cx + 8, h - 9], [cx - 8, h - 9]])
+            }
+            ; destello en cruz titilando, desfasado por gema
+            tw := 0.5 + 0.5 * Sin(tNow / 300.0 + A_Index * 1.8)
+            if (tw > 0.7) {
+                s := 2.5 + tw * 2.5
+                EscenaLinea(g, (Round(230 * tw) << 24) | (235 << 16) | (255 << 8) | 245, cx - s, h - 14, cx + s, h - 14, 1)
+                EscenaLinea(g, (Round(230 * tw) << 24) | (235 << 16) | (255 << 8) | 245, cx, h - 14 - s, cx, h - 14 + s, 1)
+            }
         }
     case "neon":
         ; Marco de neón parpadeante por los bordes de la ventana
@@ -3150,7 +3713,26 @@ PintarEscenaTema(g, w, h, ef, rC, gC, bC, fondoClaro) {
             EscenaRect(g, (210 << 24) | (90 << 16) | (170 << 8) | 60, cx - s / 2, cy - s / 2, s, 4)
         }
     case "nubes":
-        ; Nubes esponjosas a la deriva por ARRIBA, con base sombreada para que resalten
+        ; Tinte de cielo (para que las nubes blancas resalten sobre el fondo claro) +
+        ; sol con rayos + pájaros cruzando + nubes esponjosas a la deriva por ARRIBA,
+        ; con base sombreada para que resalten
+        cieloT := fondoClaro ? ((55 << 24) | (180 << 16) | (215 << 8) | 245) : ((70 << 24) | (40 << 16) | (60 << 8) | 110)
+        EscenaRect(g, cieloT, 0, 0, w, Min(h, 52))
+        sx := w * 0.85
+        sy := h * 0.12
+        rot := tNow / 2000.0
+        loop 6 {
+            ang := rot + (A_Index - 1) * 1.047
+            EscenaLinea(g, (140 << 24) | (255 << 16) | (235 << 8) | 140, sx, sy, sx + Cos(ang) * 11, sy + Sin(ang) * 11, 1.4)
+        }
+        EscenaElipse(g, (220 << 24) | (255 << 16) | (240 << 8) | 150, sx - 6, sy - 6, 12, 12)
+        loop 2 {
+            bx := Mod(tNow / 26.0 + A_Index * w * 0.5, w + 20) - 10
+            by := h * (0.05 + A_Index * 0.06)
+            flap := Sin(tNow / 140.0 + A_Index) * 3
+            EscenaLinea(g, (190 << 24) | (90 << 16) | (110 << 8) | 130, bx - 5, by - flap, bx, by, 1.3)
+            EscenaLinea(g, (190 << 24) | (90 << 16) | (110 << 8) | 130, bx, by, bx + 5, by - flap, 1.3)
+        }
         loop 4 {
             drift := Mod(tNow / 50.0 + A_Index * w / 4, w + 70) - 35
             cy := 5 + Mod(A_Index * 9, 20)
@@ -3174,6 +3756,43 @@ PintarEscenaTema(g, w, h, ef, rC, gC, bC, fondoClaro) {
             s := 1.5 + tw * 2
             EscenaElipse(g, (Round(235 * tw) << 24) | (255 << 16) | (255 << 8) | 255, sx - s / 2, sy - s / 2, s, s)
         }
+        ; Halo lunar: resplandor pulsante detrás de la luna
+        haloP := 0.5 + 0.5 * Sin(tNow / 900.0)
+        EscenaElipse(g, (Round(35 + 25 * haloP) << 24) | (235 << 16) | (235 << 8) | 215, w - 36, 0, 29, 29)
+        ; Constelación: une 3 de las estrellas titilantes con líneas finas
+        c1x := Mod(1 * 73, Round(w - 16)) + 8, c1y := 4 + Mod(1 * 13, 32)
+        c2x := Mod(4 * 73, Round(w - 16)) + 8, c2y := 4 + Mod(4 * 13, 32)
+        c3x := Mod(7 * 73, Round(w - 16)) + 8, c3y := 4 + Mod(7 * 13, 32)
+        EscenaLinea(g, (55 << 24) | (200 << 16) | (210 << 8) | 255, c1x, c1y, c2x, c2y, 1)
+        EscenaLinea(g, (55 << 24) | (200 << 16) | (210 << 8) | 255, c2x, c2y, c3x, c3y, 1)
+        ; Estrella fugaz periódica cruzando el cielo, con estela
+        cicloFug := Mod(tNow, 6000)
+        if (cicloFug < 900) {
+            progF := cicloFug / 900.0
+            fx := w * (1.1 - progF * 1.3)
+            fy := h * 0.08 + progF * h * 0.35
+            fAlpha := Round(255 * (1 - progF))
+            loop 5 {
+                tEx := A_Index * 2.2
+                aEx := Max(0, fAlpha - A_Index * 50)
+                EscenaElipse(g, (aEx << 24) | (255 << 16) | (255 << 8) | 240, fx + tEx, fy - tEx * 0.45, 2.4 - A_Index * 0.4, 2.4 - A_Index * 0.4)
+            }
+        }
+        ; Nube oscura translúcida que cruza lentamente bajo la luna
+        nubeXLuna := Mod(tNow / 90.0, w + 60) - 60
+        EscenaElipse(g, (50 << 24) | (60 << 16) | (70 << 8) | 95, nubeXLuna, 10, 30, 9)
+        EscenaElipse(g, (45 << 24) | (60 << 16) | (70 << 8) | 95, nubeXLuna + 14, 7, 22, 8)
+        ; Búho posado en una rama, con parpadeo ocasional
+        buhoX := w * 0.18
+        buhoY := h - 13
+        EscenaPoligono(g, (200 << 24) | (70 << 16) | (50 << 8) | 40, [[buhoX - 18, h], [buhoX + 18, h], [buhoX + 14, h - 3], [buhoX - 14, h - 3]])  ; rama
+        EscenaElipse(g, (220 << 24) | (90 << 16) | (70 << 8) | 60, buhoX - 6, buhoY - 9, 12, 11)   ; cuerpo
+        EscenaElipse(g, (220 << 24) | (110 << 16) | (90 << 8) | 75, buhoX - 6, buhoY - 14, 12, 9)  ; cabeza
+        parpBuho := Mod(tNow, 4000) > 3800 ? 0.15 : 1.0
+        EscenaElipse(g, (235 << 24) | (255 << 16) | (220 << 8) | 60, buhoX - 4, buhoY - 13, 4, Max(0.5, 4 * parpBuho))
+        EscenaElipse(g, (235 << 24) | (255 << 16) | (220 << 8) | 60, buhoX + 1, buhoY - 13, 4, Max(0.5, 4 * parpBuho))
+        EscenaElipse(g, (255 << 24) | (40 << 16) | (30 << 8) | 25, buhoX - 3, buhoY - 12, 1.6, Max(0.4, 1.6 * parpBuho))
+        EscenaElipse(g, (255 << 24) | (40 << 16) | (30 << 8) | 25, buhoX + 2, buhoY - 12, 1.6, Max(0.4, 1.6 * parpBuho))
     case "planeta":
         ; Planeta con anillo arriba-derecha + luna orbitando + estrellas
         cxp := w * 0.82
@@ -3679,7 +4298,7 @@ historialGui.BackColor := colorVentanaHistorial
 historialGui.SetFont("s11 c" colorTextoPrincipal, "Segoe UI")
 
 barraHistorial := historialGui.Add("Text", "x0 y0 w270 h25 Background" colorBarra " Center", "Historial MacroSmart")
-barraHistorial.SetFont("s11 c" colorTextoBarra " Bold", "Segoe UI")
+barraHistorial.SetFont("s11 c" colorTextoBarra " Bold", "Segoe UI Semibold")
 ; Combinado: primero registra el click para el egg de Nika, LUEGO arrastra
 ; (si arrastra antes, el drag modal de Windows bloquea el segundo handler)
 barraHistorial.OnEvent("Click", (*) => (ClickBarraHistorialNika(), ArrastrarHistorial()))
@@ -3695,8 +4314,9 @@ SendMessage(0x0443, 0, HexToBGR(colorFondoHistorial), , "ahk_id " historialBox.H
 
 ; ── Scrollbar custom encima del RichEdit (sin WS_VSCROLL no hay nativa que tape) ──
 ; Track de fondo + thumb que se mueve. Los colores siguen al tema.
-scrollTrack := historialGui.Add("Text", "x243 y35 w17 h110 +0x201 Background" colorBotonNormal, "")
-scrollThumb := historialGui.Add("Text", "x244 y35 w15 h26 +0x201 Background" colorBotonHover, "")
+; Fina (8px) estilo moderno — ActualizarScrollbar/ClickScrollbar usan GetPos, no les afecta.
+scrollTrack := historialGui.Add("Text", "x252 y35 w8 h110 +0x201 Background" colorBotonNormal, "")
+scrollThumb := historialGui.Add("Text", "x253 y35 w6 h26 +0x201 Background" colorBotonHover, "")
 scrollTrack.OnEvent("Click", ClickScrollbar)
 scrollThumb.OnEvent("Click", ClickScrollbar)
 
@@ -3707,11 +4327,11 @@ DllCall("SetWindowPos", "Ptr", scrollTrack.Hwnd, "Ptr", 0, "Int", 0, "Int", 0, "
 DllCall("SetWindowPos", "Ptr", scrollThumb.Hwnd, "Ptr", 0, "Int", 0, "Int", 0, "Int", 0, "Int", 0, "UInt", 0x13)
 
 cooldownText := historialGui.Add("Text", "x10 y155 w250 h88 vCooldownText c" colorCooldown " Background" colorVentanaHistorial)
-separadorHistorial := historialGui.Add("Text", "x0 y148 w270 h2 Background" colorBarra, "")
+separadorHistorial := historialGui.Add("Text", "x0 y148 w270 h2 Background" MezclarHex(colorBarra, colorFondoPrincipal, 0.45), "")
 secuenciasLabel := historialGui.Add("Text", "x10 y245 w250 h20 +0x201 vSecuenciasLabel c" colorTextoPrincipal " Background" colorVentanaHistorial)
 destruccionesLabel := historialGui.Add("Text", "x10 y265 w250 h20 +0x201 vDestruccionesLabel c" colorTextoPrincipal " Background" colorVentanaHistorial)
 contadorLabel := historialGui.Add("Text", "x10 y285 w250 h18 +0x201 vContadorLabel c" colorTextoPrincipal " Background" colorVentanaHistorial, "")
-contadorLabel.SetFont("s9 c" colorTextoPrincipal, "Segoe UI")
+contadorLabel.SetFont("s8 c" colorTextoPrincipal, "Segoe UI")
 afkText      := historialGui.Add("Text", "x10 y305 w250 h18 vAfkText c" colorAFK " Background" colorVentanaHistorial)
 secuenciasLabel.SetFont("s10 Bold", "Segoe UI")
 destruccionesLabel.SetFont("s10 Bold", "Segoe UI")
@@ -3721,31 +4341,37 @@ destruccionesLabel.Value := Chr(0x276E) "  Destrucciones: 0  " Chr(0x276F)
 ; egg Sukuna (4 brazos / 4 clicks) en destruccionesLabel
 destruccionesLabel.OnEvent("Click", ClickDestruccionesSukuna)
 
-; Centrado: 8 botones × 22px + 7 gaps × 4px = 204px → x33 a x237 (centro de GUI 270)
+; Centrado: 7 botones × 22px + 6 gaps × 4px = 178px → x46 a x224 (centro de GUI 270)
 global btnTutorial
-btnTutorial := historialGui.Add("Text", "x33 y327 w22 h20 +0x201 Background" colorBotonNormal " c" colorBtnTexto, Chr(0x1F4D6))
-btnTutorial.SetFont("s9 c" colorBtnTexto, "Segoe UI Emoji")
+btnTutorial := historialGui.Add("Text", "x6 y3 w22 h19 +0x201 Background" colorBarra " c" colorTextoBarra, Chr(0x1F4D6))
+btnTutorial.SetFont("s9 c" colorTextoBarra, "Segoe UI Emoji")
 btnTutorial.OnEvent("Click", AbrirTutorial)
-btnStatsBtn := historialGui.Add("Text", "x59 y327 w22 h20 +0x201 Background" colorBotonNormal " c" colorBtnTexto, Chr(0x1F4CA))
+; Subir el 📖 POR ENCIMA de la barra del historial; si no, queda detrás y no se puede pulsar
+DllCall("SetWindowPos", "Ptr", btnTutorial.Hwnd, "Ptr", 0, "Int", 0, "Int", 0, "Int", 0, "Int", 0, "UInt", 0x13)
+; WS_CLIPSIBLINGS en barraHistorial: sin esto, su repintado (shimmer/hover breath)
+; invade el área de btnTutorial (hermano superpuesto) y lo tapa visualmente.
+estiloBarraHist := DllCall("GetWindowLong", "Ptr", barraHistorial.Hwnd, "Int", -16, "Int")
+DllCall("SetWindowLong", "Ptr", barraHistorial.Hwnd, "Int", -16, "Int", estiloBarraHist | 0x04000000)
+btnStatsBtn := historialGui.Add("Text", "x46 y327 w22 h20 +0x201 Background" colorBotonNormal " c" colorBtnTexto, Chr(0x1F4CA))
 btnStatsBtn.SetFont("s9 c" colorBtnTexto, "Segoe UI Emoji")
 btnStatsBtn.OnEvent("Click", MostrarEstadisticas)
-btnLogros := historialGui.Add("Text", "x85 y327 w22 h20 +0x201 Background" colorBotonNormal " c" colorBtnTexto, Chr(0x1F3C5))
+btnLogros := historialGui.Add("Text", "x72 y327 w22 h20 +0x201 Background" colorBotonNormal " c" colorBtnTexto, Chr(0x1F3C5))
 btnLogros.SetFont("s9 c" colorBtnTexto, "Segoe UI Emoji")
 btnLogros.OnEvent("Click", AbrirPanelLogros)
-btnCodigo := historialGui.Add("Text", "x111 y327 w22 h20 +0x201 Background" colorBotonNormal " c" colorBtnTexto, Chr(9000))
+btnCodigo := historialGui.Add("Text", "x98 y327 w22 h20 +0x201 Background" colorBotonNormal " c" colorBtnTexto, Chr(9000))
 btnCodigo.SetFont("s10 c" colorBtnTexto " Bold", "Segoe UI Symbol")
 btnCodigo.OnEvent("Click", AbrirCodigo)
-btnOverlay := historialGui.Add("Text", "x137 y327 w22 h20 +0x201 Background" colorBotonNormal " c" colorBtnTexto, Chr(0x1F441))
+btnOverlay := historialGui.Add("Text", "x124 y327 w22 h20 +0x201 Background" colorBotonNormal " c" colorBtnTexto, Chr(0x1F441))
 btnOverlay.SetFont("s9 c" colorBtnTexto, "Segoe UI Emoji")
 btnOverlay.OnEvent("Click", ToggleOverlayPixeles)
-btnWebhook := historialGui.Add("Text", "x163 y327 w22 h20 +0x201 Background" colorBotonNormal " c" colorBtnTexto, Chr(0x1F514))
+btnWebhook := historialGui.Add("Text", "x150 y327 w22 h20 +0x201 Background" colorBotonNormal " c" colorBtnTexto, Chr(0x1F514))
 btnWebhook.SetFont("s9 c" colorBtnTexto, "Segoe UI Emoji")
 btnWebhook.OnEvent("Click", AbrirPanelWebhook)
-btnUpdate := historialGui.Add("Text", "x189 y327 w22 h20 +0x201 Background" colorBotonNormal " c" colorBtnTexto, Chr(8593))
+btnUpdate := historialGui.Add("Text", "x176 y327 w22 h20 +0x201 Background" colorBotonNormal " c" colorBtnTexto, Chr(8593))
 btnUpdate.SetFont("s8 c" colorBtnTexto, "Segoe UI Symbol")
 btnUpdate.OnEvent("Click", AbrirVentanaActualizacion)
 global btnOptimizar
-btnOptimizar := historialGui.Add("Text", "x215 y327 w22 h20 +0x201 Background" colorBotonNormal " c" colorBtnTexto, Chr(0x2699))
+btnOptimizar := historialGui.Add("Text", "x202 y327 w22 h20 +0x201 Background" colorBotonNormal " c" colorBtnTexto, Chr(0x2699))
 btnOptimizar.SetFont("s9 c" colorBtnTexto, "Segoe UI Symbol")
 btnOptimizar.OnEvent("Click", AbrirPanelOptimizacion)
 
@@ -3798,7 +4424,24 @@ optConfeti       := Integer(IniRead(configPath, "Optimizacion", "Confeti",      
 optTypeReveal    := Integer(IniRead(configPath, "Optimizacion", "TypeReveal",    "1")) = 1
 optEscena        := Integer(IniRead(configPath, "Optimizacion", "Escena",        "1")) = 1
 
-barra := miGui.Add("Text", "x0 y0 w400 h25 Background" colorBarra " Center", "MacroSmart V29")
+; Ciclo automático de descanso (jugar X h → Alt+F4 + descanso Y min → repetir)
+cicloActivo  := Integer(IniRead(configPath, "Ciclo", "Activo",  "1")) = 1
+CICLO_SEG    := Integer(IniRead(configPath, "Ciclo", "Horas",   "8"))  * 3600
+DESCANSO_SEG := Integer(IniRead(configPath, "Ciclo", "Minutos", "45")) * 60
+; Restaurar el estado del ciclo para que sobreviva a cierres/crashes (sigue el mismo timer)
+cicloInicio    := IniRead(configPath, "Ciclo", "InicioTS",   "")
+descansoInicio := IniRead(configPath, "Ciclo", "DescansoTS", "")
+enDescanso     := Integer(IniRead(configPath, "Ciclo", "EnDescanso", "0")) = 1
+; Validar los timestamps (deben ser 14 dígitos tipo A_Now); si no, descartarlos
+if !(StrLen(cicloInicio) = 14 && IsInteger(cicloInicio))
+    cicloInicio := ""
+if !(StrLen(descansoInicio) = 14 && IsInteger(descansoInicio))
+    descansoInicio := ""
+; Si el ciclo ya estaba vencido al volver (p. ej. estuvo cerrado muchas horas), empezar de nuevo
+if (!enDescanso && cicloInicio != "" && DateDiff(A_Now, cicloInicio, "Seconds") >= CICLO_SEG)
+    cicloInicio := ""
+
+barra := miGui.Add("Text", "x0 y0 w400 h25 Background" colorBarra " Center", "MacroSmart v" VERSION_ACTUAL)
 barra.SetFont("s13 c" colorTextoBarra " Bold", "Segoe UI Semibold")
 barra.OnEvent("Click", ArrastrarVentana)
 barra.OnEvent("DoubleClick", ClickTitulo)
@@ -3817,7 +4460,8 @@ btnMin.OnEvent("Click", Minimizar)
 btnClose.OnEvent("Click", Cerrar)
 
 logoMacro := miGui.Add("Text", "x19 y31 w95 h95 Center BackgroundTrans c" colorLogoMacro " +0x1", Chr(9881))
-logoMacro.SetFont("s58 c" colorLogoMacro " Bold", "Segoe UI Symbol")
+; s49 desde el principio (antes lo re-ajustaba AplicarTema en cada cambio de tema)
+logoMacro.SetFont("s49 c" colorLogoMacro " Bold", "Segoe UI Symbol")
 logoMacro.OnEvent("Click", ClickLogo)
 InstalarSubclassLogo()
 texto := "AFK Smart"
@@ -3845,10 +4489,15 @@ btnHistorial := miGui.Add("Text", "x336 y59 w26 h26 +0x201 Background" colorBoto
 btnMini      := miGui.Add("Text", "x368 y59 w26 h26 +0x201 Background" colorBotonNormal " c" colorBtnTexto, Chr(0x25A3))
 btnIniciar   := miGui.Add("Text", "x40 y178 w140 h36 +0x201 Background" colorBotonNormal " c" colorBtnTexto, Chr(9654) " Iniciar (F1)")
 btnParar     := miGui.Add("Text", "x220 y178 w140 h36 +0x201 Background" colorBotonNormal " c" colorBtnTexto, Chr(9632) " Parar (F2)")
+; Cuenta atrás del ciclo de descanso (cuánto falta para el Alt+F4 / para volver a jugar)
+cicloLabel   := miGui.Add("Text", "x30 y218 w340 h16 +0x201 Center Background" colorFondoPrincipal " c" colorTextoPrincipal, "")
+cicloLabel.SetFont("s8", "Segoe UI")
 ; ── Polish visual: línea glow bajo título + separadores de sección ──
+; Los separadores van mezclados ~55% hacia el fondo: se notan sin gritar
+; en temas de barra saturada (Glitch magenta, Chicle, etc.)
 glowTitulo := miGui.Add("Text", "x0 y25 w400 h2 Background" AclararHex(colorBarra, 0.35), "")
-sepEstado  := miGui.Add("Text", "x120 y98 w250 h1 Background" colorBarra, "")
-sepAccion  := miGui.Add("Text", "x30 y170 w340 h1 Background" colorBarra, "")
+sepEstado  := miGui.Add("Text", "x120 y98 w250 h1 Background" MezclarHex(colorBarra, colorFondoPrincipal, 0.55), "")
+sepAccion  := miGui.Add("Text", "x30 y170 w340 h1 Background" MezclarHex(colorBarra, colorFondoPrincipal, 0.55), "")
 
 ; Franjas de acento para hover — 4 lados (izquierda, derecha, arriba, abajo)
 hoverAccent      := miGui.Add("Text", "x-20 y-20 w5 h0 Background" colorBarra, "")
@@ -3873,15 +4522,19 @@ btnMini.SetFont("s11 c" colorBtnTexto " Bold", "Segoe UI Symbol")
 btnMini.OnEvent("Click", ToggleMiniMode)
 
 ; ── Registro de hover para los botones principales ──
-RegistrarHover(btnIniciar,   () => (activo ? (rgbBotones ? colorRGBActual : colorBotonHover) : (rgbBotones ? colorRGBActual : colorBotonNormal)))
-RegistrarHover(btnParar,     () => (rgbBotones ? colorRGBActual : colorBotonNormal))
+; Semántica: Iniciar activo mantiene su tinte luzOn; Parar avisa en hover con
+; tinte cooldown (el rojo del tema); × cierra en rojo estándar de Windows.
+RegistrarHover(btnIniciar,   () => (activo ? (rgbBotones ? colorRGBActual : MezclarHex(colorLuzActiva, colorBotonNormal, 0.45)) : (rgbBotones ? colorRGBActual : colorBotonNormal)),
+                             () => (activo ? AclararHex(MezclarHex(colorLuzActiva, colorBotonNormal, 0.45), 0.18) : (rgbBotones ? colorRGBActual : colorBotonHover)))
+RegistrarHover(btnParar,     () => (rgbBotones ? colorRGBActual : colorBotonNormal),
+                             () => MezclarHex(colorCooldown, colorBotonNormal, 0.45))
 RegistrarHover(btnTema,      () => (rgbBotones ? colorRGBActual : colorBotonNormal))
 RegistrarHover(btnHistorial, () => (rgbBotones ? colorRGBActual : colorBotonNormal))
 RegistrarHover(btnCodigo,    () => (rgbBotones ? colorRGBActual : colorBotonNormal))
 RegistrarHover(btnReset,     () => (rgbBotones ? colorRGBActual : colorBotonNormal))
 RegistrarHover(btnPerfil,    () => (rgbBotones ? colorRGBActual : colorBotonNormal))
 RegistrarHover(btnMin,       () => (rgbBotones ? colorRGBActual : colorBotonNormal))
-RegistrarHover(btnClose,     () => (rgbBotones ? colorRGBActual : colorBotonNormal))
+RegistrarHover(btnClose,     () => (rgbBotones ? colorRGBActual : colorBotonNormal), () => "C42B1C")
 RegistrarHover(btnUpdate,    () => (rgbBotones ? colorRGBActual : colorBotonNormal))
 RegistrarHover(btnOverlay,   () => (rgbBotones ? colorRGBActual : colorBotonNormal))
 RegistrarHover(btnRGBBtn,    () => (rgbBotones ? colorRGBActual : colorBotonNormal))
@@ -3889,7 +4542,7 @@ RegistrarHover(btnStatsBtn,  () => (rgbBotones ? colorRGBActual : colorBotonNorm
 RegistrarHover(btnWebhook,   () => (rgbBotones ? colorRGBActual : colorBotonNormal))
 RegistrarHover(btnLogros,    () => (rgbBotones ? colorRGBActual : colorBotonNormal))
 RegistrarHover(btnOptimizar, () => (rgbBotones ? colorRGBActual : colorBotonNormal))
-RegistrarHover(btnTutorial,  () => (rgbBotones ? colorRGBActual : colorBotonNormal))
+RegistrarHover(btnTutorial,  () => colorBarra, () => AclararHex(colorBarra, 0.25))
 RegistrarHover(btnPart,      () => (rgbBotones ? colorRGBActual : colorBotonNormal))
 RegistrarHover(btnMini,      () => (rgbBotones ? colorRGBActual : colorBotonNormal))
 
@@ -3933,6 +4586,9 @@ SetTimer(TickAuraGojo, 4000)
 ; es el tema activo (chequeo barato dentro de la función).
 SetTimer(SukunaAutoDismantle, 4000)
 
+; Ciclo automático jugar/descanso (8 h jugar → Alt+F4 + 45 min descanso → repetir). Cada 30 s.
+SetTimer(TickCicloDescanso, 30000)
+
 SetTimer(EscribirHeartbeat, 5000) ; cada 5 s escribe pid + timestamp en heartbeat.txt para el watchdog externo
 EscribirHeartbeat()              ; un primer write inmediato
 LanzarWatchdogSiNoEsta()         ; arrancar el watchdog externo en paralelo si no está corriendo
@@ -3947,9 +4603,18 @@ try {
 
 ; Si la instancia anterior se reinició por watchdog, auto-arrancar el macro.
 ; Pequeño delay para que la GUI termine de asentarse antes de Iniciar().
-if (IniRead(configPath, "Watchdog", "AutoStart", "0") = "1") {
+if (!enDescanso && IniRead(configPath, "Watchdog", "AutoStart", "0") = "1") {
     try IniDelete(configPath, "Watchdog", "AutoStart")  ; consumir flag (single-shot)
     SetTimer(() => Iniciar(), -1500)
+}
+
+; Restaurar el modo mini si estaba activo cuando se cerró el macro
+if (Integer(IniRead(configPath, "UI", "MiniMode", "0")) = 1) {
+    ToggleMiniMode()   ; entra en mini (modoMini era false)
+    _miniX := IniRead(configPath, "Pos", "MiniX", "")
+    _miniY := IniRead(configPath, "Pos", "MiniY", "")
+    if (_miniX != "" && _miniY != "" && IsObject(miniGui))
+        try miniGui.Move(Integer(_miniX), Integer(_miniY))
 }
 ; ===== HOVER via polling — efecto respiratorio =====
 SetTimer(ActualizarFPS, 1000)
@@ -3967,6 +4632,17 @@ RegistrarHover(btn, baseFn, hoverFn := "") {
 ; Helper para capturar un color HEX en una closure (evita el bug de captura por referencia en for-loops)
 MakeColorFn(hex) {
     return () => hex
+}
+
+; Mezcla dos colores HEX: factor 0.0 → 100% hexA, 1.0 → 100% hexB.
+; Usado para separadores sutiles (barra mezclada hacia el fondo) y tintes semánticos.
+MezclarHex(hexA, hexB, factor := 0.5) {
+    rA := Integer("0x" SubStr(hexA, 1, 2)), gA := Integer("0x" SubStr(hexA, 3, 2)), bA := Integer("0x" SubStr(hexA, 5, 2))
+    rB := Integer("0x" SubStr(hexB, 1, 2)), gB := Integer("0x" SubStr(hexB, 3, 2)), bB := Integer("0x" SubStr(hexB, 5, 2))
+    r := Round(rA + (rB - rA) * factor)
+    g := Round(gA + (gB - gA) * factor)
+    b := Round(bA + (bB - bA) * factor)
+    return Format("{:02X}{:02X}{:02X}", r, g, b)
 }
 
 ; Aclara un color HEX hacia blanco por un factor 0.0–1.0
@@ -4267,6 +4943,48 @@ ActualizarFPS() {
     fpsContador := 0
     if (IsObject(fpsLabel))
         try fpsLabel.Text := fpsActual " fps"
+    try ActualizarCicloLabel()
+}
+
+; El estado del ciclo ya NO se muestra bajo los botones: ahora va como
+; "💤 dormir: Xh" al lado del contador anti-AFK del historial (ActualizarAFK).
+ActualizarCicloLabel() {
+    global cicloLabel
+    if (IsObject(cicloLabel))
+        try cicloLabel.Text := ""
+}
+
+; Línea compacta del ciclo de descanso para el historial: "dormir: Xh"
+; (horas que faltan para el descanso; durante el descanso, minutos para volver)
+TextoDormir() {
+    global cicloActivo, cicloInicio, enDescanso, descansoInicio, CICLO_SEG, DESCANSO_SEG
+    if (!cicloActivo)
+        return ""
+    if (enDescanso && descansoInicio != "") {
+        falta := DESCANSO_SEG - DateDiff(A_Now, descansoInicio, "Seconds")
+        if (falta < 0)
+            falta := 0
+        return "dormir: ahora (" Max(1, Ceil(falta / 60.0)) "m)"
+    }
+    falta := (cicloInicio != "") ? CICLO_SEG - DateDiff(A_Now, cicloInicio, "Seconds") : CICLO_SEG
+    if (falta < 0)
+        falta := 0
+    if (falta >= 3600)
+        return "dormir: " Ceil(falta / 3600.0) "h"
+    return "dormir: " Max(1, Ceil(falta / 60.0)) "m"
+}
+
+; Formatea segundos como "Xh Ym", "Ym" o "Xs"
+FormatearTiempoCorto(seg) {
+    seg := Round(seg)
+    if (seg >= 3600) {
+        h := seg // 3600
+        m := (seg - h * 3600) // 60
+        return h "h " m "m"
+    }
+    if (seg >= 60)
+        return (seg // 60) "m"
+    return seg "s"
 }
 
 ClickLogo(*) {
@@ -5001,7 +5719,7 @@ GuardarRGBs() {
 }
 
 GuardarPosiciones() {
-    global configPath, miGui, historialGui
+    global configPath, miGui, historialGui, modoMini, miniGui
     ; try alrededor de cada uno: si la ventana está minimizada/oculta puede tirar
     try {
         miGui.GetPos(&mx, &my)
@@ -5012,6 +5730,14 @@ GuardarPosiciones() {
         historialGui.GetPos(&hx, &hy)
         IniWrite(hx, configPath, "Pos", "HistX")
         IniWrite(hy, configPath, "Pos", "HistY")
+    }
+    ; Posición de la mini ventana (si está activa) para restaurarla igual
+    if (modoMini && IsObject(miniGui)) {
+        try {
+            miniGui.GetPos(&mnx, &mny)
+            IniWrite(mnx, configPath, "Pos", "MiniX")
+            IniWrite(mny, configPath, "Pos", "MiniY")
+        }
     }
 }
 
@@ -5386,9 +6112,16 @@ TutorialPaginas() {
          . "• ✨ Partículas: ajusta las partículas de fondo.`n`n"
          . "• ▣ Mini: hace el macro pequeño para que no moleste en la pantalla." },
 
+    { ico: Chr(0x25A3), tit: "Mini ventana",
+      txt: "El botón ▣ Mini encoge el macro a una ventana pequeña que no estorba mientras juegas.`n`n"
+         . "Abajo tiene 3 botones:`n"
+         . "• ▶ Iniciar · ■ Parar · ✕ Cerrar (cierra el macro).`n`n"
+         . "Para volver a la ventana grande: doble clic en la barra de arriba de la mini.`n`n"
+         . "Si cierras el macro estando en mini, al volver a abrirlo seguirá en mini, en el mismo sitio." },
+
     { ico: Chr(0x1F6E0), tit: "Botones de herramientas",
       txt: "En la ventana del historial hay estos botones:`n`n"
-         . "• 📖 Tutorial — ya sabes...`n"
+         . "• 📖 Tutorial — este libro (el 📖 está arriba del todo, en la barra del historial).`n"
          . "• 📊 Stats — tus estadísticas totales.`n"
          . "• 🏆 Logros — logros conseguidos y por obtener.`n"
          . "• ⟨⟩ Código — abre el código del macro.`n"
@@ -5402,6 +6135,7 @@ TutorialPaginas() {
       txt: "Baja o sube los fps del macro para mejor rendimiento:`n`n"
          . "• Eco : pocas animaciones.`n"
          . "• Ligero · Normal · Ultra : más animaciones, menos rendimiento (no recomendado en pc como la del xavi).`n`n"
+         . "En ⚙ Optimizar apagas efectos sueltos. El toggle 'Decoración del tema' mantiene o quita los adornos del borde, aunque estés en Eco.`n`n"
          . "No afecta en el funcionamiento del macro." },
 
     { ico: Chr(0x1F4DC), tit: "Historial",
@@ -5414,6 +6148,12 @@ TutorialPaginas() {
          . "• Anti-AFK: cada cierto tiempo manda teclas para no quedar inactivo.`n`n"
          . "• Modo Destrucción: si pasa demasiado sin detectar nada, cierra Brawlhalla y lo vuelve a abrir.`n`n"
          . "• Watchdog: un vigilante externo para el macro. Si el macro se congela o se cierra solo, lo vuelve a abrir. Si estaba activo el macro, seguirá activo después de abrirse." },
+
+    { ico: Chr(0x1F4A4), tit: "Descanso automático",
+      txt: "Para no jugar 24/7 de seguido, el macro descansa solo:`n`n"
+         . "• Tras 8 horas jugando, cierra Brawlhalla (Alt+F4) y descansa 45 minutos.`n`n"
+         . "• Cuando acaba el descanso, vuelve a entrar a Brawlhalla y sigue jugando. Y se repite.`n`n"
+         . "Abajo en la ventana principal ves cuánto falta. El contador sigue igual aunque pares, cierres o se crashee el macro. Se ajusta (horas/minutos) o se apaga en el config, sección [Ciclo]." },
 
     { ico: Chr(0x1F514), tit: "Webhook de Discord",
       txt: "Pega la URL de un webhook de tu servidor y el macro te avisa por Discord de:`n`n"
@@ -5854,7 +6594,11 @@ MakeTemaClosure(entry) {
 
 ElegirTema(entry) {
     global temaActual, temaBotones, temasVisiblesGlobal
-    global temaGui, colorBarra, colorTextoBarra
+    global temaGui, colorBarra, colorTextoBarra, temaEnTransicion
+    ; Ignorar clicks mientras hay una transición en curso: antes el click cambiaba
+    ; temaActual + guardaba pero la transición se descartaba → estado incoherente.
+    if (temaEnTransicion)
+        return
     temaActual := entry.idx
     TransicionTema(entry.tema)
     GuardarTema()
@@ -6259,19 +7003,22 @@ ArcoirisSubclassProc(hWnd, uMsg, wParam, lParam, idSubclass, refData) {
 
 ; ===== TARJETAS DE TEMA (GDI+) — preview rico por cada tema =====
 global temaCardData := Map()       ; hwnd -> { tema, nombre, esActivo, esSecreto }
-global temaCardCbs := []
+; UN solo callback compartido por todas las cards y todas las aperturas del panel.
+; Antes se creaba un CallbackCreate por card (~65) en CADA apertura sin liberarlos
+; nunca → fuga acumulativa que terminaba crasheando el macro al cambiar mucho de tema.
+global temaCardCb := 0
 
 InstalarSubclassTemaCard(btn, entry, esActivo) {
-    global temaCardData, temaCardCbs
+    global temaCardData, temaCardCb
     temaCardData[btn.Hwnd] := {
         tema: entry.tema,
         nombre: entry.nombre,
         esActivo: esActivo,
         hovered: false
     }
-    cb := CallbackCreate(TemaCardSubclassProc, "F", 6)
-    temaCardCbs.Push(cb)
-    DllCall("Comctl32.dll\SetWindowSubclass", "Ptr", btn.Hwnd, "Ptr", cb, "Ptr", 14, "Ptr", 0)
+    if (!temaCardCb)
+        temaCardCb := CallbackCreate(TemaCardSubclassProc, "F", 6)
+    DllCall("Comctl32.dll\SetWindowSubclass", "Ptr", btn.Hwnd, "Ptr", temaCardCb, "Ptr", 14, "Ptr", 0)
 }
 
 TemaCardSubclassProc(hWnd, uMsg, wParam, lParam, idSubclass, refData) {
@@ -6463,15 +7210,12 @@ global temaOverlayM := "", temaOverlayH := ""
 ; ===== TRANSICION DE TEMA SUAVE =====
 ; Patron: WM_SETREDRAW disable → set props → WM_SETREDRAW enable → 1 RedrawWindow sync.
 ; - Lerp basado en tiempo real (A_TickCount) — si frames se pierden, no se nota.
-; - Duracion fija 400ms con easing cubic in/out.
+; - Duracion TRANSICION_MS con easing cubic in/out, a ~60fps.
 ; - Todos los colores interpolan en paralelo, todos los controles repintan en el mismo frame.
+; - Cubre TODO: ventana principal, historial, mini mode, tutorial, ciclo y acentos.
 
 global temaTransInicio := 0
 global TRANSICION_MS   := 1200    ; duracion total transicion (ms)
-; WS_EX_COMPOSITED (0x02000000) hace double-buffering automatico a nivel OS:
-; todos los hijos pintan a un buffer comun y se presentan como UN frame.
-; Lo activamos solo durante la transicion para evitar overhead en steady state.
-global WS_EX_COMPOSITED := 0x02000000
 
 TransicionTema(tema, guardar := true) {
     global temaTransInicio, temaTransTema, temaTransGuardar, temaEnTransicion
@@ -6510,12 +7254,10 @@ TransicionTema(tema, guardar := true) {
     temaTransTema    := tema
     temaTransGuardar := guardar
 
-    ; Activar double-buffering OS-level durante la transicion: garantiza que TODOS
-    ; los hijos (fondo + labels + luces + barra + logo) aparezcan en el MISMO frame.
-    try miGui.Opt("+E" WS_EX_COMPOSITED)
-    try historialGui.Opt("+E" WS_EX_COMPOSITED)
-
-    SetTimer(TransicionPaso, 33)  ; ~30fps, suficiente para 1.2s = 36 frames
+    ; ~30fps: para un fundido de color de 1.2s es visualmente idéntico a 60fps,
+    ; pero hace la MITAD de repintados síncronos de toda la ventana (RedrawWindow
+    ; con UPDATENOW es lo más pesado del macro y bajo carga puede atascar a DWM).
+    SetTimer(TransicionPaso, 33)
 }
 
 TransicionPaso() {
@@ -6530,6 +7272,11 @@ TransicionPaso() {
     global luzActiva, luzAccion, luzApagado, historialBox, separadorHistorial
     global scrollTrack, scrollThumb
     global glowTitulo, sepEstado, sepAccion, activo
+    global btnTutorial, cicloLabel
+    global hoverAccent, hoverAccentTop, hoverAccentBot, hoverAccentRight
+    global hoverAccentHist, hoverAccentBotHist, hoverAccentRightHist
+    global modoMini, miniGui, btnMiniIniciar, btnMiniParar, btnMiniCerrar, logoMacroMini
+    global historialVisible
 
     static WM_SETREDRAW := 0x000B
     static RDW_FLAGS    := 0x0001 | 0x0004 | 0x0080 | 0x0100   ; INVALIDATE | ERASE | ALLCHILDREN | UPDATENOW
@@ -6539,6 +7286,12 @@ TransicionPaso() {
     t  := Min(elapsed / TRANSICION_MS, 1.0)
     ; Easing cubic in/out — empieza/termina suave, acelera en medio
     t2 := t < 0.5 ? 4*t*t*t : 1 - (-2*t+2)**3/2
+
+    TestTrace("TP> t=" Round(t, 2))
+    ; Blindaje anti-crash: si CUALQUIER paso falla (p. ej. un control destruido a
+    ; mitad de transición), el catch del final cierra la transición limpiamente en
+    ; vez de dejar el timer vivo lanzando el mismo error 60 veces por segundo.
+    try {
 
     ; LERP de TODOS los colores
     cFondo      := LerpHex(temaTransOrigen.fondo,      temaTransTema.fondo,      t2)
@@ -6561,8 +7314,11 @@ TransicionPaso() {
     ; ── PASO 1: deshabilitar repaints en ambas ventanas ──
     ; Usamos DllCall directo (no SendMessage de AHK) porque AHK resuelve el
     ; WinTitle cada vez y con redraws deshabilitados puede fallar el lookup.
+    ; Si el historial está OCULTO no hace falta repintarlo por frame (los Opt()
+    ; de colores se aplican igual y el AplicarTema final lo deja perfecto).
     DllCall("SendMessageW", "Ptr", miGui.Hwnd,        "UInt", WM_SETREDRAW, "Ptr", 0, "Ptr", 0)
-    DllCall("SendMessageW", "Ptr", historialGui.Hwnd, "UInt", WM_SETREDRAW, "Ptr", 0, "Ptr", 0)
+    if (historialVisible)
+        DllCall("SendMessageW", "Ptr", historialGui.Hwnd, "UInt", WM_SETREDRAW, "Ptr", 0, "Ptr", 0)
 
     ; ── PASO 2: aplicar TODOS los cambios via Opt() / BackColor (sin pintar) ──
     try miGui.BackColor       := cFondo
@@ -6574,7 +7330,7 @@ TransicionPaso() {
     }
 
     ; Botones — fondo + texto
-    for btn in [btnIniciar, btnParar, btnCodigo, btnReset, btnHistorial, btnTema, btnMin, btnClose, btnUpdate, btnOverlay, btnRGBBtn, btnStatsBtn, btnWebhook, btnLogros, btnPart, btnMini, btnOptimizar, btnTutorial] {
+    for btn in [btnIniciar, btnParar, btnCodigo, btnReset, btnHistorial, btnTema, btnMin, btnClose, btnUpdate, btnOverlay, btnRGBBtn, btnStatsBtn, btnWebhook, btnLogros, btnPart, btnMini, btnOptimizar] {
         if (IsObject(btn))
             btn.Opt("Background" cBoton " c" cBtnTexto)
     }
@@ -6622,16 +7378,16 @@ TransicionPaso() {
 
     ; Separadores + polish visual (no parpadea porque va dentro del WM_SETREDRAW)
     if (IsObject(separadorHistorial)) {
-        separadorHistorial.Opt("Background" cBarra)
+        separadorHistorial.Opt("Background" MezclarHex(cBarra, cFondo, 0.45))
     }
     if (IsObject(glowTitulo)) {
         glowTitulo.Opt("Background" AclararHex(cBarra, 0.35))
     }
     if (IsObject(sepEstado)) {
-        sepEstado.Opt("Background" cBarra)
+        sepEstado.Opt("Background" MezclarHex(cBarra, cFondo, 0.55))
     }
     if (IsObject(sepAccion)) {
-        sepAccion.Opt("Background" cBarra)
+        sepAccion.Opt("Background" MezclarHex(cBarra, cFondo, 0.55))
     }
 
     ; Scrollbar personalizado
@@ -6642,23 +7398,67 @@ TransicionPaso() {
         scrollThumb.Opt("Background" cHover)
     }
 
+    ; Controles que antes NO transicionaban (saltaban de golpe al final)
+    if (IsObject(btnTutorial)) {
+        btnTutorial.Opt("Background" cBarra " c" cBtnTexto)
+    }
+    if (IsObject(cicloLabel)) {
+        cicloLabel.Opt("Background" cFondo " c" cTexto)
+    }
+    for acc in [hoverAccent, hoverAccentTop, hoverAccentBot, hoverAccentRight, hoverAccentHist, hoverAccentBotHist, hoverAccentRightHist] {
+        if (IsObject(acc))
+            acc.Opt("Background" cBarra)
+    }
+
     ; ── PASO 3: re-habilitar repaints ──
     DllCall("SendMessageW", "Ptr", miGui.Hwnd,        "UInt", WM_SETREDRAW, "Ptr", 1, "Ptr", 0)
-    DllCall("SendMessageW", "Ptr", historialGui.Hwnd, "UInt", WM_SETREDRAW, "Ptr", 1, "Ptr", 0)
+    if (historialVisible)
+        DllCall("SendMessageW", "Ptr", historialGui.Hwnd, "UInt", WM_SETREDRAW, "Ptr", 1, "Ptr", 0)
 
     ; ── PASO 4: UN solo repaint sincronico de TODO (ventana + hijos) ──
+    TestTrace("TP4")
     DllCall("RedrawWindow", "Ptr", miGui.Hwnd,        "Ptr", 0, "Ptr", 0, "UInt", RDW_FLAGS)
-    DllCall("RedrawWindow", "Ptr", historialGui.Hwnd, "Ptr", 0, "Ptr", 0, "UInt", RDW_FLAGS)
+    if (historialVisible)
+        DllCall("RedrawWindow", "Ptr", historialGui.Hwnd, "Ptr", 0, "Ptr", 0, "UInt", RDW_FLAGS)
+    TestTrace("TP4 ok")
+
+    ; ── Mini mode: lerp también (antes el mini saltaba de golpe al final) ──
+    if (modoMini && IsObject(miniGui)) {
+        DllCall("SendMessageW", "Ptr", miniGui.Hwnd, "UInt", WM_SETREDRAW, "Ptr", 0, "Ptr", 0)
+        try miniGui.BackColor := cFondo
+        for b in [btnMiniIniciar, btnMiniParar, btnMiniCerrar] {
+            if (IsObject(b))
+                b.Opt("Background" cBoton " c" cBtnTexto)
+        }
+        if (IsObject(logoMacroMini))
+            logoMacroMini.Opt("c" colorLogoEnTransicion)
+        DllCall("SendMessageW", "Ptr", miniGui.Hwnd, "UInt", WM_SETREDRAW, "Ptr", 1, "Ptr", 0)
+        DllCall("RedrawWindow", "Ptr", miniGui.Hwnd, "Ptr", 0, "Ptr", 0, "UInt", RDW_FLAGS)
+    }
 
     if (t >= 1.0) {
+        TestTrace("TPfin>")
         colorBarraOverride := ""
         AplicarTema(temaTransTema, temaTransGuardar, true)
+        TestTrace("TPfin AT ok")
         SetTimer(TransicionPaso, 0)
         temaEnTransicion := false
-        ; Desactivar el double-buffering (causa overhead y puede afectar
-        ; subclasseados controles si se deja activo permanente).
-        try miGui.Opt("-E" WS_EX_COMPOSITED)
-        try historialGui.Opt("-E" WS_EX_COMPOSITED)
+    }
+
+    } catch as e {
+        ; Cierre de emergencia: parar el timer, restaurar redraws y aplicar el
+        ; tema final directamente. Así un fallo puntual nunca tumba el macro.
+        TestTrace("TPcatch: " e.Message " @" e.Line)
+        SetTimer(TransicionPaso, 0)
+        temaEnTransicion := false
+        colorBarraOverride := ""
+        try DllCall("SendMessageW", "Ptr", miGui.Hwnd,        "UInt", WM_SETREDRAW, "Ptr", 1, "Ptr", 0)
+        try DllCall("SendMessageW", "Ptr", historialGui.Hwnd, "UInt", WM_SETREDRAW, "Ptr", 1, "Ptr", 0)
+        if (modoMini && IsObject(miniGui))
+            try DllCall("SendMessageW", "Ptr", miniGui.Hwnd, "UInt", WM_SETREDRAW, "Ptr", 1, "Ptr", 0)
+        try AplicarTema(temaTransTema, temaTransGuardar)
+        try DllCall("RedrawWindow", "Ptr", miGui.Hwnd,        "Ptr", 0, "Ptr", 0, "UInt", RDW_FLAGS)
+        try DllCall("RedrawWindow", "Ptr", historialGui.Hwnd, "Ptr", 0, "Ptr", 0, "UInt", RDW_FLAGS)
     }
 }
 
@@ -6672,6 +7472,7 @@ LerpHex(hexA, hexB, t) {
 }
 
 AplicarTema(tema, guardar := true, fromTrans := false) {
+    TestTrace("AT> " tema.nombre)
     global miGui, historialGui, historialBox, barra, barraHistorial, logoMacro, tituloMacro, timerLabel
     global cooldownText, afkText, secuenciasLabel, destruccionesLabel, luzActiva, luzAccion, luzApagado
     global btnIniciar, btnParar, btnCodigo, btnReset, btnHistorial, btnTema, btnMin, btnClose
@@ -6718,14 +7519,20 @@ AplicarTema(tema, guardar := true, fromTrans := false) {
     colorHist2 := tema.histColor2
     colorHist3 := tema.histColor3
 
+    ; NOTA: aquí solo se usa Opt("c...") para recolorear — nada de SetFont.
+    ; Las fuentes (familia/tamaño/peso) se fijan UNA vez al crear los controles;
+    ; re-llamar SetFont en cada cambio de tema provoca repintados extra (el
+    ; "salto" feo al final de la transición) y trabajo inútil acumulado.
     miGui.BackColor := colorFondoPrincipal
     historialGui.BackColor := colorVentanaHistorial
-    barra.Opt("Background" colorBarra)
-    barra.SetFont("s13 c" colorTextoBarra " Bold", "Segoe UI Semibold")
-    barraHistorial.Opt("Background" colorBarra)
-    barraHistorial.SetFont("s11 c" colorTextoBarra " Bold", "Segoe UI Semibold")
+    barra.Opt("Background" colorBarra " c" colorTextoBarra)
+    barraHistorial.Opt("Background" colorBarra " c" colorTextoBarra)
+    if (IsObject(btnTutorial)) {
+        btnTutorial.Opt("Background" colorBarra " c" colorBtnTexto)
+        DllCall("InvalidateRect", "Ptr", btnTutorial.Hwnd, "Ptr", 0, "Int", 1)
+    }
     if (IsObject(separadorHistorial))
-        separadorHistorial.Opt("Background" colorBarra)
+        separadorHistorial.Opt("Background" MezclarHex(colorBarra, colorFondoPrincipal, 0.45))
     if (IsObject(hoverAccent))
         hoverAccent.Opt("Background" colorBarra)
     if (IsObject(hoverAccentTop))
@@ -6740,30 +7547,25 @@ AplicarTema(tema, guardar := true, fromTrans := false) {
         hoverAccentBotHist.Opt("Background" colorBarra)
     if (IsObject(hoverAccentRightHist))
         hoverAccentRightHist.Opt("Background" colorBarra)
-    ; Polish visual: glow bajo el título + separadores de sección
+    ; Polish visual: glow bajo el título + separadores de sección (mezclados al fondo)
     if (IsObject(glowTitulo))
         glowTitulo.Opt("Background" AclararHex(colorBarra, 0.35))
     if (IsObject(sepEstado))
-        sepEstado.Opt("Background" colorBarra)
+        sepEstado.Opt("Background" MezclarHex(colorBarra, colorFondoPrincipal, 0.55))
     if (IsObject(sepAccion))
-        sepAccion.Opt("Background" colorBarra)
+        sepAccion.Opt("Background" MezclarHex(colorBarra, colorFondoPrincipal, 0.55))
     logoMacro.Opt("c" colorLogoMacro)
-    logoMacro.SetFont("s49 c" colorLogoMacro " Bold", "Segoe UI Symbol")
     ; Cambiar el carácter del logo si el tema define uno especial (Gojo=∞, Sukuna=⛩)
     try logoMacro.Text := (tema.HasProp("logoChar") ? tema.logoChar : Chr(9881))
     DllCall("InvalidateRect", "Ptr", logoMacro.Hwnd, "Ptr", 0, "Int", 1)
     tituloMacro.Opt("Background" colorFondoPrincipal " c" colorTextoPrincipal)
-    tituloMacro.SetFont("s13 c" colorTextoPrincipal " Bold", "Segoe UI Semibold")
     timerLabel.Opt("Background" colorFondoPrincipal " c" colorTextoPrincipal)
-    timerLabel.SetFont("s13 c" colorTextoPrincipal " Bold", "Segoe UI Semibold")
-    if (IsObject(presetLabel)) {
+    if (IsObject(presetLabel))
         presetLabel.Opt("Background" colorFondoPrincipal " c" colorTextoPrincipal)
-        presetLabel.SetFont("s8 c" colorTextoPrincipal, "Segoe UI Semibold")
-    }
-    if (IsObject(fpsLabel)) {
+    if (IsObject(fpsLabel))
         fpsLabel.Opt("Background" colorFondoPrincipal " c" colorTextoPrincipal)
-        fpsLabel.SetFont("s8 c" colorTextoPrincipal, "Segoe UI")
-    }
+    if (IsObject(cicloLabel))
+        cicloLabel.Opt("Background" colorFondoPrincipal " c" colorTextoPrincipal)
     if (IsObject(contadorLabel))
         contadorLabel.Opt("Background" colorVentanaHistorial " c" colorTextoPrincipal)
     secuenciasLabel.Opt("Background" colorVentanaHistorial " c" colorTextoPrincipal)
@@ -6784,33 +7586,18 @@ AplicarTema(tema, guardar := true, fromTrans := false) {
     luzAccion.Opt("Background" colorFondoPrincipal)
     luzApagado.Opt("Background" colorFondoPrincipal)
     SendMessage(0x0443, 0, HexToBGR(colorFondoHistorial), , "ahk_id " historialBox.Hwnd)
-    for btn in [btnIniciar, btnParar, btnCodigo, btnReset, btnHistorial, btnTema, btnMin, btnClose, btnUpdate, btnOverlay, btnRGBBtn, btnStatsBtn, btnWebhook, btnLogros, btnPart, btnMini, btnOptimizar, btnTutorial] {
+    for btn in [btnIniciar, btnParar, btnCodigo, btnReset, btnHistorial, btnTema, btnMin, btnClose, btnUpdate, btnOverlay, btnRGBBtn, btnStatsBtn, btnWebhook, btnLogros, btnPart, btnMini, btnOptimizar] {
         btn.Opt("Background" colorBotonNormal " c" colorBtnTexto)
-        btn.SetFont("s11 c" colorBtnTexto " Bold", "Segoe UI Symbol")
         if (!fromTrans) {
             DllCall("InvalidateRect", "Ptr", btn.Hwnd, "Ptr", 0, "Int", 1)
             DllCall("UpdateWindow",   "Ptr", btn.Hwnd)
         }
     }
-    ; btnPerfil ahora es boton visible con emoji → colores normales de boton
     btnPerfil.Opt("Background" colorBotonNormal " c" colorBtnTexto)
     if (!fromTrans) {
         DllCall("InvalidateRect", "Ptr", btnPerfil.Hwnd, "Ptr", 0, "Int", 1)
         DllCall("UpdateWindow",   "Ptr", btnPerfil.Hwnd)
     }
-    for btn in [btnIniciar, btnParar]
-        btn.SetFont("s10 c" colorBtnTexto " Bold", "Segoe UI Semibold")
-    btnUpdate.SetFont("s8 c" colorBtnTexto, "Segoe UI Symbol")
-    btnOptimizar.SetFont("s9 c" colorBtnTexto, "Segoe UI Symbol")
-    btnTutorial.SetFont("s9 c" colorBtnTexto, "Segoe UI Emoji")
-    btnOverlay.SetFont("s9 c" colorBtnTexto, "Segoe UI Emoji")
-    btnRGBBtn.SetFont("s9 c" colorBtnTexto, "Segoe UI Emoji")
-    btnStatsBtn.SetFont("s9 c" colorBtnTexto, "Segoe UI Emoji")
-    btnWebhook.SetFont("s9 c" colorBtnTexto, "Segoe UI Emoji")
-    btnLogros.SetFont("s9 c" colorBtnTexto, "Segoe UI Emoji")
-    btnPart.SetFont("s9 c" colorBtnTexto, "Segoe UI Emoji")
-    btnCodigo.SetFont("s10 c" colorBtnTexto " Bold", "Segoe UI Symbol")
-    btnPerfil.SetFont("s11 c" colorBtnTexto " Bold", "Segoe UI Emoji")
     ActualizarEstadoVisual()
     ; Actualizar mini mode si está activo — recrear con colores nuevos
     if (modoMini && IsObject(miniGui)) {
@@ -6821,6 +7608,9 @@ AplicarTema(tema, guardar := true, fromTrans := false) {
         if (IsObject(overlayDecoMini))
             try overlayDecoMini.Destroy()
         overlayDecoMini := ""
+        ; Purgar del registro de hover los botones del mini que van a morir —
+        ; si no, el Map crece con hwnd huérfanos en cada cambio de tema.
+        try LimpiarHoverGui(miniGui)
         try miniGui.Destroy()
         miniGui := ""
         logoMacroMini := ""
@@ -6838,6 +7628,17 @@ AplicarTema(tema, guardar := true, fromTrans := false) {
     ; tema secreto, TickDecoracionesPermanentes deja de invalidar el overlay, así que los
     ; detalles quedaban congelados pegados. Forzamos un repintado que borra el frame previo.
     InvalidarOverlayDeco()
+    ; Repintar YA el overlay de partículas/escena (overlayPartMain) con el tema NUEVO:
+    ; si no, se queda con el último frame pintado del tema ANTERIOR hasta el próximo
+    ; tick del timer (visible como decoración "pegada" del tema viejo al cambiar).
+    if (!modoMini) {
+        if (particulasActivas && presetParticulas > 0) {
+            try ActualizarParticulas()
+        } else if (optEscena) {
+            try ActualizarEscenaSola()
+        }
+    }
+    TestTrace("AT ok")
 }
 
 ActualizarRGB(*) {
@@ -6910,7 +7711,7 @@ ActualizarRGB(*) {
         if (IsObject(destruccionesLabel))
             destruccionesLabel.Opt("c" cTexto)
 
-        for btn in [btnIniciar, btnParar, btnCodigo, btnReset, btnHistorial, btnTema, btnMin, btnClose, btnUpdate, btnOverlay, btnRGBBtn, btnStatsBtn, btnWebhook, btnLogros, btnPart, btnPerfil, btnMini, btnOptimizar, btnTutorial]
+        for btn in [btnIniciar, btnParar, btnCodigo, btnReset, btnHistorial, btnTema, btnMin, btnClose, btnUpdate, btnOverlay, btnRGBBtn, btnStatsBtn, btnWebhook, btnLogros, btnPart, btnPerfil, btnMini, btnOptimizar]
             btn.Opt("Background" cBoton " c000000")
 
         ; Actualizar preview RGB si está abierto
@@ -6944,11 +7745,11 @@ ActualizarRGB(*) {
             DllCall("InvalidateRect", "Ptr", glowTitulo.Hwnd, "Ptr", 0, "Int", 1)
         }
         if (IsObject(sepEstado)) {
-            sepEstado.Opt("Background" colorRGBActual)
+            sepEstado.Opt("Background" MezclarHex(colorRGBActual, colorFondoPrincipal, 0.55))
             DllCall("InvalidateRect", "Ptr", sepEstado.Hwnd, "Ptr", 0, "Int", 1)
         }
         if (IsObject(sepAccion)) {
-            sepAccion.Opt("Background" colorRGBActual)
+            sepAccion.Opt("Background" MezclarHex(colorRGBActual, colorFondoPrincipal, 0.55))
             DllCall("InvalidateRect", "Ptr", sepAccion.Hwnd, "Ptr", 0, "Int", 1)
         }
     }
@@ -6966,7 +7767,7 @@ ActualizarRGB(*) {
             destruccionesLabel.Opt("c" colorRGBActual)
     }
     if (rgbBotones) {
-        for btn in [btnIniciar, btnParar, btnCodigo, btnReset, btnHistorial, btnTema, btnMin, btnClose, btnUpdate, btnOverlay, btnRGBBtn, btnStatsBtn, btnWebhook, btnLogros, btnPart, btnPerfil, btnMini, btnOptimizar, btnTutorial]
+        for btn in [btnIniciar, btnParar, btnCodigo, btnReset, btnHistorial, btnTema, btnMin, btnClose, btnUpdate, btnOverlay, btnRGBBtn, btnStatsBtn, btnWebhook, btnLogros, btnPart, btnPerfil, btnMini, btnOptimizar]
             btn.Opt("Background" colorRGBActual " c000000")
     }
 
@@ -7002,7 +7803,9 @@ ActualizarEstadoVisual() {
     global rgbBotones, colorRGBActual, colorBtnTexto
 
     if (activo) {
-        btnIniciar.Opt("Background" (rgbBotones ? colorRGBActual : colorBotonHover) " c" colorBtnTexto)
+        ; Activo → Iniciar se tiñe con la luz "on" del tema (verde/acento), mezclada
+        ; con el botón para no romper el contraste del texto en temas extremos.
+        btnIniciar.Opt("Background" (rgbBotones ? colorRGBActual : MezclarHex(colorLuzActiva, colorBotonNormal, 0.45)) " c" colorBtnTexto)
         btnParar.Opt("Background"   (rgbBotones ? colorRGBActual : colorBotonNormal) " c" colorBtnTexto)
         SetLuz(luzActiva, colorLuzActiva)
         SetLuz(luzAccion, colorBotonNormal)
@@ -7988,7 +8791,6 @@ IniciarTimer(*) {
     SetTimer(ActualizarTimer, 1000)
     if (!avisoMostrado) {
         avisoMostrado := true
-        MostrarAviso()
         SetTimer(ActualizarAFK, 100)
     }
 }
@@ -8294,6 +9096,10 @@ ActualizarAFK(*) {
         restante := 0
     segundos := Round(restante / 1000, 1)
     texto := "Anti AFK en: " segundos "s"
+    ; "dormir: Xh" compacto al lado del contador anti-AFK
+    dormir := TextoDormir()
+    if (dormir != "")
+        texto .= "  " Chr(0x1F4A4) " " dormir
     if (afkText.Value != texto)
         afkText.Value := texto
     if (rgbActivo)
@@ -8384,21 +9190,21 @@ BuscarPixel(paso, &x, &y) {
 
 ; ╔══════════════════════════════════════════════════════════════════════════╗
 ; ║  DETECTOR CIRCULAR (perfil dstv)                                          ║
-; ║  100 cruces "+" repartidas en círculo (radio configurable). Cada cruz =   ║
-; ║  5 píxeles (centro + arriba/abajo/izquierda/derecha — SIN diagonales):    ║
-; ║       | X |                                                               ║
+; ║  100 cruces repartidas en círculo (radio configurable). Cada cruz se      ║
+; ║  muestrea como un cuadrado 3×3 = 9 píxeles (centro + 8 vecinos):          ║
 ; ║       X X X                                                               ║
-; ║       | X |                                                               ║
-; ║  Si ≥4/5 píxeles de una cruz hacen match con paso.color (tolerancia       ║
-; ║  paso.tolerancia) esa cruz se considera "encendida". Al detectar una con  ║
-; ║  certeza, el macro se ENGANCHA a esa cruz puntual y la vigila a máxima    ║
-; ║  frecuencia; en cuanto deja de cumplir el patrón — aunque sea un solo     ║
-; ║  frame — dispara {Space} de inmediato.                                   ║
-; ║                                                                            ║
-; ║  Para que esto sea viable a alta frecuencia, NO se hacen 500              ║
+; ║       X X X                                                               ║
+; ║       X X X                                                               ║
+; ║  Basta detectar 1 píxel del color buscado en cualquiera de las 100        ║
+; ║  cruces para ENGANCHARSE; al hacerlo guarda los 9 colores del cuadrado    ║
+; ║  3×3 como "foto" de referencia. Después vigila ese 3×3 y, en cuanto UN    ║
+; ║  solo píxel cambia de color respecto a la foto (dentro de                 ║
+; ║  paso.tolerancia), dispara {Space} de inmediato.                          ║
+; ║                                                                           ║
+; ║  Para que esto sea viable a alta frecuencia, NO se hacen 900              ║
 ; ║  PixelGetColor por frame: se captura la región que cubre el círculo       ║
 ; ║  completo UNA sola vez (BitBlt+GetDIBits a un buffer en memoria) y los    ║
-; ║  500 píxeles se leen de ahí (simples lecturas de memoria, ~instantáneo).  ║
+; ║  900 píxeles se leen de ahí (simples lecturas de memoria, ~instantáneo).  ║
 ; ╚══════════════════════════════════════════════════════════════════════════╝
 
 ; Genera (o regenera si cambian paso/escala/resolución) las posiciones de las
@@ -8539,19 +9345,36 @@ ColorEnTolerancia(c1, c2, tol) {
         && Abs(( c1        & 0xFF) - ( c2        & 0xFF)) <= tol
 }
 
+; ¿el píxel c cambió de color respecto a ref, más allá de tol? Maneja el caso
+; "fuera de buffer" (-1): -1 vs -1 = sin cambio; -1 vs válido = cambio.
+PixelCambioDeColor(c, ref, tol) {
+    if (c = ref)
+        return false
+    if (c = -1 || ref = -1)
+        return true
+    return !ColorEnTolerancia(c, ref, tol)
+}
+
+; Los 9 offsets (px de pantalla ya escalados) del cuadrado 3×3 de un punto:
+; centro + sus 8 vecinos. Compartido por el detector y el overlay para que
+; muestreen EXACTAMENTE los mismos 9 píxeles.
+OffsetsCuadrado3x3(bx, by) {
+    return [[-bx,-by],[0,-by],[bx,-by],[-bx,0],[0,0],[bx,0],[-bx,by],[0,by],[bx,by]]
+}
+
 ; Revisa las "cantidad" cruces de este frame contra el buffer ya capturado y
-; devuelve cuántos de sus 5 píxeles ("+": centro+arriba+abajo+izq+der, SIN
+; devuelve cuántos de sus 9 píxeles (cuadrado 3×3: centro + 8 vecinos, CON
 ; diagonales) hacen match con paso.color dentro de paso.tolerancia — un
-; array paralelo a circuloPuntos con un número de 0 a 5 por cada cruz.
-; Se cuenta una sola vez por frame y de ahí se derivan los dos umbrales
-; (enganche y "fijo") sin volver a tocar el buffer.
+; array paralelo a circuloPuntos con un número de 0 a 9 por cada cruz.
+; Sólo se usa para el ENGANCHE (encontrar una cruz con ≥1 acierto); una vez
+; enganchado, el disparo compara colores contra la foto, no recuenta matches.
 ContarMatchesCruces(paso) {
     global circuloPuntos, circuloBufOX, circuloBufOY, scaleX, scaleY
-    ; Distancia de cada brazo ESCALADA con la resolución (mín 1 px). En 1080p
-    ; (scale=1.0) cada brazo está a 1 px (cruz 3×3); en 4K (scale=2.0) a 2 px (5×5).
+    ; Distancia de cada vecino ESCALADA con la resolución (mín 1 px). En 1080p
+    ; (scale=1.0) el cuadrado mide 3×3 px; en 4K (scale=2.0) los vecinos van a 2 px.
     bx := Max(1, Round(scaleX))
     by := Max(1, Round(scaleY))
-    offsets := [[0, 0], [0, -by], [0, by], [-bx, 0], [bx, 0]]  ; centro, arriba, abajo, izq, der ("+")
+    offsets := OffsetsCuadrado3x3(bx, by)
 
     conteos := []
     for idx, p in circuloPuntos {
@@ -8566,38 +9389,56 @@ ContarMatchesCruces(paso) {
     return conteos
 }
 
-; Lógica principal: prepara/captura/cuenta matches y aplica el enganche con
-; DOS umbrales distintos:
-;   • UMBRAL_ENGANCHE (5/5): exige los 5 píxeles blancos completos para
-;     "encontrar" una cruz y engancharse (no se engancha con cruces parciales).
-;   • UMBRAL_FIJO     (5/5 — los 5 píxeles completos): mientras está enganchado,
-;     exige el patrón perfecto para seguir considerándola "fija"; en cuanto
-;     UN SOLO píxel deja de hacer match —aunque sea un instante— ya cuenta
-;     como "cambió de color" y dispara {Space} al INSTANTE, sin confirmaciones.
-; Devuelve true si la cruz vigilada cambió/desapareció y ya se envió {Space}.
+; Lee los 9 colores (0xRRGGBB) del cuadrado 3×3 de la cruz idx desde el buffer
+; ya capturado este frame — mismos 9 offsets que usa el detector para contar.
+LeerColoresCruz(idx) {
+    global circuloPuntos, circuloBufOX, circuloBufOY, scaleX, scaleY
+    bx := Max(1, Round(scaleX))
+    by := Max(1, Round(scaleY))
+    p := circuloPuntos[idx]
+    cols := []
+    for off in OffsetsCuadrado3x3(bx, by)
+        cols.Push(PixelDelCirculo(p.x - circuloBufOX + off[1], p.y - circuloBufOY + off[2]))
+    return cols
+}
+
+; Lógica principal: prepara/captura y aplica el enganche en DOS fases:
+;   • ENGANCHE: basta detectar 1 píxel del color buscado en cualquiera de las
+;     100 cruces (su cuadrado 3×3 con ≥1 acierto). Al enganchar GUARDA los 9
+;     colores de ese 3×3 como "foto" de referencia.
+;   • DISPARO: mientras está enganchado compara el 3×3 actual contra esa foto;
+;     en cuanto UN SOLO píxel cambia de color respecto a entonces (dentro de
+;     paso.tolerancia) dispara {Space} al INSTANTE, sin confirmaciones.
+; Devuelve true si la cruz vigilada cambió y ya se envió {Space}.
 RevisarCirculoDetector(paso) {
-    global circuloBufOX, circuloBufOY, circuloBufW, circuloBufH, circuloLockIdx
-    static UMBRAL_ENGANCHE := 5   ; engancha solo con los 5/5 píxeles blancos (tol 1)
-    static UMBRAL_FIJO     := 5
+    global circuloBufOX, circuloBufOY, circuloBufW, circuloBufH, circuloLockIdx, circuloLockColores
+    static UMBRAL_ENGANCHE := 1   ; basta 1 píxel detectado para enganchar la cruz
 
     PrepararCirculoDetector(paso)
     CapturarCirculo(circuloBufOX, circuloBufOY, circuloBufW, circuloBufH)
-    conteos := ContarMatchesCruces(paso)
 
     if (circuloLockIdx != 0) {
-        if (conteos[circuloLockIdx] < UMBRAL_FIJO) {
-            ; La cruz enganchada dejó de estar 100% fija — reaccionar YA
-            SendInput "{Space}"
-            circuloLockIdx := 0
-            return true
+        ; Comparar el 3×3 actual contra la foto tomada al engancharse: si UN
+        ; solo píxel cambió de color respecto a entonces, reaccionar YA.
+        actuales := LeerColoresCruz(circuloLockIdx)
+        for i, ref in circuloLockColores {
+            if PixelCambioDeColor(actuales[i], ref, paso.tolerancia) {
+                SendInput "{Space}"
+                circuloLockIdx := 0
+                circuloLockColores := []
+                return true
+            }
         }
         return false
     }
 
-    ; Sin enganche todavía: con UMBRAL_ENGANCHE ya alcanza para "encontrarla"
+    ; Sin enganche todavía: engancha en cuanto una cruz tenga ≥1 acierto y
+    ; fotografía sus 9 colores como referencia para detectar el cambio.
+    conteos := ContarMatchesCruces(paso)
     for idx, ok in conteos {
         if (ok >= UMBRAL_ENGANCHE) {
             circuloLockIdx := idx
+            circuloLockColores := LeerColoresCruz(idx)
             break
         }
     }
@@ -8970,6 +9811,80 @@ EjecutarMacro(*) {
     global ultimoAfkMove
     ultimoAfkMove := A_TickCount   ; watchdog: marca que el AFK acaba de moverse
     accionEnCurso := false
+}
+
+; ═════ CICLO AUTOMÁTICO JUGAR / DESCANSO ═════
+; Tras CICLO_SEG jugando: Alt+F4 a Brawlhalla + descanso de DESCANSO_SEG. Luego vuelve a
+; entrar a Brawlhalla y se repite. Usa marcas de tiempo reales (A_Now) guardadas en el
+; config, así el contador SIGUE IGUAL aunque pares el macro, lo cierres o se crashee.
+TickCicloDescanso() {
+    global cicloActivo, cicloInicio, enDescanso, descansoInicio, activo, CICLO_SEG, DESCANSO_SEG
+    if (!cicloActivo)
+        return
+    if (enDescanso) {
+        if (descansoInicio != "" && DateDiff(A_Now, descansoInicio, "Seconds") >= DESCANSO_SEG) {
+            ; fin del descanso → volver a jugar
+            enDescanso := false
+            cicloInicio := A_Now
+            GuardarCicloEstado()
+            AgregarHistorial(Chr(0x1F3AE) " " TextoDormir(), "00C853")
+            try EnviarWebhookEvento("iniciado")
+            if (!activo)
+                Iniciar()
+        } else if (activo) {
+            Parar()   ; durante el descanso no se juega
+        }
+        return
+    }
+    ; El ciclo arranca cuando el macro empieza a jugar por primera vez
+    if (cicloInicio = "") {
+        if (activo) {
+            cicloInicio := A_Now
+            GuardarCicloEstado()
+        }
+        return
+    }
+    ; ¿se cumplieron las horas de juego? → iniciar descanso
+    if (DateDiff(A_Now, cicloInicio, "Seconds") >= CICLO_SEG)
+        IniciarDescansoCiclo()
+}
+
+IniciarDescansoCiclo() {
+    global enDescanso, descansoInicio, activo, CICLO_SEG, DESCANSO_SEG
+    enDescanso := true
+    descansoInicio := A_Now
+    GuardarCicloEstado()
+    AgregarHistorial(Chr(0x1F4A4) " " TextoDormir(), "FF8800")
+    try EnviarWebhookEvento("altf4")
+    if (activo)
+        Parar()
+    CerrarBrawlhallaAltF4()
+}
+
+; Guarda el estado del ciclo en el config para que sobreviva a cierres/crashes
+GuardarCicloEstado() {
+    global configPath, cicloInicio, enDescanso, descansoInicio
+    try IniWrite(cicloInicio, configPath, "Ciclo", "InicioTS")
+    try IniWrite(descansoInicio, configPath, "Ciclo", "DescansoTS")
+    try IniWrite(enDescanso ? 1 : 0, configPath, "Ciclo", "EnDescanso")
+}
+
+; Alt+F4 real sobre Brawlhalla (con guardia para no cerrar otra ventana por error) +
+; cierre de proceso como respaldo fiable si Alt+F4 no lo cerró.
+CerrarBrawlhallaAltF4() {
+    if (WinExist("ahk_exe Brawlhalla.exe")) {
+        try {
+            WinActivate("ahk_exe Brawlhalla.exe")
+            if (WinWaitActive("ahk_exe Brawlhalla.exe", , 2))
+                Send("!{F4}")
+        }
+        Sleep 1200
+    }
+    if (ProcessExist("Brawlhalla.exe")) {
+        try ProcessClose("Brawlhalla.exe")
+        if (ProcessExist("Brawlhalla.exe"))
+            try Run(A_ComSpec ' /c taskkill /F /IM Brawlhalla.exe', , "Hide")
+    }
 }
 
 ; ===== DETECTOR CIRCULAR DSTV — TICK DE ALTA FRECUENCIA =====
@@ -10270,16 +11185,16 @@ DibujarOverlayPixeles() {
         ; (borde removido — ahora el color del cuadrado ES el color del paso a detectar)
     }
 
-    ; Dibuja una "+" de 5 puntos (centro + arriba/abajo/izquierda/derecha, SIN
-    ; diagonales) — replica visual EXACTA del patrón que vigila el detector
-    ; circular, en las mismas coordenadas de pantalla, para poder calibrar la
-    ; alineación del círculo de 100 cruces a simple vista.
+    ; Dibuja el cuadrado 3×3 de 9 puntos (centro + sus 8 vecinos, CON diagonales)
+    ; — réplica visual EXACTA del patrón que vigila el detector circular, en las
+    ; mismas coordenadas de pantalla, para poder calibrar la alineación del
+    ; círculo de 100 cruces a simple vista.
     DibujarCruz(hDC, cx, cy, rgbColor) {
         global scaleX, scaleY
-        ; Brazos escalados igual que el detector real (ContarMatchesCruces)
+        ; Vecinos escalados igual que el detector real (ContarMatchesCruces)
         bx := Max(1, Round(scaleX))
         by := Max(1, Round(scaleY))
-        offsets := [[0, 0], [0, -by], [0, by], [-bx, 0], [bx, 0]]
+        offsets := OffsetsCuadrado3x3(bx, by)
         tam := 3
 
         r := (rgbColor >> 16) & 0xFF
@@ -10320,7 +11235,7 @@ DibujarOverlayPixeles() {
         colorPaso := paso.HasProp("color") ? paso.color : 0xFF00FF
 
         ; Detector circular dstv: en vez del cuadrado de búsqueda, dibujar las
-        ; 100 cruces "+" exactamente donde el detector real las va a vigilar
+        ; 100 cruces (cuadrados 3×3) exactamente donde el detector real las vigila
         ; (mismas coordenadas de pantalla — sirve para calibrar el radio/centro).
         if (paso.HasProp("circuloDetector") && paso.circuloDetector) {
             PrepararCirculoDetector(paso)
@@ -10421,3 +11336,36 @@ ScrollHistorial(lineas) {
     }
 }
 
+
+; ===== TEST TEMPORAL AUTOMATIZADO (se elimina tras la prueba) =====
+global testTraceOn := false
+if (A_Args.Length && A_Args[1] = "testtemas") {
+    testTraceOn := true
+    SetTimer(TestCicloTemas, 1400)
+}
+
+TestTrace(s) {
+    global testTraceOn
+    if (IsSet(testTraceOn) && testTraceOn)
+        try FileAppend(A_TickCount " " s "`n", A_ScriptDir "\test_trace.log")
+}
+
+TestCicloTemas() {
+    static ciclo := 0
+    global temas, temaActual, temaEnTransicion
+    if (temaEnTransicion)
+        return
+    ciclo++
+    idx := Mod(ciclo + 24, 40) + 1
+    temaActual := idx
+    hProc := DllCall("GetCurrentProcess", "Ptr")
+    gdi := DllCall("GetGuiResources", "Ptr", hProc, "UInt", 0, "UInt")
+    usr := DllCall("GetGuiResources", "Ptr", hProc, "UInt", 1, "UInt")
+    FileAppend(A_Now " ciclo=" ciclo " tema=" idx " (" temas[idx].nombre ") GDI=" gdi " USER=" usr "`n", A_ScriptDir "\test_temas.log")
+    TransicionTema(temas[idx], false)
+    if (ciclo >= 80) {
+        SetTimer(TestCicloTemas, 0)
+        FileAppend("FIN_OK`n", A_ScriptDir "\test_temas.log")
+        ExitApp()
+    }
+}
