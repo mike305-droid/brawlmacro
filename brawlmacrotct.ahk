@@ -20,7 +20,7 @@ configPath := A_ScriptDir "\brawlmacro_config.ini"
 global eggsBackupPath := A_ScriptDir "\brawlmacro_eggs.txt"
 global heartbeatPath := A_ScriptDir "\brawlmacro_heartbeat.txt"
 global historialLogPath := A_ScriptDir "\brawlmacro_historial.log"
-global VERSION_ACTUAL := "30.7.1"
+global VERSION_ACTUAL := "30.7.2"
 
 ; ===== TEMAS =====
 temas := [
@@ -6820,10 +6820,11 @@ TutorialPaginas() {
          . "• Watchdog: un vigilante externo para el macro. Si el macro se congela o se cierra solo, lo vuelve a abrir. Si estaba activo el macro, seguirá activo después de abrirse." },
 
     { ico: Chr(0x1F4A4), tit: "Descanso automático",
-      txt: "Para no jugar 24/7 de seguido, el macro descansa solo:`n`n"
-         . "• Tras 8 horas jugando, cierra Brawlhalla (Alt+F4 una vez) y descansa 1 hora.`n`n"
-         . "• Cuando acaba el descanso, vuelve a entrar a Brawlhalla y sigue jugando. Y se repite.`n`n"
-         . "Abajo en la ventana principal ves cuánto falta. El contador sigue igual aunque pares, cierres o se crashee el macro. Se ajusta (horas/minutos) o se apaga en el config, sección [Ciclo]." },
+      txt: "Para no jugar 24/7 de seguido, el juego descansa solo:`n`n"
+         . "• Tras 8 horas jugando, cierra Brawlhalla (Alt+F4 una vez) y espera 1 hora.`n`n"
+         . "• El macro NO se apaga: se queda encendido en pausa de detección. Al acabar la hora reabre Brawlhalla y sigue solo.`n`n"
+         . "• Si le das a ▶ Iniciar durante el descanso, lo cancelas y empieza un ciclo nuevo de 8h.`n`n"
+         . "El contador sigue igual aunque pares, cierres o se crashee el macro. Se ajusta (horas/minutos) o se apaga en el config, sección [Ciclo]." },
 
     { ico: Chr(0x1F514), tit: "Webhook de Discord",
       txt: "Pega la URL de un webhook de tu servidor y el macro te avisa por Discord de:`n`n"
@@ -6961,10 +6962,10 @@ CerrarTutorial(*) {
 ; ═══════════════════════════════════════════════════════════════
 ParchesPaginas() {
     return [
-    { ico: Chr(0x1F4CB), tit: "Parche 30.7.1 (actual)",
+    { ico: Chr(0x1F4CB), tit: "Parche 30.7.2 (actual)",
       txt: "· Nuevo sistema de velocidad en el macro (🐢/🚶/⚡)`n"
          . "· Cada paso revisa la pantalla a su propio ritmo`n"
-         . "· Descanso: 1 hora y reabre Brawlhalla solo`n"
+         . "· Descanso: 1 hora, reabre Brawlhalla solo y el macro YA NO se apaga`n"
          . "· Libro de parches 📋 separado del tutorial`n"
          . "· Botones del historial ordenados`n"
          . "· 25 temas mejorados o rediseñados`n"
@@ -9867,10 +9868,20 @@ ActualizarCooldowns(*) {
 
 ActualizarAFK(*) {
     global ultimoCambio, afkText, colorAFK, rgbActivo, modoDestruccion
-    global timerLabel, colorTextoPrincipal, afkAlertaFlash, perfilActivo
+    global timerLabel, colorTextoPrincipal, afkAlertaFlash, perfilActivo, enDescanso
     ; En modo frt y dstv no hay anti-AFK ni modo destruccion
     if (perfilActivo = 3 || perfilActivo = 4)
         return
+    ; Durante el descanso del ciclo NO se arma el modo destrucción ni el anti-AFK
+    ; (el contador lleva parado a propósito desde el Alt+F4) — solo mostrar cuánto falta.
+    if (enDescanso) {
+        texto := Chr(0x1F4A4) " " TextoDormir()
+        if (afkText.Value != texto)
+            afkText.Value := texto
+        if (!rgbActivo)
+            afkText.Opt("c" colorAFK)
+        return
+    }
     tiempo := A_TickCount - ultimoCambio
     restante := 360000 - tiempo
 
@@ -10400,7 +10411,7 @@ EjecutarMacro(*) {
     global ultimoPasoEjecutado
     global modoDestruccion, contadorDestruccion
     global tiempoUltimoLanzamiento
-    global ultimoAfkMove, ultimaDeteccionReal, perfilActivo
+    global ultimoAfkMove, ultimaDeteccionReal, perfilActivo, enDescanso
     static PASOS_ENTRE_PRIO := 5   ; CheckPrioridad cada N pasos normales revisados
 
     ; Proof-of-life para el watchdog ANTES de cualquier return.
@@ -10408,6 +10419,12 @@ EjecutarMacro(*) {
     ; del guard porque si accionEnCurso o BloqueoGlobalActivo nos hacen salir
     ; temprano, el ultimoAfkMove tampoco se actualizaba → watchdog Reload() falso.
     ultimoAfkMove := A_TickCount
+
+    ; Descanso del ciclo: el macro sigue ENCENDIDO, pero con la detección en
+    ; pausa — el juego está cerrado a propósito, así que no hay nada que
+    ; detectar, ni anti-AFK, ni modo destrucción, ni relanzamientos.
+    if (enDescanso)
+        return
 
     if (!activo || accionEnCurso || BloqueoGlobalActivo())
         return
@@ -10662,25 +10679,37 @@ EjecutarMacro(*) {
 ; config, así el contador SIGUE IGUAL aunque pares el macro, lo cierres o se crashee.
 TickCicloDescanso() {
     global cicloActivo, cicloInicio, enDescanso, descansoInicio, activo, CICLO_SEG, DESCANSO_SEG
-    global brawlhallaLanzado
+    global brawlhallaLanzado, ultimoCambio, ultimaDeteccionReal, tiempoUltimoLanzamiento, modoDestruccion
     if (!cicloActivo)
         return
     if (enDescanso) {
-        if (descansoInicio != "" && DateDiff(A_Now, descansoInicio, "Seconds") >= DESCANSO_SEG) {
-            ; fin del descanso → volver a jugar
+        ; Durante el descanso el macro NO se apaga: sigue encendido en pausa de
+        ; detección (gates de enDescanso en EjecutarMacro/ActualizarAFK/frt/dstv).
+        ; Solo el juego está cerrado. Guardia anti-bloqueo: si el timestamp del
+        ; descanso se perdió, terminarlo ya en vez de quedarse dormido para siempre.
+        if (descansoInicio = "" || DateDiff(A_Now, descansoInicio, "Seconds") >= DESCANSO_SEG) {
+            ; fin del descanso → reabrir Brawlhalla y seguir jugando
             enDescanso := false
             cicloInicio := A_Now
             GuardarCicloEstado()
             AgregarHistorial(Chr(0x1F3AE) " " TextoDormir(), "00C853")
             try EnviarWebhookEvento("iniciado")
-            ; Resetear el flag de "ya lancé Brawlhalla" — sin esto, Iniciar()
-            ; salta el lanzamiento (el flag quedó en true de la sesión de juego
-            ; anterior) y el juego no se reabre hasta el respaldo de 7 min.
+            ; Resetear el flag de "ya lancé Brawlhalla" — sin esto el lanzamiento
+            ; se salta (quedó en true de la sesión anterior) y el juego no se
+            ; reabre hasta el respaldo de 7 min.
             brawlhallaLanzado := false
-            if (!activo)
+            if (activo) {
+                ; El macro siguió encendido durante la hora de descanso → los
+                ; contadores llevan 1h congelados: resetearlos para que el
+                ; anti-AFK/destrucción no salten al instante, y relanzar el juego.
+                ultimoCambio := A_TickCount
+                ultimaDeteccionReal := A_TickCount
+                tiempoUltimoLanzamiento := A_TickCount
+                modoDestruccion := false
+                LanzarJuegoDelPerfil()
+            } else {
                 Iniciar()
-        } else if (activo) {
-            Parar()   ; durante el descanso no se juega
+            }
         }
         return
     }
@@ -10704,8 +10733,8 @@ IniciarDescansoCiclo() {
     GuardarCicloEstado()
     AgregarHistorial(Chr(0x1F4A4) " " TextoDormir(), "FF8800")
     try EnviarWebhookEvento("altf4")
-    if (activo)
-        Parar()
+    ; OJO: el macro NO se para — solo se cierra el juego con Alt+F4. La detección
+    ; queda en pausa por el gate de enDescanso y se reanuda sola al acabar la hora.
     CerrarBrawlhallaAltF4()
 }
 
@@ -10742,9 +10771,9 @@ CerrarBrawlhallaAltF4() {
 ; principal — clave para reaccionar "al instante" cuando la cruz cambia.
 TickCirculoDetectorDstv() {
     global activo, perfilActivo, pasosNormales
-    global ultimoCambio, ultimaDeteccionReal
+    global ultimoCambio, ultimaDeteccionReal, enDescanso
 
-    if (!activo || perfilActivo != 4)
+    if (!activo || perfilActivo != 4 || enDescanso)
         return
 
     paso := 0
@@ -11465,8 +11494,8 @@ global brawlhallaLanzado := false
 ; ===== MODO FRT — spam clicks + cycle de teclas =====
 ; FrtClick: timer cada 50ms → 20 clicks/seg en (frtClickX, frtClickY)
 FrtClick() {
-    global activo, perfilActivo, frtClickX, frtClickY, scaleX, scaleY
-    if (!activo || perfilActivo != 3)
+    global activo, perfilActivo, frtClickX, frtClickY, scaleX, scaleY, enDescanso
+    if (!activo || perfilActivo != 3 || enDescanso)
         return
     x := Round(frtClickX * scaleX)
     y := Round(frtClickY * scaleY)
@@ -11476,8 +11505,8 @@ FrtClick() {
 
 ; FrtKeyCycle: timer cada 150ms → cicla teclas 1,2,3,4,5,6,7
 FrtKeyCycle() {
-    global activo, perfilActivo, frtTeclas, frtIdxTecla
-    if (!activo || perfilActivo != 3)
+    global activo, perfilActivo, frtTeclas, frtIdxTecla, enDescanso
+    if (!activo || perfilActivo != 3 || enDescanso)
         return
     if (frtIdxTecla < 1 || frtIdxTecla > frtTeclas.Length)
         frtIdxTecla := 1
@@ -11589,9 +11618,9 @@ LanzarBrawlhalla_TypeName() {
 }
 
 CheckBrawlhallaMinimizado() {
-    global activo, perfilActivo
-    ; frt (3) y dstv (4) no manejan Brawlhalla
-    if (!activo || perfilActivo = 3 || perfilActivo = 4)
+    global activo, perfilActivo, enDescanso
+    ; frt (3) y dstv (4) no manejan Brawlhalla; en descanso el juego está cerrado a propósito
+    if (!activo || perfilActivo = 3 || perfilActivo = 4 || enDescanso)
         return
     try {
         if !ProcessExist("Brawlhalla.exe")
@@ -11612,6 +11641,16 @@ Iniciar(*) {
     global pulsoBrilloDir, pulsoBrilloT, logosPulsoDir, logosPulsoT, colorBarra
     global logoVelObjetivo, logoVelMax
     global histUltimoTexto
+    global enDescanso, cicloInicio, descansoInicio
+    ; Si el usuario inicia DURANTE el descanso del ciclo, manda el usuario:
+    ; se cancela el descanso y arranca un ciclo de juego nuevo de 8h.
+    if (enDescanso) {
+        enDescanso := false
+        cicloInicio := A_Now
+        descansoInicio := ""
+        GuardarCicloEstado()
+        AgregarHistorial(Chr(0x23F0) " Descanso cancelado a mano — nuevo ciclo de 8h", "FF8800")
+    }
     activo := true
     logoVelObjetivo := logoVelMax
     ultimoCambio := A_TickCount
