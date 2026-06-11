@@ -20,7 +20,7 @@ configPath := A_ScriptDir "\brawlmacro_config.ini"
 global eggsBackupPath := A_ScriptDir "\brawlmacro_eggs.txt"
 global heartbeatPath := A_ScriptDir "\brawlmacro_heartbeat.txt"
 global historialLogPath := A_ScriptDir "\brawlmacro_historial.log"
-global VERSION_ACTUAL := "30.7.0"
+global VERSION_ACTUAL := "30.7.1"
 
 ; ===== TEMAS =====
 temas := [
@@ -6961,7 +6961,7 @@ CerrarTutorial(*) {
 ; ═══════════════════════════════════════════════════════════════
 ParchesPaginas() {
     return [
-    { ico: Chr(0x1F4CB), tit: "Parche 30.7.0 (actual)",
+    { ico: Chr(0x1F4CB), tit: "Parche 30.7.1 (actual)",
       txt: "· Nuevo sistema de velocidad en el macro (🐢/🚶/⚡)`n"
          . "· Cada paso revisa la pantalla a su propio ritmo`n"
          . "· Descanso: 1 hora y reabre Brawlhalla solo`n"
