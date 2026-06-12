@@ -20,7 +20,7 @@ configPath := A_ScriptDir "\brawlmacro_config.ini"
 global eggsBackupPath := A_ScriptDir "\brawlmacro_eggs.txt"
 global heartbeatPath := A_ScriptDir "\brawlmacro_heartbeat.txt"
 global historialLogPath := A_ScriptDir "\brawlmacro_historial.log"
-global VERSION_ACTUAL := "30.7.3"
+global VERSION_ACTUAL := "30.7.4"
 
 ; ===== TEMAS =====
 temas := [
@@ -288,6 +288,7 @@ global rgbPreviewCtrl := ""
 global overlayPixeles := "", overlayVisible := false
 global miGui, barra, barraHistorial, logoMacro, tituloMacro, timerLabel
 global miniGui := "", modoMini := false, logoMacroMini := "", miniSubclassCb := 0
+global miniHistLabel := "", miniHistBuffer := []   ; mini historial del modo mini (últimas 3 líneas)
 global barraMini := "", miniBarraSubclassCb := 0
 global overlayPartMini := "", particulasMini := [], overlayDecoMini := "", overlayDecoMiniSubCb := 0
 global btnIniciar, btnParar, btnCodigo, btnReset, btnHistorial, btnTema, btnMin, btnClose, btnUpdate, btnOverlay, btnRGBBtn, btnStatsBtn, btnWebhook, btnLogros, btnPart, btnPerfil, btnMini, btnOptimizar, btnTutorial, btnVelocidad, btnParches
@@ -1247,7 +1248,7 @@ InstalarSubclassMiniLogo() {
 }
 
 ToggleMiniMode(*) {
-    global modoMini, miGui, historialGui, historialVisible, miniGui, logoMacroMini, barraMini
+    global modoMini, miGui, historialGui, historialVisible, miniGui, logoMacroMini, barraMini, miniHistLabel
     global colorFondoPrincipal, colorBarra, colorTextoBarra, colorBotonNormal, colorBtnTexto, colorLogoMacro
     global overlayPartMain, overlayPartHist, miniBarraSubclassCb
     global overlayPartMini, particulasMini, overlayDecoMini, overlayDecoraciones, configPath
@@ -1266,6 +1267,7 @@ ToggleMiniMode(*) {
         miniGui := ""
         logoMacroMini := ""
         barraMini := ""
+        miniHistLabel := ""
         miGui.Show()
         if (historialVisible)
             historialGui.Show()
@@ -1305,7 +1307,8 @@ CrearMiniGui(posX, posY) {
     global overlayPartMini, particulasMini, particulasActivas
     global overlayDecoMini, overlayDecoMiniSubCb, DECO_COLORKEY_HEX, DECO_COLORKEY_BGR
     global btnMiniIniciar, btnMiniParar, btnMiniCerrar, rgbBotones, colorRGBActual
-    static MINI_W := 120, MINI_H := 140, BAR_H := 25, MINI_OVL_H := 85
+    global miniHistLabel, miniHistBuffer, colorTextoPrincipal
+    static MINI_W := 120, MINI_H := 186, BAR_H := 25, MINI_OVL_H := 85
 
     miniGui := Gui("+AlwaysOnTop -Caption +ToolWindow")
     miniGui.BackColor := colorFondoPrincipal
@@ -1316,24 +1319,38 @@ CrearMiniGui(posX, posY) {
     barraMini.OnEvent("Click", ArrastrarMiniVentana)
     barraMini.OnEvent("DoubleClick", ToggleMiniMode)   ; doble clic = restaurar ventana grande
 
+    ; ✕ Cerrar en la ESQUINA de la barra (encima de ella, como el 📖 del historial)
+    btnMiniCerrar := miniGui.Add("Text", "x" (MINI_W - 21) " y3 w18 h19 +0x201 Center Background" colorBarra " c" colorTextoBarra, Chr(215))
+    btnMiniCerrar.SetFont("s10 c" colorTextoBarra " Bold", "Segoe UI")
+    btnMiniCerrar.OnEvent("Click", Cerrar)
+    DllCall("SetWindowPos", "Ptr", btnMiniCerrar.Hwnd, "Ptr", 0, "Int", 0, "Int", 0, "Int", 0, "Int", 0, "UInt", 0x13)
+    ; WS_CLIPSIBLINGS en barraMini: su repintado (shimmer) taparía la ✕ sin esto
+    estiloBarraMini := DllCall("GetWindowLong", "Ptr", barraMini.Hwnd, "Int", -16, "Int")
+    DllCall("SetWindowLong", "Ptr", barraMini.Hwnd, "Int", -16, "Int", estiloBarraMini | 0x04000000)
+
     ; Logo giratorio — MISMA posición (la decoración mini sigue centrada en él)
     logoMacroMini := miniGui.Add("Text", "x15 y" (BAR_H + 5) " w80 h80 Center BackgroundTrans c" colorLogoMacro " +0x1", Chr(9881))
     logoMacroMini.SetFont("s48 c" colorLogoMacro " Bold", "Segoe UI Symbol")
     InstalarSubclassMiniLogo()
 
-    ; ── 3 botones abajo: ▶ Iniciar · ■ Parar · ✕ Cerrar (salir del macro) ──
-    btnMiniIniciar := miniGui.Add("Text", "x6 y114 w46 h22 +0x201 Center Background" colorBotonNormal " c" colorBtnTexto, Chr(9654))
-    btnMiniParar   := miniGui.Add("Text", "x54 y114 w40 h22 +0x201 Center Background" colorBotonNormal " c" colorBtnTexto, Chr(9632))
-    btnMiniCerrar  := miniGui.Add("Text", "x96 y114 w18 h22 +0x201 Center Background" colorBotonNormal " c" colorBtnTexto, Chr(215))
-    for b in [btnMiniIniciar, btnMiniParar, btnMiniCerrar]
-        b.SetFont("s11 c" colorBtnTexto " Bold", "Segoe UI Symbol")
+    ; ── 2 botones pequeños centrados: ▶ Iniciar · ■ Parar ──
+    btnMiniIniciar := miniGui.Add("Text", "x27 y114 w30 h18 +0x201 Center Background" colorBotonNormal " c" colorBtnTexto, Chr(9654))
+    btnMiniParar   := miniGui.Add("Text", "x63 y114 w30 h18 +0x201 Center Background" colorBotonNormal " c" colorBtnTexto, Chr(9632))
+    for b in [btnMiniIniciar, btnMiniParar]
+        b.SetFont("s9 c" colorBtnTexto " Bold", "Segoe UI Symbol")
     btnMiniIniciar.OnEvent("Click", Iniciar)
     btnMiniParar.OnEvent("Click", Parar)
-    btnMiniCerrar.OnEvent("Click", Cerrar)
     RegistrarHover(btnMiniIniciar, () => (rgbBotones ? colorRGBActual : colorBotonNormal))
     RegistrarHover(btnMiniParar,   () => (rgbBotones ? colorRGBActual : colorBotonNormal),
                                    () => MezclarHex(colorCooldown, colorBotonNormal, 0.45))
-    RegistrarHover(btnMiniCerrar,  () => (rgbBotones ? colorRGBActual : colorBotonNormal), () => "C42B1C")
+    RegistrarHover(btnMiniCerrar,  () => colorBarra, () => "C42B1C")
+
+    ; ── Mini historial: últimas 3 líneas de lo que va haciendo el macro ──
+    txtIni := ""
+    for ln in miniHistBuffer
+        txtIni .= (txtIni = "" ? "" : "`n") ln
+    miniHistLabel := miniGui.Add("Text", "x6 y138 w" (MINI_W - 12) " h42 c" colorTextoPrincipal " Background" colorFondoPrincipal, txtIni)
+    miniHistLabel.SetFont("s7", "Segoe UI")
 
     ; Instalar subclass de ondas en la barra mini (mismo efecto que la barra principal).
     ; El callback se crea UNA vez y se reutiliza en cada recreación del mini —
@@ -1975,8 +1992,9 @@ ActualizarParticulas() {
         }
         ; Excluir el rect del scrollbar custom (x=243 w=17, y=35 h=110 en historialGui →
         ; en coords del overlay: y = 35 - BAR_H = 10). Así las partículas no pintan sobre el thumb.
+        ; conEscena=true: el historial también lleva la decoración del tema.
         PintarOverlayParticulas(overlayPartHist.Hwnd, hw, targetH, particulasHist,
-            { x: 243, y: 35 - BAR_H, w: 17, h: 110 })
+            { x: 243, y: 35 - BAR_H, w: 17, h: 110 }, true)
     }
 
     ; ── Partículas + decoraciones del mini mode ──
@@ -5222,6 +5240,10 @@ SetTimer(SukunaAutoDismantle, 4000)
 
 ; Ciclo automático jugar/descanso (8 h jugar → Alt+F4 + 1 h descanso → relanzar). Cada 30 s.
 SetTimer(TickCicloDescanso, 30000)
+; Guardado periódico de stats (horas/secuencias/destrucciones): antes SOLO se
+; guardaban al cerrar con la ✕ o al reiniciar — si el watchdog mataba el proceso
+; o había un crash, la sesión entera se perdía (por eso las secuencias se quedaban en 0).
+SetTimer(GuardarStats, 300000)
 
 SetTimer(EscribirHeartbeat, 5000) ; cada 5 s escribe pid + timestamp en heartbeat.txt para el watchdog externo
 EscribirHeartbeat()              ; un primer write inmediato
@@ -6983,8 +7005,12 @@ CerrarTutorial(*) {
 ; ═══════════════════════════════════════════════════════════════
 ParchesPaginas() {
     return [
-    { ico: Chr(0x1F4CB), tit: "Parche 30.7.3 (actual)",
+    { ico: Chr(0x1F4CB), tit: "Parche 30.7.4 (actual)",
       txt: "· Webhook arreglado: secuencias ya se cuentan y se avisan`n"
+         . "· Stats se guardan cada 5 min (ya no se pierden con crashes)`n"
+         . "· Relanzamiento en bucle: reintenta abrir el juego cada 30s`n"
+         . "· Modo mini: botones más pequeños, ✕ en la esquina y mini historial`n"
+         . "· El historial también lleva la decoración del tema`n"
          . "· Nuevo sistema de velocidad en el macro (🐢/🚶/⚡)`n"
          . "· Cada paso revisa la pantalla a su propio ritmo`n"
          . "· Descanso: 1 hora, reabre Brawlhalla solo y el macro YA NO se apaga`n"
@@ -9708,12 +9734,24 @@ GuardarHistorialLog(texto) {
 AgregarHistorial(texto, CH := "") {
     global historialBox, histUltimoTexto, histUltimoCount, histUltimoLongLinea
     global contadorAcciones, histFlashStep
+    global modoMini, miniHistLabel, miniHistBuffer
     local hora := FormatTime(A_Now, "HH:mm:ss")
     local colorHex := (CH != "" ? CH : ObtenerColorHistorial())
 
     ; Guardar SIEMPRE en archivo de log persistente (con fecha completa)
     ; Asi se puede revisar despues que paso si Brawlhalla se cerro misteriosamente.
     GuardarHistorialLog(texto)
+
+    ; Mini historial del modo mini: últimas 3 líneas, recortadas para que quepan
+    miniHistBuffer.Push(SubStr(texto, 1, 26))
+    if (miniHistBuffer.Length > 3)
+        miniHistBuffer.RemoveAt(1)
+    if (modoMini && IsObject(miniHistLabel)) {
+        local txtMini := ""
+        for ln in miniHistBuffer
+            txtMini .= (txtMini = "" ? "" : "`n") ln
+        try miniHistLabel.Value := txtMini
+    }
 
     ; Limitar historial a ~5000 líneas para evitar que el RichEdit colapse
     ; tras muchas horas de uso. Cada ~500 entradas comprobamos y recortamos.
@@ -11640,6 +11678,11 @@ LanzarBrawlhalla_TypeName() {
         return
     }
     try SendInput "{Enter}"
+    ; BUCLE de reintento: si en 30s sigue sin detectar nada, repetir la secuencia
+    ; Win + "brawlhalla" + Enter, y así hasta que el juego esté abierto de verdad.
+    ; (CheckYEnfocar aborta solo si hay detección o si paran el macro, y Parar()
+    ; cancela este timer — no se queda colgado.)
+    SetTimer(LanzarBrawlhalla_CheckYEnfocar, -30000)
 }
 
 CheckBrawlhallaMinimizado() {
