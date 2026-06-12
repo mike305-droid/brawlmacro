@@ -20,7 +20,7 @@ configPath := A_ScriptDir "\brawlmacro_config.ini"
 global eggsBackupPath := A_ScriptDir "\brawlmacro_eggs.txt"
 global heartbeatPath := A_ScriptDir "\brawlmacro_heartbeat.txt"
 global historialLogPath := A_ScriptDir "\brawlmacro_historial.log"
-global VERSION_ACTUAL := "30.7.7"
+global VERSION_ACTUAL := "30.7.8"
 
 ; ===== TEMAS =====
 temas := [
@@ -264,6 +264,11 @@ global frtIdxTecla := 1   ; indice de la tecla actual (rota automaticamente)
 global histUltimoTexto := "", histUltimoCount := 0, histUltimoLongLinea := 0
 global separadorHistorial := ""
 global ultimoScrollManual := 0   ; última vez que el usuario movió la rueda en el historial
+; ── Estimador de oro/XP ──
+; Base real: una partida de 9 min da ~280 XP y ~70 monedas. Con el macro las
+; partidas duran ~3 min → regla de 3: cada secuencia ≈ 93 XP y ≈ 23 monedas.
+; Ajustable en el config, sección [Estimador].
+global estXpPartida := 280, estOroPartida := 70, estMinReal := 9, estMinMacro := 3
 global temaTransTema := "", temaTransGuardar := true, temaEnTransicion := false
 global temaGuiVisible := false, temaGui := ""
 global temaBotones := [], temaScrollOffset := 0, temasVisiblesGlobal := []
@@ -466,6 +471,28 @@ CargarStats() {
     totalDestruccionGuardada := Integer(IniRead(configPath, "Stats", "Destruccion", "0"))
 }
 
+; ===== ESTIMADOR DE ORO/XP (regla de 3 sobre la partida real de 9 min) =====
+XpPorSecuencia() {
+    global estXpPartida, estMinReal, estMinMacro
+    return estXpPartida * estMinMacro / Max(1, estMinReal)
+}
+
+OroPorSecuencia() {
+    global estOroPartida, estMinReal, estMinMacro
+    return estOroPartida * estMinMacro / Max(1, estMinReal)
+}
+
+; "12345" → "12.345" (separador de miles)
+FormatearMiles(n) {
+    s := String(Round(n))
+    out := ""
+    while (StrLen(s) > 3) {
+        out := "." SubStr(s, -3) out
+        s := SubStr(s, 1, StrLen(s) - 3)
+    }
+    return s out
+}
+
 GuardarStats() {
     global configPath, totalHorasGuardadas, totalSecuenciasGuardadas, totalDestruccionGuardada
     global tiempoAcumulado, tiempoInicio, timerActivo, contadorSecuencias
@@ -532,36 +559,64 @@ MostrarEstadisticas(*) {
     ; Separador
     sg.Add("Text", "x35 y92 w" (W - 70) " h1 Background" MezclarHex(colorBarra, colorFondoPrincipal, 0.55), "")
 
-    ; Bloque secuencias
+    ; ── Estimador de oro/XP (regla de 3: 9min = 280xp/70oro → 3min por secuencia) ──
     halfW := Round(W / 2)
-    lblSHdr := sg.Add("Text", "x10 y102 w" (halfW - 10) " h14 Center BackgroundTrans c" colorTextoPrincipal, "Secuencias")
-    lblSHdr.SetFont("s8", "Segoe UI")
-    lblS := sg.Add("Text", "x10 y118 w" (halfW - 10) " h26 Center BackgroundTrans c" colorHist2, totalS)
-    lblS.SetFont("s15 Bold", "Segoe UI Semibold")
+    oroEst  := Round(totalS * OroPorSecuencia())
+    xpEst   := Round(totalS * XpPorSecuencia())
+    oroHora := Round(seqHora * OroPorSecuencia())
 
-    ; Bloque destrucciones
-    lblDHdr := sg.Add("Text", "x" halfW " y102 w" (halfW - 10) " h14 Center BackgroundTrans c" colorTextoPrincipal, "Destrucciones")
-    lblDHdr.SetFont("s8", "Segoe UI")
-    lblD := sg.Add("Text", "x" halfW " y118 w" (halfW - 10) " h26 Center BackgroundTrans c" colorCooldown, totalD)
-    lblD.SetFont("s15 Bold", "Segoe UI Semibold")
+    ; Bloque oro total estimado / oro por hora
+    lblOHdr := sg.Add("Text", "x10 y102 w" (halfW - 10) " h14 Center BackgroundTrans c" colorTextoPrincipal, "Oro total estimado")
+    lblOHdr.SetFont("s8", "Segoe UI")
+    lblO := sg.Add("Text", "x10 y118 w" (halfW - 10) " h26 Center BackgroundTrans c" colorHist2, Chr(0x1FA99) " ~" FormatearMiles(oroEst))
+    lblO.SetFont("s15 Bold", "Segoe UI Semibold")
+    lblOHHdr := sg.Add("Text", "x" halfW " y102 w" (halfW - 10) " h14 Center BackgroundTrans c" colorTextoPrincipal, "Oro / hora")
+    lblOHHdr.SetFont("s8", "Segoe UI")
+    lblOH := sg.Add("Text", "x" halfW " y118 w" (halfW - 10) " h26 Center BackgroundTrans c" colorHist2, Chr(0x1FA99) " ~" FormatearMiles(oroHora))
+    lblOH.SetFont("s15 Bold", "Segoe UI Semibold")
 
     ; Separador
     sg.Add("Text", "x35 y152 w" (W - 70) " h1 Background" MezclarHex(colorBarra, colorFondoPrincipal, 0.55), "")
 
-    ; Sesión actual
-    lblSesHdr := sg.Add("Text", "x16 y162 w" (W - 32) " h14 Center BackgroundTrans c" colorTextoPrincipal, "Sesión actual")
+    ; Bloque secuencias
+    lblSHdr := sg.Add("Text", "x10 y162 w" (halfW - 10) " h14 Center BackgroundTrans c" colorTextoPrincipal, "Secuencias")
+    lblSHdr.SetFont("s8", "Segoe UI")
+    lblS := sg.Add("Text", "x10 y178 w" (halfW - 10) " h26 Center BackgroundTrans c" colorHist2, totalS)
+    lblS.SetFont("s15 Bold", "Segoe UI Semibold")
+
+    ; Bloque destrucciones
+    lblDHdr := sg.Add("Text", "x" halfW " y162 w" (halfW - 10) " h14 Center BackgroundTrans c" colorTextoPrincipal, "Destrucciones")
+    lblDHdr.SetFont("s8", "Segoe UI")
+    lblD := sg.Add("Text", "x" halfW " y178 w" (halfW - 10) " h26 Center BackgroundTrans c" colorCooldown, totalD)
+    lblD.SetFont("s15 Bold", "Segoe UI Semibold")
+
+    ; Separador
+    sg.Add("Text", "x35 y212 w" (W - 70) " h1 Background" MezclarHex(colorBarra, colorFondoPrincipal, 0.55), "")
+
+    ; XP estimada (fila completa)
+    lblXHdr := sg.Add("Text", "x16 y222 w" (W - 32) " h14 Center BackgroundTrans c" colorTextoPrincipal, "XP estimada")
+    lblXHdr.SetFont("s8", "Segoe UI")
+    lblX := sg.Add("Text", "x16 y238 w" (W - 32) " h24 Center BackgroundTrans c" colorHist1, Chr(0x2B50) " ~" FormatearMiles(xpEst))
+    lblX.SetFont("s13 Bold", "Segoe UI Semibold")
+
+    ; Separador
+    sg.Add("Text", "x35 y268 w" (W - 70) " h1 Background" MezclarHex(colorBarra, colorFondoPrincipal, 0.55), "")
+
+    ; Sesión actual (con oro estimado de la sesión)
+    oroSes := Round(contadorSecuencias * OroPorSecuencia())
+    lblSesHdr := sg.Add("Text", "x16 y278 w" (W - 32) " h14 Center BackgroundTrans c" colorTextoPrincipal, "Sesión actual")
     lblSesHdr.SetFont("s8 Italic", "Segoe UI")
-    lblSes := sg.Add("Text", "x16 y178 w" (W - 32) " h20 Center BackgroundTrans c" colorTextoPrincipal,
-        Chr(0x1F4C5) " " sesMin " min  •  " contadorSecuencias " seqs  •  " seqHora "/h")
+    lblSes := sg.Add("Text", "x16 y294 w" (W - 32) " h20 Center BackgroundTrans c" colorTextoPrincipal,
+        Chr(0x1F4C5) " " sesMin " min  •  " contadorSecuencias " seqs  •  " seqHora "/h  •  ~" FormatearMiles(oroSes) " oro")
     lblSes.SetFont("s9 Bold", "Segoe UI")
 
     ; Botón exportar
-    btnExp := sg.Add("Text", "x16 y210 w" (W - 32) " h32 +0x201 Background" colorBotonNormal " c" colorBtnTexto " Center", Chr(128190) "  Exportar sesión")
+    btnExp := sg.Add("Text", "x16 y326 w" (W - 32) " h32 +0x201 Background" colorBotonNormal " c" colorBtnTexto " Center", Chr(128190) "  Exportar sesión")
     btnExp.SetFont("s10 c" colorBtnTexto " Bold", "Segoe UI Semibold")
     btnExp.OnEvent("Click", ExportarSesion)
     RegistrarHover(btnExp, () => colorBotonNormal)
 
-    sg.Show("w" W " h254 Center")
+    sg.Show("w" W " h370 Center")
     RedondearVentana(sg.Hwnd, 14)
     RegistrarAutoCierre(sg, CerrarStatsGui)
 }
@@ -5037,6 +5092,12 @@ if (velocidadPasos < 1 || velocidadPasos > 3)
     velocidadPasos := 2
 try btnVelocidad.Value := EmojiVelocidad()
 
+; Estimador de oro/XP (ajustable a mano en el config si cambian los valores del juego)
+estXpPartida  := Integer(IniRead(configPath, "Estimador", "XpPartida9min",   "280"))
+estOroPartida := Integer(IniRead(configPath, "Estimador", "OroPartida9min",  "70"))
+estMinReal    := Integer(IniRead(configPath, "Estimador", "MinPartidaReal",  "9"))
+estMinMacro   := Integer(IniRead(configPath, "Estimador", "MinPartidaMacro", "3"))
+
 ; Cargar config de partículas
 particulasActivas   := Integer(IniRead(configPath, "Particulas", "Activas",    "1")) = 1
 particulasCantidad  := Integer(IniRead(configPath, "Particulas", "Cantidad",   "100"))
@@ -6268,7 +6329,8 @@ EnviarWebhookEvento(tipo) {
                 "FF2222")
         case "secuencia":
             EnviarWebhook(Chr(0x2705) " Secuencia completada",
-                "Secuencia completada: " contadorSecuencias " (sesión)`nTotal: " secs,
+                "Secuencia completada: " contadorSecuencias " (sesión)`nTotal: " secs
+                . "`nEstimado total: ~" FormatearMiles(Round(secs * OroPorSecuencia())) " oro · ~" FormatearMiles(Round(secs * XpPorSecuencia())) " XP",
                 "00AAFF")
     }
 }
@@ -6865,7 +6927,7 @@ TutorialPaginas() {
          . "Puedes activar o desactivar cada tipo de aviso por separado." },
 
     { ico: Chr(0x1F3C6), tit: "Logros y estadísticas",
-      txt: "• 📊 Stats: horas totales, secuencias, destrucciones, críticos y más.`n`n"
+      txt: "• 📊 Stats: horas totales, secuencias, destrucciones y el ORO y XP estimados que llevas farmeados (calculado por secuencias: cada partida de ~3 min da ~23 monedas y ~93 XP; se ajusta en el config, sección [Estimador]).`n`n"
          . "• 🏆 Logros: se desbloquean solos al cumplir retos (tu 1ª secuencia, 100 secuencias, 24 horas, 10 destrucciones...).`n`n"
          . "Algunos logros son SECRETOS y solo muestran una pista — descúbrelos tú mismo." },
 
@@ -6992,8 +7054,9 @@ CerrarTutorial(*) {
 ; ═══════════════════════════════════════════════════════════════
 ParchesPaginas() {
     return [
-    { ico: Chr(0x1F4CB), tit: "Parche 30.7.7 (actual)",
-      txt: "· Scroller del historial eliminado: rueda y listo, como el panel de temas`n"
+    { ico: Chr(0x1F4CB), tit: "Parche 30.7.8 (actual)",
+      txt: "· Estimador de oro y XP en 📊 Stats y en el webhook`n"
+         . "· Scroller del historial eliminado: rueda y listo, como el panel de temas`n"
          . "· Lo nuevo SIEMPRE arriba; si lees con la rueda te respeta 10s`n"
          . "· Dormir/anti-AFK/destrucción son SOLO para tct y sp`n"
          . "· Webhook arreglado: secuencias ya se cuentan y se avisan`n"
