@@ -20,7 +20,7 @@ configPath := A_ScriptDir "\brawlmacro_config.ini"
 global eggsBackupPath := A_ScriptDir "\brawlmacro_eggs.txt"
 global heartbeatPath := A_ScriptDir "\brawlmacro_heartbeat.txt"
 global historialLogPath := A_ScriptDir "\brawlmacro_historial.log"
-global VERSION_ACTUAL := "30.7.4"
+global VERSION_ACTUAL := "30.7.5"
 
 ; ===== TEMAS =====
 temas := [
@@ -5259,7 +5259,8 @@ try {
 
 ; Si la instancia anterior se reinició por watchdog, auto-arrancar el macro.
 ; Pequeño delay para que la GUI termine de asentarse antes de Iniciar().
-if (!enDescanso && IniRead(configPath, "Watchdog", "AutoStart", "0") = "1") {
+; El descanso solo bloquea el auto-arranque en tct/sp — en frt/dstv el ciclo no aplica.
+if ((!enDescanso || perfilActivo = 3 || perfilActivo = 4) && IniRead(configPath, "Watchdog", "AutoStart", "0") = "1") {
     try IniDelete(configPath, "Watchdog", "AutoStart")  ; consumir flag (single-shot)
     SetTimer(() => Iniciar(), -1500)
 }
@@ -7005,8 +7006,10 @@ CerrarTutorial(*) {
 ; ═══════════════════════════════════════════════════════════════
 ParchesPaginas() {
     return [
-    { ico: Chr(0x1F4CB), tit: "Parche 30.7.4 (actual)",
-      txt: "· Webhook arreglado: secuencias ya se cuentan y se avisan`n"
+    { ico: Chr(0x1F4CB), tit: "Parche 30.7.5 (actual)",
+      txt: "· Scroller del historial arreglado de verdad (ya no te roba la vista)`n"
+         . "· Dormir/anti-AFK/destrucción son SOLO para tct y sp`n"
+         . "· Webhook arreglado: secuencias ya se cuentan y se avisan`n"
          . "· Stats se guardan cada 5 min (ya no se pierden con crashes)`n"
          . "· Relanzamiento en bucle: reintenta abrir el juego cada 30s`n"
          . "· Modo mini: botones más pequeños, ✕ en la esquina y mini historial`n"
@@ -8764,6 +8767,7 @@ NombrePerfil(idx := 0) {
 ; Cicla 1 → 2 → 3 → 4 → 1 → ...
 CambiarPerfil(*) {
     global perfilActivo, btnPerfil, configPath, brawlhallaLanzado
+    global ultimoCambio, modoDestruccion, tiempoUltimoLanzamiento, ultimoPasoEjecutado
     perfilActivo := (perfilActivo >= 4) ? 1 : perfilActivo + 1
     btnPerfil.Value := EmojiPerfil()
     DllCall("InvalidateRect", "Ptr", btnPerfil.Hwnd, "Ptr", 0, "Int", 1)
@@ -8772,6 +8776,13 @@ CambiarPerfil(*) {
     AgregarHistorial("Perfil activo: " NombrePerfil(), "")
     ; Resetea la flag para que al pulsar Iniciar en el nuevo perfil se lance SU juego
     brawlhallaLanzado := false
+    ; Resetear estado rancio del perfil anterior: sin esto, al volver de frt/dstv
+    ; a tct/sp el anti-AFK o el modo destrucción saltaban al instante porque
+    ; ultimoCambio llevaba parado todo el rato que estuviste en el otro perfil.
+    ultimoCambio := A_TickCount
+    modoDestruccion := false
+    tiempoUltimoLanzamiento := 0
+    ultimoPasoEjecutado := ""
     ; Si estamos en macro activo y cambiamos a/desde frt, actualizar los timers de spam
     ActualizarTimersFrt()
     ; Mostrar u ocultar labels AFK/secuencias/destruccion segun el perfil
@@ -9808,6 +9819,12 @@ ReemplazarPrimeraLineaRich(hRich, textoNuevo, longAnterior, hexColor) {
     static SB_TOP           := 6
     static SCF_SELECTION    := 0x0001
     static CFM_COLOR        := 0x40000000
+    static EM_GETFIRSTVISIBLELINE := 0x00CE
+    static EM_LINESCROLL    := 0x00B6
+
+    ; ¿Dónde estaba el usuario ANTES de tocar el texto? Si está leyendo abajo,
+    ; no hay que devolverlo al tope (cada "(xN)" lo hacía → scrollbar "rota").
+    local firstVisAntes := SendMessage(EM_GETFIRSTVISIBLELINE, 0, 0, , "ahk_id " hRich)
 
     ; La entrada más reciente siempre está en posición 0
     SendMessage(EM_SETSEL, 0, longAnterior, , "ahk_id " hRich)
@@ -9823,7 +9840,15 @@ ReemplazarPrimeraLineaRich(hRich, textoNuevo, longAnterior, hexColor) {
     NumPut("UInt", HexToBGR(hexColor), cf, 20)
     SendMessage(EM_SETCHARFORMAT, SCF_SELECTION, cf.Ptr, , "ahk_id " hRich)
     SendMessage(EM_SETSEL, 0, 0, , "ahk_id " hRich)
-    SendMessage(WM_VSCROLL, SB_TOP, 0, , "ahk_id " hRich)
+    if (firstVisAntes = 0) {
+        ; Estaba arriba → quedarse arriba (contrarresta el autoscroll del caret)
+        SendMessage(WM_VSCROLL, SB_TOP, 0, , "ahk_id " hRich)
+    } else {
+        ; Estaba leyendo abajo → devolverlo exactamente a su línea
+        local firstVisAhora := SendMessage(EM_GETFIRSTVISIBLELINE, 0, 0, , "ahk_id " hRich)
+        if (firstVisAntes != firstVisAhora)
+            SendMessage(EM_LINESCROLL, 0, firstVisAntes - firstVisAhora, , "ahk_id " hRich)
+    }
 }
 
 AppendRichText(hRich, texto, hexColor) {
@@ -10483,10 +10508,10 @@ EjecutarMacro(*) {
     ; temprano, el ultimoAfkMove tampoco se actualizaba → watchdog Reload() falso.
     ultimoAfkMove := A_TickCount
 
-    ; Descanso del ciclo: el macro sigue ENCENDIDO, pero con la detección en
-    ; pausa — el juego está cerrado a propósito, así que no hay nada que
-    ; detectar, ni anti-AFK, ni modo destrucción, ni relanzamientos.
-    if (enDescanso)
+    ; Descanso del ciclo (SOLO tct/sp): el macro sigue ENCENDIDO, pero con la
+    ; detección en pausa — el juego está cerrado a propósito, así que no hay
+    ; nada que detectar, ni anti-AFK, ni modo destrucción, ni relanzamientos.
+    if (enDescanso && (perfilActivo = 1 || perfilActivo = 2))
         return
 
     if (!activo || accionEnCurso || BloqueoGlobalActivo())
@@ -10651,8 +10676,10 @@ EjecutarMacro(*) {
 
     accionEnCurso := false
 
-    ; dstv: sin anti-AFK, sin modo destrucción, sin MouseMove — solo detector
-    if (perfilActivo = 4)
+    ; frt y dstv: sin anti-AFK, sin modo destrucción, sin relanzamientos, sin
+    ; MouseMove — todo eso es SOLO para tct/sp (frt tiene su propio spam y el
+    ; Esc/c del anti-AFK le estorbaría al juego).
+    if (perfilActivo = 3 || perfilActivo = 4)
         return
 
     tiempoSinCambios := A_TickCount - ultimoCambio
@@ -10743,7 +10770,13 @@ EjecutarMacro(*) {
 TickCicloDescanso() {
     global cicloActivo, cicloInicio, enDescanso, descansoInicio, activo, CICLO_SEG, DESCANSO_SEG
     global brawlhallaLanzado, ultimoCambio, ultimaDeteccionReal, tiempoUltimoLanzamiento, modoDestruccion
+    global perfilActivo
     if (!cicloActivo)
+        return
+    ; El ciclo jugar/descanso es SOLO para tct (1) y sp (2) — Brawlhalla.
+    ; En frt y dstv no se acumula tiempo ni se dispara el descanso; el reloj
+    ; es de pared (A_Now), así que al volver a tct/sp el ciclo sigue donde iba.
+    if (perfilActivo = 3 || perfilActivo = 4)
         return
     if (enDescanso) {
         ; Durante el descanso el macro NO se apaga: sigue encendido en pausa de
@@ -10834,9 +10867,9 @@ CerrarBrawlhallaAltF4() {
 ; principal — clave para reaccionar "al instante" cuando la cruz cambia.
 TickCirculoDetectorDstv() {
     global activo, perfilActivo, pasosNormales
-    global ultimoCambio, ultimaDeteccionReal, enDescanso
+    global ultimoCambio, ultimaDeteccionReal
 
-    if (!activo || perfilActivo != 4 || enDescanso)
+    if (!activo || perfilActivo != 4)
         return
 
     paso := 0
@@ -11422,9 +11455,12 @@ ClickScrollbar(*) {
     if (effectiveRange < 1)
         effectiveRange := 1
 
-    while (GetKeyState("LButton", "P")) {
-        MouseGetPos(,, &mY)
-
+    ; ── PASO INCONDICIONAL: posicionar YA con el click inicial ──
+    ; Antes todo vivía dentro del while(LButton): si el botón ya se había
+    ; soltado cuando AHK llegaba a ejecutar el handler (click corto + script
+    ; ocupado con timers), el bucle corría CERO veces y el click no hacía nada.
+    mY := mYInit
+    loop {
         ; Nueva posición del top del thumb relativa al top del track
         newThumbTopRel := (mY - clickOffset) - trackScreenY
         if (newThumbTopRel < 0)
@@ -11446,7 +11482,11 @@ ClickScrollbar(*) {
             SendMessage(EM_LINESCROLL, 0, delta, , "ahk_id " historialBox.Hwnd)
 
         ActualizarScrollbar()
+        ; Seguir como drag solo mientras el botón siga pulsado
+        if (!GetKeyState("LButton", "P"))
+            break
         Sleep(16)
+        MouseGetPos(,, &mY)
     }
 }
 
@@ -11490,6 +11530,29 @@ IniciarTypingReveal(hRich, linea, colorHex) {
     global typeRevealHwnd, typeRevealTotal, typeRevealPos, typeRevealColor, typeRevealActivo
     global colorFondoHistorial, optTypeReveal
     static EM_GETSCROLLPOS := 0x04DD, EM_SETSCROLLPOS := 0x04DE
+    static EM_GETFIRSTVISIBLELINE := 0x00CE, EM_LINESCROLL := 0x00B6
+    static EM_GETLINECOUNT := 0x00BA
+
+    ; ¿El usuario está scrolleado hacia abajo leyendo entradas viejas? Entonces
+    ; NO robarle la vista (esto era lo que hacía parecer roto el scrollbar:
+    ; cada línea nueva devolvía el scroll al tope). Se inserta la línea ya
+    ; coloreada (sin reveal) y se compensa el scroll línea a línea para que
+    ; siga viendo EXACTAMENTE el mismo contenido.
+    firstVisAntes := SendMessage(EM_GETFIRSTVISIBLELINE, 0, 0, , "ahk_id " hRich)
+    if (firstVisAntes > 0) {
+        if (typeRevealActivo && typeRevealPos < typeRevealTotal)
+            RecolorRango(typeRevealHwnd, typeRevealPos, typeRevealTotal, typeRevealColor)
+        typeRevealActivo := false
+        totalAntes := SendMessage(EM_GETLINECOUNT, 0, 0, , "ahk_id " hRich)
+        PrependRichSilent(hRich, linea, colorHex)
+        totalAhora := SendMessage(EM_GETLINECOUNT, 0, 0, , "ahk_id " hRich)
+        firstVisAhora := SendMessage(EM_GETFIRSTVISIBLELINE, 0, 0, , "ahk_id " hRich)
+        delta := (firstVisAntes + (totalAhora - totalAntes)) - firstVisAhora
+        if (delta != 0)
+            SendMessage(EM_LINESCROLL, 0, delta, , "ahk_id " hRich)
+        return
+    }
+
     if (!optTypeReveal) {
         if (typeRevealActivo && typeRevealPos < typeRevealTotal)
             RecolorRango(typeRevealHwnd, typeRevealPos, typeRevealTotal, typeRevealColor)
@@ -11557,8 +11620,8 @@ global brawlhallaLanzado := false
 ; ===== MODO FRT — spam clicks + cycle de teclas =====
 ; FrtClick: timer cada 50ms → 20 clicks/seg en (frtClickX, frtClickY)
 FrtClick() {
-    global activo, perfilActivo, frtClickX, frtClickY, scaleX, scaleY, enDescanso
-    if (!activo || perfilActivo != 3 || enDescanso)
+    global activo, perfilActivo, frtClickX, frtClickY, scaleX, scaleY
+    if (!activo || perfilActivo != 3)
         return
     x := Round(frtClickX * scaleX)
     y := Round(frtClickY * scaleY)
@@ -11568,8 +11631,8 @@ FrtClick() {
 
 ; FrtKeyCycle: timer cada 150ms → cicla teclas 1,2,3,4,5,6,7
 FrtKeyCycle() {
-    global activo, perfilActivo, frtTeclas, frtIdxTecla, enDescanso
-    if (!activo || perfilActivo != 3 || enDescanso)
+    global activo, perfilActivo, frtTeclas, frtIdxTecla
+    if (!activo || perfilActivo != 3)
         return
     if (frtIdxTecla < 1 || frtIdxTecla > frtTeclas.Length)
         frtIdxTecla := 1
@@ -11710,9 +11773,9 @@ Iniciar(*) {
     global logoVelObjetivo, logoVelMax
     global histUltimoTexto
     global enDescanso, cicloInicio, descansoInicio
-    ; Si el usuario inicia DURANTE el descanso del ciclo, manda el usuario:
-    ; se cancela el descanso y arranca un ciclo de juego nuevo de 8h.
-    if (enDescanso) {
+    ; Si el usuario inicia DURANTE el descanso del ciclo (solo tct/sp), manda
+    ; el usuario: se cancela el descanso y arranca un ciclo nuevo de 8h.
+    if (enDescanso && (perfilActivo = 1 || perfilActivo = 2)) {
         enDescanso := false
         cicloInicio := A_Now
         descansoInicio := ""
