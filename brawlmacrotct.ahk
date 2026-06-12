@@ -20,7 +20,7 @@ configPath := A_ScriptDir "\brawlmacro_config.ini"
 global eggsBackupPath := A_ScriptDir "\brawlmacro_eggs.txt"
 global heartbeatPath := A_ScriptDir "\brawlmacro_heartbeat.txt"
 global historialLogPath := A_ScriptDir "\brawlmacro_historial.log"
-global VERSION_ACTUAL := "30.7.2"
+global VERSION_ACTUAL := "30.7.3"
 
 ; ===== TEMAS =====
 temas := [
@@ -6101,22 +6101,33 @@ EnviarWebhookSync(titulo, mensaje, colorHex) {
     mensaje := EscapeJson(mensaje)
     json := '{"embeds":[{"title":"' titulo '","description":"' mensaje '","color":' colorInt ',"footer":{"text":"AFK Macro"}}]}'
 
-    ; Enviar via ComObject (asíncrono via SetTimer, no bloquea el hilo principal)
-    try {
-        whr := ComObject("WinHttp.WinHttpRequest.5.1")
-        whr.SetTimeouts(5000, 5000, 10000, 10000)
-        whr.Open("POST", webhookURL, true)
-        whr.SetRequestHeader("Content-Type", "application/json; charset=utf-8")
-        whr.Send(json)
-        whr.WaitForResponse(15)
-        status := whr.Status
-        if (status != 204 && status != 200) {
-            respText := ""
-            try respText := whr.ResponseText
-            AgregarHistorial("⚠ Webhook HTTP " status ": " SubStr(respText, 1, 60), "FF5555")
+    ; Enviar via ComObject en modo SÍNCRONO dentro del timer de un solo disparo
+    ; (el modo async + WaitForResponse fallaba a veces sin dejar rastro).
+    ; Si falla (red, rate-limit 429 de Discord...), reintenta UNA vez tras 1.5s.
+    loop 2 {
+        intento := A_Index
+        try {
+            whr := ComObject("WinHttp.WinHttpRequest.5.1")
+            whr.SetTimeouts(5000, 5000, 10000, 10000)
+            whr.Open("POST", webhookURL, false)
+            whr.SetRequestHeader("Content-Type", "application/json; charset=utf-8")
+            whr.Send(json)
+            status := whr.Status
+            if (status = 204 || status = 200)
+                return  ; enviado OK
+            if (intento = 2) {
+                respText := ""
+                try respText := whr.ResponseText
+                AgregarHistorial("⚠ Webhook HTTP " status ": " SubStr(respText, 1, 60), "FF5555")
+                return
+            }
+        } catch as e {
+            if (intento = 2) {
+                AgregarHistorial("⚠ Webhook error: " SubStr(e.Message, 1, 60), "FF5555")
+                return
+            }
         }
-    } catch as e {
-        AgregarHistorial("⚠ Webhook error: " SubStr(e.Message, 1, 60), "FF5555")
+        Sleep 1500
     }
 }
 
@@ -6182,6 +6193,11 @@ EnviarWebhookConFoto(titulo, mensaje, colorHex) {
 
 EnviarWebhookConFotoSync(titulo, mensaje, colorHex) {
     global webhookURL
+    ; Sin curl (necesario para multipart) → mandar el texto sin foto en vez de nada
+    if (!FileExist(A_WinDir "\System32\curl.exe")) {
+        EnviarWebhookSync(titulo, mensaje, colorHex)
+        return
+    }
     rutaFoto := A_Temp "\brawlmacro_shot_" A_TickCount ".png"
     if (!TomarScreenshot(rutaFoto)) {
         EnviarWebhookSync(titulo, mensaje, colorHex)
@@ -6312,7 +6328,7 @@ AbrirPanelWebhook(*) {
         b.SetFont("s10 c" colorBtnTexto " Bold", "Segoe UI")
 
     aplicarEstado := (*) => (
-        webhookURL := urlEdit.Value,
+        webhookURL := Trim(urlEdit.Value, " `t`r`n"),
         webhookEnabled := cbEnable.Value,
         webhookEventos["iniciado"]   := cbInic.Value,
         webhookEventos["parado"]     := cbPar.Value,
@@ -6320,12 +6336,17 @@ AbrirPanelWebhook(*) {
         webhookEventos["altf4"]      := cbAlt.Value,
         webhookEventos["milestone"]  := cbMile.Value,
         webhookEventos["secuencia"]  := cbSeq.Value,
-        GuardarWebhook()
+        GuardarWebhook(),
+        AgregarHistorial(Chr(0x1F514) " Webhook guardado — "
+            (webhookURL = "" ? "SIN URL" : (webhookEnabled ? "activado" : "DESACTIVADO")),
+            (webhookURL != "" && webhookEnabled) ? "00CC44" : "FF8800")
     )
 
     btnTest.OnEvent("Click", (*) => (
         aplicarEstado(),
         (webhookURL = "" ? (lblStatus.Value := "Pon una URL antes de probar.", lblStatus.Opt("cFF5555"))
+            : !webhookEnabled ? (EnviarWebhookForce("🧪 Test desde AFK Macro", "Si ves este mensaje, el webhook funciona correctamente.", "5865F2"),
+               lblStatus.Value := "Test enviado — ¡pero el envío está DESACTIVADO! Marca la casilla.", lblStatus.Opt("cFF8800"))
             : (EnviarWebhookForce("🧪 Test desde AFK Macro", "Si ves este mensaje, el webhook funciona correctamente.", "5865F2"),
                lblStatus.Value := "Mensaje enviado — revisa Discord.", lblStatus.Opt("c00CC44")))
     ))
@@ -6962,8 +6983,9 @@ CerrarTutorial(*) {
 ; ═══════════════════════════════════════════════════════════════
 ParchesPaginas() {
     return [
-    { ico: Chr(0x1F4CB), tit: "Parche 30.7.2 (actual)",
-      txt: "· Nuevo sistema de velocidad en el macro (🐢/🚶/⚡)`n"
+    { ico: Chr(0x1F4CB), tit: "Parche 30.7.3 (actual)",
+      txt: "· Webhook arreglado: secuencias ya se cuentan y se avisan`n"
+         . "· Nuevo sistema de velocidad en el macro (🐢/🚶/⚡)`n"
          . "· Cada paso revisa la pantalla a su propio ritmo`n"
          . "· Descanso: 1 hora, reabre Brawlhalla solo y el macro YA NO se apaga`n"
          . "· Libro de parches 📋 separado del tutorial`n"
@@ -10351,7 +10373,10 @@ CheckPrioridad() {
                                     modoDestruccion := false
                                     AgregarHistorial(Chr(0x2705) " Detección recuperada - saliendo de modo destrucción", "00CC44")
                                 }
-                                if (paso.nombre = "LEAVINGGAME..." && paso.cooldown = 190000) {
+                                ; FIX: antes se comparaba con "LEAVINGGAME..." literal, pero los
+                                ; pasos se llaman LEAVINGGAME1.../LEAVINGGAME2... → NUNCA entraba:
+                                ; ni contaba secuencias ni mandaba el webhook (Stats siempre a 0).
+                                if (InStr(paso.nombre, "LEAVINGGAME")) {
                                     contadorSecuencias += 1
                                     ActualizarSecuencias()
                                     AgregarHistorial(paso.nombre " -> COOLDOWN " Round(paso.cooldown/1000) "s | Secuencias: " contadorSecuencias, paso.HasProp("categoria") ? ObtenerColorCategoria(paso.categoria) : "")
