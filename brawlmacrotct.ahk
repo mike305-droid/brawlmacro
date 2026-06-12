@@ -20,7 +20,7 @@ configPath := A_ScriptDir "\brawlmacro_config.ini"
 global eggsBackupPath := A_ScriptDir "\brawlmacro_eggs.txt"
 global heartbeatPath := A_ScriptDir "\brawlmacro_heartbeat.txt"
 global historialLogPath := A_ScriptDir "\brawlmacro_historial.log"
-global VERSION_ACTUAL := "30.7.6"
+global VERSION_ACTUAL := "30.7.7"
 
 ; ===== TEMAS =====
 temas := [
@@ -263,6 +263,7 @@ global frtTeclas := ["1", "2", "3", "4", "5", "6", "7"]
 global frtIdxTecla := 1   ; indice de la tecla actual (rota automaticamente)
 global histUltimoTexto := "", histUltimoCount := 0, histUltimoLongLinea := 0
 global separadorHistorial := ""
+global ultimoScrollManual := 0   ; última vez que el usuario movió la rueda en el historial
 global temaTransTema := "", temaTransGuardar := true, temaEnTransicion := false
 global temaGuiVisible := false, temaGui := ""
 global temaBotones := [], temaScrollOffset := 0, temasVisiblesGlobal := []
@@ -6991,9 +6992,9 @@ CerrarTutorial(*) {
 ; ═══════════════════════════════════════════════════════════════
 ParchesPaginas() {
     return [
-    { ico: Chr(0x1F4CB), tit: "Parche 30.7.6 (actual)",
+    { ico: Chr(0x1F4CB), tit: "Parche 30.7.7 (actual)",
       txt: "· Scroller del historial eliminado: rueda y listo, como el panel de temas`n"
-         . "· El historial ya no te roba la vista al llegar líneas nuevas`n"
+         . "· Lo nuevo SIEMPRE arriba; si lees con la rueda te respeta 10s`n"
          . "· Dormir/anti-AFK/destrucción son SOLO para tct y sp`n"
          . "· Webhook arreglado: secuencias ya se cuentan y se avisan`n"
          . "· Stats se guardan cada 5 min (ya no se pierden con crashes)`n"
@@ -9810,11 +9811,12 @@ ReemplazarPrimeraLineaRich(hRich, textoNuevo, longAnterior, hexColor) {
     NumPut("UInt", HexToBGR(hexColor), cf, 20)
     SendMessage(EM_SETCHARFORMAT, SCF_SELECTION, cf.Ptr, , "ahk_id " hRich)
     SendMessage(EM_SETSEL, 0, 0, , "ahk_id " hRich)
-    if (firstVisAntes = 0) {
-        ; Estaba arriba → quedarse arriba (contrarresta el autoscroll del caret)
+    global ultimoScrollManual
+    if (firstVisAntes = 0 || (A_TickCount - ultimoScrollManual) >= 10000) {
+        ; Estaba arriba (o ya dejó de leer hace 10s+) → al tope: lo nuevo SIEMPRE arriba
         SendMessage(WM_VSCROLL, SB_TOP, 0, , "ahk_id " hRich)
     } else {
-        ; Estaba leyendo abajo → devolverlo exactamente a su línea
+        ; Está leyendo abajo (rueda hace <10s) → devolverlo exactamente a su línea
         local firstVisAhora := SendMessage(EM_GETFIRSTVISIBLELINE, 0, 0, , "ahk_id " hRich)
         if (firstVisAntes != firstVisAhora)
             SendMessage(EM_LINESCROLL, 0, firstVisAntes - firstVisAhora, , "ahk_id " hRich)
@@ -11392,18 +11394,17 @@ RecolorRango(hRich, desde, hasta, hexColor) {
 
 IniciarTypingReveal(hRich, linea, colorHex) {
     global typeRevealHwnd, typeRevealTotal, typeRevealPos, typeRevealColor, typeRevealActivo
-    global colorFondoHistorial, optTypeReveal
+    global colorFondoHistorial, optTypeReveal, ultimoScrollManual
     static EM_GETSCROLLPOS := 0x04DD, EM_SETSCROLLPOS := 0x04DE
     static EM_GETFIRSTVISIBLELINE := 0x00CE, EM_LINESCROLL := 0x00B6
     static EM_GETLINECOUNT := 0x00BA
 
-    ; ¿El usuario está scrolleado hacia abajo leyendo entradas viejas? Entonces
-    ; NO robarle la vista (esto era lo que hacía parecer roto el scrollbar:
-    ; cada línea nueva devolvía el scroll al tope). Se inserta la línea ya
-    ; coloreada (sin reveal) y se compensa el scroll línea a línea para que
-    ; siga viendo EXACTAMENTE el mismo contenido.
+    ; ¿El usuario está scrolleado hacia abajo Y movió la rueda hace <10s?
+    ; Entonces está leyendo: no robarle la vista (se inserta la línea ya
+    ; coloreada y se compensa el scroll). Pasados 10s sin tocar la rueda,
+    ; el historial vuelve a su comportamiento normal: lo nuevo SIEMPRE arriba.
     firstVisAntes := SendMessage(EM_GETFIRSTVISIBLELINE, 0, 0, , "ahk_id " hRich)
-    if (firstVisAntes > 0) {
+    if (firstVisAntes > 0 && (A_TickCount - ultimoScrollManual) < 10000) {
         if (typeRevealActivo && typeRevealPos < typeRevealTotal)
             RecolorRango(typeRevealHwnd, typeRevealPos, typeRevealTotal, typeRevealColor)
         typeRevealActivo := false
@@ -12228,10 +12229,11 @@ RatonSobreHistorial() {
 }
 
 ScrollHistorial(lineas) {
-    global historialBox
+    global historialBox, ultimoScrollManual
     if (!IsObject(historialBox))
         return
     static EM_LINESCROLL := 0x00B6
+    ultimoScrollManual := A_TickCount   ; el usuario está leyendo — respetar su vista un rato
     try SendMessage(EM_LINESCROLL, 0, lineas, , "ahk_id " historialBox.Hwnd)
 }
 
