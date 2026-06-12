@@ -20,7 +20,7 @@ configPath := A_ScriptDir "\brawlmacro_config.ini"
 global eggsBackupPath := A_ScriptDir "\brawlmacro_eggs.txt"
 global heartbeatPath := A_ScriptDir "\brawlmacro_heartbeat.txt"
 global historialLogPath := A_ScriptDir "\brawlmacro_historial.log"
-global VERSION_ACTUAL := "30.7.5"
+global VERSION_ACTUAL := "30.7.6"
 
 ; ===== TEMAS =====
 temas := [
@@ -370,8 +370,6 @@ global totalCriticos := 0
 global confetiGui := "", confetiParticles := [], confetiActivo := false, confetiSubclassCb := 0
 global logros := []
 global logrosGui := "", logrosGuiVisible := false, btnLogros := ""
-global scrollTrack := "", scrollThumb := ""
-global ultimoThumbY := -1, ultimoThumbH := -1
 global ultimoAfkMove := A_TickCount  ; watchdog: timestamp del último MouseMove del AFK
 global toastGui := "", toastX := 0, toastStartY := 0, toastTargetY := 0, toastStep := 0, toastDuracion := 3000
 global logoGlitchActivo := false, logoGlitchHasta := 0, logoGlitchOffX := 0, logoGlitchOffY := 0
@@ -1990,11 +1988,9 @@ ActualizarParticulas() {
             else if (p.y > targetH + 8)
                 p.y := -8
         }
-        ; Excluir el rect del scrollbar custom (x=243 w=17, y=35 h=110 en historialGui →
-        ; en coords del overlay: y = 35 - BAR_H = 10). Así las partículas no pintan sobre el thumb.
         ; conEscena=true: el historial también lleva la decoración del tema.
-        PintarOverlayParticulas(overlayPartHist.Hwnd, hw, targetH, particulasHist,
-            { x: 243, y: 35 - BAR_H, w: 17, h: 110 }, true)
+        ; (Sin excludeRect: el scrollbar custom se quitó y ya no hay nada que esquivar.)
+        PintarOverlayParticulas(overlayPartHist.Hwnd, hw, targetH, particulasHist, "", true)
     }
 
     ; ── Partículas + decoraciones del mini mode ──
@@ -4933,27 +4929,17 @@ barraHistorial.SetFont("s11 c" colorTextoBarra " Bold", "Segoe UI Semibold")
 barraHistorial.OnEvent("Click", (*) => (ClickBarraHistorialNika(), ArrastrarHistorial()))
 
 ; Sin WS_VSCROLL: el RichEdit no dibuja NINGUNA scrollbar nativa.
-; La rueda del ratón se gestiona via hotkey #HotIf más abajo,
-; que envían EM_LINESCROLL directamente. El scrollbar custom (scrollTrack/Thumb)
-; se actualiza por ActualizarScrollbarCustom().
+; La rueda del ratón se gestiona via hotkey #HotIf más abajo, que envía
+; EM_LINESCROLL directamente — SIN scrollbar visual, como el panel de temas.
+; (El scrollbar custom se quitó en 30.7.6: tapaba la decoración del tema y
+; daba más problemas que servicio.)
 historialBox := historialGui.Add("Custom", "ClassRICHEDIT50W x10 y35 w250 h110 +0x4 +0x10 +0x40 +0x800 vHistorial")
 historialBox.Opt("+ReadOnly -TabStop")
 SendMessage(0x00CF, 0, 0, historialBox)
 SendMessage(0x0443, 0, HexToBGR(colorFondoHistorial), , "ahk_id " historialBox.Hwnd)
 
-; ── Scrollbar custom encima del RichEdit (sin WS_VSCROLL no hay nativa que tape) ──
-; Track de fondo + thumb que se mueve. Los colores siguen al tema.
-; Fina (8px) estilo moderno — ActualizarScrollbar/ClickScrollbar usan GetPos, no les afecta.
-scrollTrack := historialGui.Add("Text", "x252 y35 w8 h110 +0x201 Background" colorBotonNormal, "")
-scrollThumb := historialGui.Add("Text", "x253 y35 w6 h26 +0x201 Background" colorBotonHover, "")
-scrollTrack.OnEvent("Click", ClickScrollbar)
-scrollThumb.OnEvent("Click", ClickScrollbar)
-
 ; Ocultar la barra nativa blanca del RichEdit (la mantiene internamente para scroll pero sin pintarla)
 DllCall("ShowScrollBar", "Ptr", historialBox.Hwnd, "Int", 1, "Int", 0)  ; SB_VERT=1, bShow=0
-; Llevar nuestro overlay AL FRENTE en z-order para que cubra cualquier resto de pintado
-DllCall("SetWindowPos", "Ptr", scrollTrack.Hwnd, "Ptr", 0, "Int", 0, "Int", 0, "Int", 0, "Int", 0, "UInt", 0x13)  ; HWND_TOP, NOMOVE|NOSIZE|NOACTIVATE
-DllCall("SetWindowPos", "Ptr", scrollThumb.Hwnd, "Ptr", 0, "Int", 0, "Int", 0, "Int", 0, "Int", 0, "UInt", 0x13)
 
 cooldownText := historialGui.Add("Text", "x10 y155 w250 h88 vCooldownText c" colorCooldown " Background" colorVentanaHistorial)
 separadorHistorial := historialGui.Add("Text", "x0 y148 w270 h2 Background" MezclarHex(colorBarra, colorFondoPrincipal, 0.45), "")
@@ -5222,7 +5208,6 @@ CrearOverlayDecoraciones()   ; overlay topmost para slashes Sukuna + aura Gojo
 ; (intervalos variables segun el preset Eco/Ligero/Normal/Ultra)
 EstablecerTrayIcon("888888")
 ActualizarVisibilidadFrt()  ; si arrancamos en frt, ocultar labels AFK/secuencias/destruccion
-SetTimer(ActualizarScrollbar, 150)
 SetTimer(WatchdogAFK, 30000)     ; cada 30 s; si activo && > 90 s sin AFK → Reload()
 ; Pulso Hollow Purple del timer cada 4s (solo activo si el tema actual es GOJO)
 SetTimer(GojoPulsoHollowPurple, 4000)
@@ -7006,8 +6991,9 @@ CerrarTutorial(*) {
 ; ═══════════════════════════════════════════════════════════════
 ParchesPaginas() {
     return [
-    { ico: Chr(0x1F4CB), tit: "Parche 30.7.5 (actual)",
-      txt: "· Scroller del historial arreglado de verdad (ya no te roba la vista)`n"
+    { ico: Chr(0x1F4CB), tit: "Parche 30.7.6 (actual)",
+      txt: "· Scroller del historial eliminado: rueda y listo, como el panel de temas`n"
+         . "· El historial ya no te roba la vista al llegar líneas nuevas`n"
          . "· Dormir/anti-AFK/destrucción son SOLO para tct y sp`n"
          . "· Webhook arreglado: secuencias ya se cuentan y se avisan`n"
          . "· Stats se guardan cada 5 min (ya no se pierden con crashes)`n"
@@ -8119,7 +8105,6 @@ TransicionPaso() {
     global btnUpdate, btnOverlay, btnRGBBtn, btnStatsBtn, btnWebhook, btnLogros, btnPart, btnPerfil
     global colorLogoEnTransicion, colorFondoEnTransicion, colorTextoBarra
     global luzActiva, luzAccion, luzApagado, historialBox, separadorHistorial
-    global scrollTrack, scrollThumb
     global glowTitulo, sepEstado, sepAccion, activo
     global btnTutorial, cicloLabel
     global hoverAccent, hoverAccentTop, hoverAccentBot, hoverAccentRight
@@ -8240,12 +8225,6 @@ TransicionPaso() {
     }
 
     ; Scrollbar personalizado
-    if (IsObject(scrollTrack)) {
-        scrollTrack.Opt("Background" cBoton)
-    }
-    if (IsObject(scrollThumb)) {
-        scrollThumb.Opt("Background" cHover)
-    }
 
     ; Controles que antes NO transicionaban (saltaban de golpe al final)
     if (IsObject(btnTutorial)) {
@@ -8429,15 +8408,6 @@ AplicarTema(tema, guardar := true, fromTrans := false) {
         destruccionesLabel.Opt("Background" colorVentanaHistorial " c" colorTextoPrincipal)
     cooldownText.Opt("Background" colorVentanaHistorial " c" colorCooldown)
     afkText.Opt("Background" colorVentanaHistorial " c" colorAFK)
-    global scrollTrack, scrollThumb
-    if (IsObject(scrollTrack)) {
-        scrollTrack.Opt("Background" colorBotonNormal)
-        DllCall("InvalidateRect", "Ptr", scrollTrack.Hwnd, "Ptr", 0, "Int", 1)
-    }
-    if (IsObject(scrollThumb)) {
-        scrollThumb.Opt("Background" colorBotonHover)
-        DllCall("InvalidateRect", "Ptr", scrollThumb.Hwnd, "Ptr", 0, "Int", 1)
-    }
     luzActiva.Opt("Background" colorFondoPrincipal)
     luzAccion.Opt("Background" colorFondoPrincipal)
     luzApagado.Opt("Background" colorFondoPrincipal)
@@ -11381,114 +11351,8 @@ FlashBarraHistorial() {
     SetTimer(FlashBarraHistorial, -50)
 }
 
-; ===== SCROLLBAR CUSTOM (sin WS_VSCROLL en el RichEdit → no hay barra nativa que se pelee) =====
-; Usamos EM_GETLINECOUNT / EM_GETFIRSTVISIBLELINE en lugar de GetScrollInfo porque
-; los EM_ messages funcionan siempre, aunque el control no tenga WS_VSCROLL.
-ActualizarScrollbar() {
-    global historialBox, scrollTrack, scrollThumb, historialVisible
-    global ultimoThumbY, ultimoThumbH
-    if (!historialVisible || !IsObject(historialBox) || !IsObject(scrollTrack) || !IsObject(scrollThumb))
-        return
-
-    static EM_GETLINECOUNT        := 0x00BA
-    static EM_GETFIRSTVISIBLELINE := 0x00CE
-
-    totalLines   := SendMessage(EM_GETLINECOUNT,        0, 0, , "ahk_id " historialBox.Hwnd)
-    firstVisLine := SendMessage(EM_GETFIRSTVISIBLELINE, 0, 0, , "ahk_id " historialBox.Hwnd)
-
-    ; Líneas visibles: la box es h=110 y la fuente s11 ≈ 18-19 px/línea → ~6 visibles
-    visibleLines := 6
-
-    scrollTrack.GetPos(&trackX, &trackY, &trackW, &trackH)
-
-    if (totalLines <= visibleLines || totalLines <= 0) {
-        nuevoY := trackY
-        nuevoH := trackH
-    } else {
-        ratioVisible := visibleLines / totalLines
-        nuevoH := Max(20, Round(trackH * ratioVisible))
-        maxFirstLine := totalLines - visibleLines
-        if (maxFirstLine <= 0)
-            maxFirstLine := 1
-        ratioPos := firstVisLine / maxFirstLine
-        if (ratioPos < 0)
-            ratioPos := 0
-        if (ratioPos > 1)
-            ratioPos := 1
-        nuevoY := trackY + Round((trackH - nuevoH) * ratioPos)
-    }
-
-    ; Sólo mover si cambió — evita parpadeo por repaint redundante cada 150 ms
-    if (nuevoY != ultimoThumbY || nuevoH != ultimoThumbH) {
-        scrollThumb.Move(trackX + 1, nuevoY, trackW - 2, nuevoH)
-        ultimoThumbY := nuevoY
-        ultimoThumbH := nuevoH
-    }
-}
-
-ClickScrollbar(*) {
-    global historialBox, scrollTrack, scrollThumb, historialGui
-    if (!IsObject(historialBox) || !IsObject(scrollTrack) || !IsObject(scrollThumb))
-        return
-
-    static EM_GETLINECOUNT        := 0x00BA
-    static EM_GETFIRSTVISIBLELINE := 0x00CE
-    static EM_LINESCROLL          := 0x00B6
-    static visibleLines           := 6
-
-    historialGui.GetPos(&hgX, &hgY)
-    scrollTrack.GetPos(, &trackYGui,, &trackH)
-    scrollThumb.GetPos(, &thumbYGui,, &thumbH)
-    trackScreenY := hgY + trackYGui
-    thumbScreenY := hgY + thumbYGui
-
-    ; Offset del click dentro del thumb (clave para que el drag no "salte"):
-    ; si el click cayó dentro del thumb, mantenemos ese offset durante el drag.
-    ; Si cayó en el track (fuera del thumb), centramos el thumb bajo el cursor.
-    MouseGetPos(,, &mYInit)
-    clickOffset := mYInit - thumbScreenY
-    if (clickOffset < 0 || clickOffset > thumbH)
-        clickOffset := thumbH / 2
-
-    ; Recorrido máximo del thumb: trackH - thumbH (el thumb no puede salirse del track)
-    effectiveRange := trackH - thumbH
-    if (effectiveRange < 1)
-        effectiveRange := 1
-
-    ; ── PASO INCONDICIONAL: posicionar YA con el click inicial ──
-    ; Antes todo vivía dentro del while(LButton): si el botón ya se había
-    ; soltado cuando AHK llegaba a ejecutar el handler (click corto + script
-    ; ocupado con timers), el bucle corría CERO veces y el click no hacía nada.
-    mY := mYInit
-    loop {
-        ; Nueva posición del top del thumb relativa al top del track
-        newThumbTopRel := (mY - clickOffset) - trackScreenY
-        if (newThumbTopRel < 0)
-            newThumbTopRel := 0
-        if (newThumbTopRel > effectiveRange)
-            newThumbTopRel := effectiveRange
-
-        ratio := newThumbTopRel / effectiveRange
-
-        totalLines   := SendMessage(EM_GETLINECOUNT,        0, 0, , "ahk_id " historialBox.Hwnd)
-        firstVisLine := SendMessage(EM_GETFIRSTVISIBLELINE, 0, 0, , "ahk_id " historialBox.Hwnd)
-        maxFirstLine := totalLines - visibleLines
-        if (maxFirstLine <= 0)
-            maxFirstLine := 1
-
-        targetLine := Round(maxFirstLine * ratio)
-        delta := targetLine - firstVisLine
-        if (delta != 0)
-            SendMessage(EM_LINESCROLL, 0, delta, , "ahk_id " historialBox.Hwnd)
-
-        ActualizarScrollbar()
-        ; Seguir como drag solo mientras el botón siga pulsado
-        if (!GetKeyState("LButton", "P"))
-            break
-        Sleep(16)
-        MouseGetPos(,, &mY)
-    }
-}
+; (El scrollbar custom del historial se quitó en 30.7.6 — el scroll va solo
+;  con la rueda, igual que el panel de temas, y así no tapa la decoración.)
 
 PrependRichSilent(hRich, texto, hexColor) {
     static EM_SETSEL        := 0x00B1
@@ -12368,10 +12232,7 @@ ScrollHistorial(lineas) {
     if (!IsObject(historialBox))
         return
     static EM_LINESCROLL := 0x00B6
-    try {
-        SendMessage(EM_LINESCROLL, 0, lineas, , "ahk_id " historialBox.Hwnd)
-        ActualizarScrollbar()  ; refresca el thumb custom inmediatamente
-    }
+    try SendMessage(EM_LINESCROLL, 0, lineas, , "ahk_id " historialBox.Hwnd)
 }
 
 
