@@ -20,7 +20,7 @@ configPath := A_ScriptDir "\brawlmacro_config.ini"
 global eggsBackupPath := A_ScriptDir "\brawlmacro_eggs.txt"
 global heartbeatPath := A_ScriptDir "\brawlmacro_heartbeat.txt"
 global historialLogPath := A_ScriptDir "\brawlmacro_historial.log"
-global VERSION_ACTUAL := "30.7.8"
+global VERSION_ACTUAL := "30.7.9"
 
 ; ===== TEMAS =====
 temas := [
@@ -7054,8 +7054,10 @@ CerrarTutorial(*) {
 ; ═══════════════════════════════════════════════════════════════
 ParchesPaginas() {
     return [
-    { ico: Chr(0x1F4CB), tit: "Parche 30.7.8 (actual)",
-      txt: "· Estimador de oro y XP en 📊 Stats y en el webhook`n"
+    { ico: Chr(0x1F4CB), tit: "Parche 30.7.9 (actual)",
+      txt: "· Estimador de oro y XP también en el historial, junto a Secuencias`n"
+         . "· Stats: oro total estimado y oro/hora arriba, junto a XP estimada`n"
+         . "· Estimador de oro y XP en 📊 Stats y en el webhook`n"
          . "· Scroller del historial eliminado: rueda y listo, como el panel de temas`n"
          . "· Lo nuevo SIEMPRE arriba; si lees con la rueda te respeta 10s`n"
          . "· Dormir/anti-AFK/destrucción son SOLO para tct y sp`n"
@@ -10069,7 +10071,8 @@ ActualizarAFK(*) {
 
 ActualizarSecuencias(*) {
     global contadorSecuencias, secuenciasLabel
-    secuenciasLabel.Value := Chr(0x276E) "  Secuencias: " contadorSecuencias "  " Chr(0x276F)
+    oroSes := Round(contadorSecuencias * OroPorSecuencia())
+    secuenciasLabel.Value := Chr(0x276E) "  Secuencias: " contadorSecuencias "  •  ~" FormatearMiles(oroSes) " " Chr(0x1FA99) "  " Chr(0x276F)
     VerificarMilestone(contadorSecuencias)
 }
 
