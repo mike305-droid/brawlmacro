@@ -11082,21 +11082,16 @@ ResetearCicloEstado() {
     GuardarCicloEstado()
 }
 
-; Alt+F4 real sobre Brawlhalla (con guardia para no cerrar otra ventana por error) +
-; cierre de proceso como respaldo fiable si Alt+F4 no lo cerró.
+; Cierre directo del proceso de Brawlhalla (sin Alt+F4)
+; Instantáneo y 100% fiable, sin animaciones de cierre.
 CerrarBrawlhallaAltF4() {
-    if (WinExist("ahk_exe Brawlhalla.exe")) {
-        try {
-            WinActivate("ahk_exe Brawlhalla.exe")
-            if (WinWaitActive("ahk_exe Brawlhalla.exe", , 2))
-                Send("!{F4}")
-        }
-        Sleep 1200
-    }
+    ; Matar el proceso directamente — instantáneo y fiable
     if (ProcessExist("Brawlhalla.exe")) {
         try ProcessClose("Brawlhalla.exe")
-        if (ProcessExist("Brawlhalla.exe"))
+        ; Backup: taskkill /F por si ProcessClose no tiene permisos
+        if (ProcessExist("Brawlhalla.exe")) {
             try Run(A_ComSpec ' /c taskkill /F /IM Brawlhalla.exe', , "Hide")
+        }
     }
 }
 
