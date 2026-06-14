@@ -5140,6 +5140,14 @@ if !(StrLen(descansoInicio) = 14 && IsInteger(descansoInicio))
 ; Si el ciclo ya estaba vencido al volver (p. ej. estuvo cerrado muchas horas), empezar de nuevo
 if (!enDescanso && cicloInicio != "" && DateDiff(A_Now, cicloInicio, "Seconds") >= CICLO_SEG)
     cicloInicio := ""
+; Si arrancamos ya en descanso (p. ej. el watchdog reinició el script durante la
+; hora de descanso), el cierre del juego solo se dispara UNA VEZ al ENTRAR en
+; descanso y no se repite en este nuevo arranque — forzar el cierre aquí también.
+if (enDescanso) {
+    CerrarBrawlhallaAltF4()
+    if (descansoInicio = "")
+        descansoInicio := A_Now
+}
 
 barra := miGui.Add("Text", "x0 y0 w400 h25 Background" colorBarra " Center", "MacroSmart v31")
 barra.SetFont("s13 c" colorTextoBarra " Bold", "Segoe UI Semibold")
@@ -11013,8 +11021,13 @@ TickCicloDescanso() {
         ; Durante el descanso el macro NO se apaga: sigue encendido en pausa de
         ; detección (gates de enDescanso en EjecutarMacro/ActualizarAFK/frt/dstv).
         ; Solo el juego está cerrado. Guardia anti-bloqueo: si el timestamp del
-        ; descanso se perdió, terminarlo ya en vez de quedarse dormido para siempre.
-        if (descansoInicio = "" || DateDiff(A_Now, descansoInicio, "Seconds") >= DESCANSO_SEG) {
+        ; descanso se perdió, reiniciar el contador en vez de terminar al instante.
+        if (descansoInicio = "") {
+            descansoInicio := A_Now
+            GuardarCicloEstado()
+            return
+        }
+        if (DateDiff(A_Now, descansoInicio, "Seconds") >= DESCANSO_SEG) {
             ; fin del descanso → reabrir Brawlhalla y seguir jugando
             enDescanso := false
             cicloInicio := A_Now
@@ -11086,13 +11099,17 @@ ResetearCicloEstado() {
 ; Instantáneo y 100% fiable, sin animaciones de cierre.
 CerrarBrawlhallaAltF4() {
     ; Matar el proceso directamente — instantáneo y fiable
+    if (!ProcessExist("Brawlhalla.exe"))
+        return
+    try ProcessClose("Brawlhalla.exe")
+    Sleep 500
+    ; Backup: taskkill /F por si ProcessClose no tiene permisos
     if (ProcessExist("Brawlhalla.exe")) {
-        try ProcessClose("Brawlhalla.exe")
-        ; Backup: taskkill /F por si ProcessClose no tiene permisos
-        if (ProcessExist("Brawlhalla.exe")) {
-            try Run(A_ComSpec ' /c taskkill /F /IM Brawlhalla.exe', , "Hide")
-        }
+        try Run(A_ComSpec ' /c taskkill /F /IM Brawlhalla.exe', , "Hide")
+        Sleep 500
     }
+    if (ProcessExist("Brawlhalla.exe"))
+        AgregarHistorial(Chr(0x26A0) " No se pudo cerrar Brawlhalla (¿permisos de administrador?)", "FF4444")
 }
 
 ; ===== DETECTOR CIRCULAR DSTV — TICK DE ALTA FRECUENCIA =====
@@ -11969,13 +11986,14 @@ Iniciar(*) {
     global pulsoBrilloDir, pulsoBrilloT, logosPulsoDir, logosPulsoT, colorBarra
     global logoVelObjetivo, logoVelMax
     global histUltimoTexto
-    global enDescanso, cicloInicio, descansoInicio
+    global enDescanso, cicloInicio, descansoInicio, brawlhallaLanzado
     ; Si el usuario inicia DURANTE el descanso del ciclo (solo tct/sp), manda
     ; el usuario: se cancela el descanso y arranca un ciclo nuevo de 8h.
     if (enDescanso && (perfilActivo = 1 || perfilActivo = 2)) {
         enDescanso := false
         cicloInicio := A_Now
         descansoInicio := ""
+        brawlhallaLanzado := false   ; el juego está cerrado (descanso) — permitir relanzarlo
         GuardarCicloEstado()
         AgregarHistorial(Chr(0x23F0) " Descanso cancelado a mano — nuevo ciclo de 8h", "FF8800")
     }
