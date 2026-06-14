@@ -20,7 +20,7 @@ configPath := A_ScriptDir "\brawlmacro_config.ini"
 global eggsBackupPath := A_ScriptDir "\brawlmacro_eggs.txt"
 global heartbeatPath := A_ScriptDir "\brawlmacro_heartbeat.txt"
 global historialLogPath := A_ScriptDir "\brawlmacro_historial.log"
-global VERSION_ACTUAL := "30.7.9"
+global VERSION_ACTUAL := "31.1.0"
 
 ; ===== TEMAS =====
 temas := [
@@ -83,6 +83,8 @@ temas := [
     { nombre:"Cobre",      fondo:"180F0A", texto:"D97849", barra:"4A2818", textoBarra:"F2A878", historial:"100A08", panel:"261810", cooldown:"FFD700", afk:"B85C2E", boton:"4A2818", hover:"6B3A22", logo:"D97849", luzOn:"B85C2E", luzAccion:"FFD700", luzOff:"180F0A",  btnTexto:"F2A878", histColor1:"D97849", histColor2:"B85C2E", histColor3:"FFD700" },
     { nombre:"Vino",       fondo:"180510", texto:"E8B7CC", barra:"5D0A2A", textoBarra:"F5D5DE", historial:"100308", panel:"260818", cooldown:"FF1744", afk:"D81B60", boton:"5D0A2A", hover:"7E1040", logo:"E8B7CC", luzOn:"AD1457", luzAccion:"E8B7CC", luzOff:"180510",  btnTexto:"F5D5DE", histColor1:"E8B7CC", histColor2:"AD1457", histColor3:"5D0A2A" },
     { nombre:"Submarino",  fondo:"001A26", texto:"7DE2D1", barra:"023E5C", textoBarra:"B3F0E8", historial:"00121A", panel:"002838", cooldown:"FF6B35", afk:"FFA600", boton:"023E5C", hover:"045A82", logo:"FFA600", luzOn:"00BCD4", luzAccion:"FFA600", luzOff:"001A26",  btnTexto:"B3F0E8", histColor1:"7DE2D1", histColor2:"FFA600", histColor3:"00BCD4" },
+    { nombre:"Azul",       fondo:"000A2E", texto:"FFFFFF", barra:"0050D5", textoBarra:"FFFFFF", historial:"000510", panel:"001A4D", cooldown:"FF6B6B", afk:"00BFFF", boton:"0050D5", hover:"1976D2", logo:"00BFFF", luzOn:"00BFFF", luzAccion:"00BFFF", luzOff:"000A2E",  btnTexto:"FFFFFF", histColor1:"FFFFFF", histColor2:"00BFFF", histColor3:"0050D5", deco:"azul" },
+    { nombre:"Rojo",       fondo:"2A0000", texto:"FFFFFF", barra:"DD0000", textoBarra:"FFFFFF", historial:"1A0000", panel:"3A0000", cooldown:"FF8888", afk:"FF4444", boton:"DD0000", hover:"FF2222", logo:"FF4444", luzOn:"FF4444", luzAccion:"FF4444", luzOff:"1A0000",  btnTexto:"FFFFFF", histColor1:"FFFFFF", histColor2:"FF4444", histColor3:"DD0000", deco:"rojo" },
     ; ─────────── SECRETOS — PACK GAMER ───────────
     { nombre:"★ Brawl",       secreto:true, unlock:"gamer", fondo:"000000", texto:"FFFFFF", barra:"0050D5", textoBarra:"FFFFFF", historial:"000000", panel:"0A1A30", cooldown:"FF4444", afk:"4FC3F7", boton:"0050D5", hover:"1976D2", logo:"FFFFFF", luzOn:"00B0FF", luzAccion:"FFFFFF", luzOff:"050E1C",  btnTexto:"FFFFFF", histColor1:"FFFFFF", histColor2:"00B0FF", histColor3:"0050D5" },
     { nombre:"◆ Cyberpunk",   secreto:true, unlock:"gamer", fondo:"0D0B1F", texto:"00FFFF", barra:"FF00AA", textoBarra:"FFFF00", historial:"070518", panel:"130E2E", cooldown:"FFFF00", afk:"00FFFF", boton:"FF00AA", hover:"FF33BB", logo:"FFFF00", luzOn:"FF00AA", luzAccion:"00FFFF", luzOff:"1A1240",  btnTexto:"FFFFFF", histColor1:"00FFFF", histColor2:"FF00AA", histColor3:"FFFF00" },
@@ -123,6 +125,7 @@ temas := [
 ]
 
 temaActual := LeerTemaGuardado()
+temaAnteriorNombre := ""  ; para detectar secuencia Azul → Rojo
 temaInicial := temas[temaActual]
 colorFondoPrincipal := temaInicial.fondo
 colorTextoPrincipal := temaInicial.texto
@@ -297,7 +300,7 @@ global miniGui := "", modoMini := false, logoMacroMini := "", miniSubclassCb := 
 global miniHistLabel := "", miniHistBuffer := []   ; mini historial del modo mini (últimas 3 líneas)
 global barraMini := "", miniBarraSubclassCb := 0
 global overlayPartMini := "", particulasMini := [], overlayDecoMini := "", overlayDecoMiniSubCb := 0
-global btnIniciar, btnParar, btnCodigo, btnReset, btnHistorial, btnTema, btnMin, btnClose, btnUpdate, btnOverlay, btnRGBBtn, btnStatsBtn, btnWebhook, btnLogros, btnPart, btnPerfil, btnMini, btnOptimizar, btnTutorial, btnVelocidad, btnParches
+global btnIniciar, btnParar, btnCodigo, btnReset, btnHistorial, btnTema, btnMin, btnClose, btnUpdate, btnOverlay, btnRGBBtn, btnStatsBtn, btnWebhook, btnLogros, btnPart, btnPerfil, btnMini, btnOptimizar, btnTutorial, btnVelocidad, btnParches, btnMiniTema
 global btnMiniIniciar := "", btnMiniParar := "", btnMiniCerrar := ""
 global hoverAccent := "", hoverAnimStep := 0, hoverAccentTop := "", hoverAccentHist := ""
 global hoverAccentBot := "", hoverAccentRight := "", hoverAccentBotHist := "", hoverAccentRightHist := ""
@@ -376,6 +379,7 @@ global totalCriticos := 0
 global confetiGui := "", confetiParticles := [], confetiActivo := false, confetiSubclassCb := 0
 global logros := []
 global logrosGui := "", logrosGuiVisible := false, btnLogros := ""
+global logrosPagina := 1  ; página actual del libro
 global ultimoAfkMove := A_TickCount  ; watchdog: timestamp del último MouseMove del AFK
 global toastGui := "", toastX := 0, toastStartY := 0, toastTargetY := 0, toastStep := 0, toastDuracion := 3000
 global logoGlitchActivo := false, logoGlitchHasta := 0, logoGlitchOffX := 0, logoGlitchOffY := 0
@@ -1302,7 +1306,7 @@ InstalarSubclassMiniLogo() {
 }
 
 ToggleMiniMode(*) {
-    global modoMini, miGui, historialGui, historialVisible, miniGui, logoMacroMini, barraMini, miniHistLabel
+    global modoMini, miGui, historialGui, historialVisible, miniGui, logoMacroMini, barraMini
     global colorFondoPrincipal, colorBarra, colorTextoBarra, colorBotonNormal, colorBtnTexto, colorLogoMacro
     global overlayPartMain, overlayPartHist, miniBarraSubclassCb
     global overlayPartMini, particulasMini, overlayDecoMini, overlayDecoraciones, configPath
@@ -1321,7 +1325,6 @@ ToggleMiniMode(*) {
         miniGui := ""
         logoMacroMini := ""
         barraMini := ""
-        miniHistLabel := ""
         miGui.Show()
         if (historialVisible)
             historialGui.Show()
@@ -1360,9 +1363,10 @@ CrearMiniGui(posX, posY) {
     global colorFondoPrincipal, colorBarra, colorTextoBarra, colorLogoMacro, colorBotonNormal, colorBtnTexto
     global overlayPartMini, particulasMini, particulasActivas
     global overlayDecoMini, overlayDecoMiniSubCb, DECO_COLORKEY_HEX, DECO_COLORKEY_BGR
-    global btnMiniIniciar, btnMiniParar, btnMiniCerrar, rgbBotones, colorRGBActual
+    global btnMiniIniciar, btnMiniParar, btnMiniCerrar, btnMiniTema, rgbBotones, colorRGBActual
     global miniHistLabel, miniHistBuffer, colorTextoPrincipal
-    static MINI_W := 120, MINI_H := 186, BAR_H := 25, MINI_OVL_H := 85
+    global MINI_W, MINI_H, BAR_H, MINI_OVL_H
+    static __init := (MINI_W := 120, MINI_H := 138, BAR_H := 25, MINI_OVL_H := 85)
 
     miniGui := Gui("+AlwaysOnTop -Caption +ToolWindow")
     miniGui.BackColor := colorFondoPrincipal
@@ -1373,17 +1377,21 @@ CrearMiniGui(posX, posY) {
     barraMini.OnEvent("Click", ArrastrarMiniVentana)
     barraMini.OnEvent("DoubleClick", ToggleMiniMode)   ; doble clic = restaurar ventana grande
 
-    ; ✕ Cerrar en la ESQUINA de la barra (encima de ella, como el 📖 del historial)
-    btnMiniCerrar := miniGui.Add("Text", "x" (MINI_W - 21) " y3 w18 h19 +0x201 Center Background" colorBarra " c" colorTextoBarra, Chr(215))
-    btnMiniCerrar.SetFont("s10 c" colorTextoBarra " Bold", "Segoe UI")
+    ; 🎨 Temas en la esquina izquierda debajo de la barra
+    btnMiniTema := miniGui.Add("Text", "x2 y" (BAR_H + 2) " w10 h11 +0x201 Center Background" colorFondoPrincipal " c" colorTextoPrincipal, Chr(0x1F3A8))
+    btnMiniTema.SetFont("s6 c" colorTextoPrincipal, "Segoe UI Emoji")
+    btnMiniTema.OnEvent("Click", AbrirPanelTemas)
+
+    ; ✕ Cerrar en la esquina derecha debajo de la barra
+    btnMiniCerrar := miniGui.Add("Text", "x" (MINI_W - 13) " y" (BAR_H + 2) " w10 h11 +0x201 Center Background" colorFondoPrincipal " c" colorTextoPrincipal, Chr(215))
+    btnMiniCerrar.SetFont("s6 c" colorTextoPrincipal " Bold", "Segoe UI")
     btnMiniCerrar.OnEvent("Click", Cerrar)
-    DllCall("SetWindowPos", "Ptr", btnMiniCerrar.Hwnd, "Ptr", 0, "Int", 0, "Int", 0, "Int", 0, "Int", 0, "UInt", 0x13)
-    ; WS_CLIPSIBLINGS en barraMini: su repintado (shimmer) taparía la ✕ sin esto
+    ; WS_CLIPSIBLINGS en barraMini: su repintado (shimmer) taparía los botones sin esto
     estiloBarraMini := DllCall("GetWindowLong", "Ptr", barraMini.Hwnd, "Int", -16, "Int")
     DllCall("SetWindowLong", "Ptr", barraMini.Hwnd, "Int", -16, "Int", estiloBarraMini | 0x04000000)
 
-    ; Logo giratorio — MISMA posición (la decoración mini sigue centrada en él)
-    logoMacroMini := miniGui.Add("Text", "x15 y" (BAR_H + 5) " w80 h80 Center BackgroundTrans c" colorLogoMacro " +0x1", Chr(9881))
+    ; Logo giratorio — siempre el mismo carácter para rotación consistente y centrado perfecto
+    logoMacroMini := miniGui.Add("Text", "x15 y" (BAR_H - 3) " w80 h80 Center BackgroundTrans c" colorLogoMacro " +0x1", Chr(9881))
     logoMacroMini.SetFont("s48 c" colorLogoMacro " Bold", "Segoe UI Symbol")
     InstalarSubclassMiniLogo()
 
@@ -1397,14 +1405,8 @@ CrearMiniGui(posX, posY) {
     RegistrarHover(btnMiniIniciar, () => (rgbBotones ? colorRGBActual : colorBotonNormal))
     RegistrarHover(btnMiniParar,   () => (rgbBotones ? colorRGBActual : colorBotonNormal),
                                    () => MezclarHex(colorCooldown, colorBotonNormal, 0.45))
-    RegistrarHover(btnMiniCerrar,  () => colorBarra, () => "C42B1C")
-
-    ; ── Mini historial: últimas 3 líneas de lo que va haciendo el macro ──
-    txtIni := ""
-    for ln in miniHistBuffer
-        txtIni .= (txtIni = "" ? "" : "`n") ln
-    miniHistLabel := miniGui.Add("Text", "x6 y138 w" (MINI_W - 12) " h42 c" colorTextoPrincipal " Background" colorFondoPrincipal, txtIni)
-    miniHistLabel.SetFont("s7", "Segoe UI")
+    RegistrarHover(btnMiniTema,    () => (rgbBotones ? colorRGBActual : colorBotonNormal))
+    RegistrarHover(btnMiniCerrar,  () => colorFondoPrincipal, () => "C42B1C")
 
     ; Instalar subclass de ondas en la barra mini (mismo efecto que la barra principal).
     ; El callback se crea UNA vez y se reutiliza en cada recreación del mini —
@@ -5139,7 +5141,7 @@ if !(StrLen(descansoInicio) = 14 && IsInteger(descansoInicio))
 if (!enDescanso && cicloInicio != "" && DateDiff(A_Now, cicloInicio, "Seconds") >= CICLO_SEG)
     cicloInicio := ""
 
-barra := miGui.Add("Text", "x0 y0 w400 h25 Background" colorBarra " Center", "MacroSmart v30")
+barra := miGui.Add("Text", "x0 y0 w400 h25 Background" colorBarra " Center", "MacroSmart v31")
 barra.SetFont("s13 c" colorTextoBarra " Bold", "Segoe UI Semibold")
 barra.OnEvent("Click", ArrastrarVentana)
 barra.OnEvent("DoubleClick", ClickTitulo)
@@ -5898,9 +5900,9 @@ ClickTitulo(*) {
 }
 
 ; ═══════════════════════════════════════════════════════════════
-; EGG GOJO — 6 clicks rápidos (Six Eyes) en secuenciasLabel
+; EGG GOJO — Secuencia de temas: Azul → Rojo
 ; ═══════════════════════════════════════════════════════════════
-DesbloquearGojo() {
+DesbloquearEggGojoSecuencia() {
     global temas, temaActual, eggGojoDesbloqueado, configPath
 
     eggGojoDesbloqueado := true
@@ -5928,6 +5930,13 @@ DesbloquearGojo() {
     popup.Show("w360 h184 Center")
     RedondearVentana(popup.Hwnd, 14)
     SetTimer(() => popup.Destroy(), -4500)
+}
+
+; ═══════════════════════════════════════════════════════════════
+; EGG GOJO (antiguo) — 6 clicks rápidos (Six Eyes) en secuenciasLabel
+; ═══════════════════════════════════════════════════════════════
+DesbloquearGojo() {
+    DesbloquearEggGojoSecuencia()  ; reutilizar la misma función
 }
 
 ; ═══════════════════════════════════════════════════════════════
@@ -7494,12 +7503,19 @@ MakeTemaClosure(entry) {
 }
 
 ElegirTema(entry) {
-    global temaActual, temaBotones, temasVisiblesGlobal
-    global temaGui, colorBarra, colorTextoBarra, temaEnTransicion
+    global temaActual, temaAnteriorNombre, temaBotones, temasVisiblesGlobal
+    global temaGui, colorBarra, colorTextoBarra, temaEnTransicion, temas, eggGojoDesbloqueado, configPath
     ; Ignorar clicks mientras hay una transición en curso: antes el click cambiaba
     ; temaActual + guardaba pero la transición se descartaba → estado incoherente.
     if (temaEnTransicion)
         return
+
+    ; Detectar secuencia Azul → Rojo para desbloquear Gojo
+    if (!eggGojoDesbloqueado && temaAnteriorNombre = "Azul" && entry.tema.nombre = "Rojo") {
+        DesbloquearEggGojoSecuencia()
+    }
+
+    temaAnteriorNombre := entry.tema.nombre  ; guardar nombre del tema anterior ANTES de cambiar
     temaActual := entry.idx
     TransicionTema(entry.tema)
     GuardarTema()
@@ -8120,7 +8136,7 @@ global TRANSICION_MS   := 1200    ; duracion total transicion (ms)
 
 TransicionTema(tema, guardar := true) {
     global temaTransInicio, temaTransTema, temaTransGuardar, temaEnTransicion
-    global temaTransOrigen
+    global temaTransOrigen, modoMini
     global colorFondoPrincipal, colorTextoPrincipal, colorBarra, colorTextoBarra
     global colorBotonNormal, colorBotonHover, colorLogoMacro, colorBtnTexto
     global colorFondoHistorial, colorCooldown, colorAFK
@@ -8129,6 +8145,14 @@ TransicionTema(tema, guardar := true) {
 
     if (temaEnTransicion)
         return
+
+    ; Si estamos en mini mode, aplicar tema al mini sin tocar el macro principal
+    if (modoMini) {
+        AplicarTemaAlMini(tema)
+        if (guardar)
+            GuardarTema()
+        return
+    }
 
     temaTransOrigen := {
         fondo:      colorFondoPrincipal,
@@ -8533,6 +8557,107 @@ AplicarTema(tema, guardar := true, fromTrans := false) {
     TestTrace("AT ok")
 }
 
+AplicarTemaAlMini(tema) {
+    global miniGui, modoMini, particulasActivas, particulasMini
+    global colorFondoPrincipal, colorBarra, colorTextoBarra, colorLogoMacro, colorBotonNormal, colorBtnTexto, colorTextoPrincipal
+    global barraMini, logoMacroMini, btnMiniIniciar, btnMiniParar, btnMiniCerrar, btnMiniTema
+    global overlayPartMini, overlayDecoMini, MINI_W, MINI_H, BAR_H, MINI_OVL_H, DECO_COLORKEY_HEX, DECO_COLORKEY_BGR
+
+    if (!IsObject(miniGui) || !modoMini)
+        return
+
+    ; Guardar posición actual
+    miniGui.GetPos(&miniX, &miniY)
+
+    ; Actualizar colores globales
+    colorFondoPrincipal := tema.fondo
+    colorBarra := tema.barra
+    colorTextoBarra := tema.textoBarra
+    colorLogoMacro := tema.logo
+    colorBotonNormal := tema.boton
+    colorBtnTexto := tema.btnTexto
+    colorTextoPrincipal := tema.texto
+
+    ; Cambiar color de fondo del GUI
+    miniGui.BackColor := colorFondoPrincipal
+
+    ; Actualizar barra: necesita recrearse porque es Text con Background
+    try barraMini.Destroy()
+    barraMini := miniGui.Add("Text", "x0 y0 w" MINI_W " h" BAR_H " Background" colorBarra " Center +0x201", "Smart")
+    barraMini.SetFont("s11 c" colorTextoBarra " Bold", "Segoe UI Semibold")
+    barraMini.OnEvent("Click", ArrastrarMiniVentana)
+    barraMini.OnEvent("DoubleClick", ToggleMiniMode)
+    estiloBarraMini := DllCall("GetWindowLong", "Ptr", barraMini.Hwnd, "Int", -16, "Int")
+    DllCall("SetWindowLong", "Ptr", barraMini.Hwnd, "Int", -16, "Int", estiloBarraMini | 0x04000000)
+
+    ; Reinstalar subclass de ondas en la barra (reutilizar callback)
+    if (!miniBarraSubclassCb)
+        miniBarraSubclassCb := CallbackCreate(BarraSubclassProc, "F", 6)
+    DllCall("Comctl32.dll\SetWindowSubclass", "Ptr", barraMini.Hwnd, "Ptr", miniBarraSubclassCb, "Ptr", 10, "Ptr", 0)
+
+    ; Actualizar botones (también necesitan recrearse)
+    try btnMiniIniciar.Destroy()
+    try btnMiniParar.Destroy()
+    try btnMiniTema.Destroy()
+    try btnMiniCerrar.Destroy()
+
+    btnMiniIniciar := miniGui.Add("Text", "x27 y114 w30 h18 +0x201 Center Background" colorBotonNormal " c" colorBtnTexto, Chr(9654))
+    btnMiniParar   := miniGui.Add("Text", "x63 y114 w30 h18 +0x201 Center Background" colorBotonNormal " c" colorBtnTexto, Chr(9632))
+    for b in [btnMiniIniciar, btnMiniParar]
+        b.SetFont("s9 c" colorBtnTexto " Bold", "Segoe UI Symbol")
+    btnMiniIniciar.OnEvent("Click", Iniciar)
+    btnMiniParar.OnEvent("Click", Parar)
+    RegistrarHover(btnMiniIniciar, () => (rgbBotones ? colorRGBActual : colorBotonNormal))
+    RegistrarHover(btnMiniParar,   () => (rgbBotones ? colorRGBActual : colorBotonNormal),
+                                   () => MezclarHex(colorCooldown, colorBotonNormal, 0.45))
+
+    btnMiniTema := miniGui.Add("Text", "x2 y" (BAR_H + 2) " w10 h11 +0x201 Center Background" colorFondoPrincipal " c" colorTextoPrincipal, Chr(0x1F3A8))
+    btnMiniTema.SetFont("s6 c" colorTextoPrincipal, "Segoe UI Emoji")
+    btnMiniTema.OnEvent("Click", AbrirPanelTemas)
+    RegistrarHover(btnMiniTema, () => (rgbBotones ? colorRGBActual : colorBotonNormal))
+
+    btnMiniCerrar := miniGui.Add("Text", "x" (MINI_W - 13) " y" (BAR_H + 2) " w10 h11 +0x201 Center Background" colorFondoPrincipal " c" colorTextoPrincipal, Chr(215))
+    btnMiniCerrar.SetFont("s6 c" colorTextoPrincipal " Bold", "Segoe UI")
+    btnMiniCerrar.OnEvent("Click", Cerrar)
+    RegistrarHover(btnMiniCerrar, () => colorFondoPrincipal, () => "C42B1C")
+
+    ; Logo NO se toca — mantiene su posición exacta
+    logoMacroMini.SetFont("s48 c" colorLogoMacro " Bold", "Segoe UI Symbol")
+
+    ; Recrear overlays (decoración y partículas)
+    if (IsObject(overlayPartMini))
+        try overlayPartMini.Destroy()
+    overlayPartMini := ""
+    if (IsObject(overlayDecoMini))
+        try overlayDecoMini.Destroy()
+    overlayDecoMini := ""
+
+    if (particulasActivas) {
+        try WinSetStyle("+0x02000000", "ahk_id " miniGui.Hwnd)
+        overlayPartMini := Gui("+AlwaysOnTop -Caption +ToolWindow +E0x80020")
+        overlayPartMini.Opt("+Owner" miniGui.Hwnd)
+        overlayPartMini.Show("x" miniX " y" (miniY + BAR_H) " w" MINI_W " h" MINI_OVL_H " NoActivate")
+        InicializarParticulas(particulasMini, MINI_W, MINI_OVL_H, 15)
+    }
+
+    overlayDecoMini := Gui("+AlwaysOnTop -Caption +ToolWindow +E0x80020")
+    overlayDecoMini.Opt("+Owner" miniGui.Hwnd)
+    overlayDecoMini.BackColor := DECO_COLORKEY_HEX
+    overlayDecoMini.Show("x" miniX " y" (miniY + BAR_H) " w" MINI_W " h" MINI_OVL_H " NoActivate")
+    DllCall("SetLayeredWindowAttributes", "Ptr", overlayDecoMini.Hwnd, "UInt", DECO_COLORKEY_BGR, "UChar", 255, "UInt", 1)
+    if (!overlayDecoMiniSubCb)
+        overlayDecoMiniSubCb := CallbackCreate(DecoOverlaySubclassProc, "F", 6)
+    DllCall("Comctl32.dll\SetWindowSubclass", "Ptr", overlayDecoMini.Hwnd, "Ptr", overlayDecoMiniSubCb, "Ptr", 27, "Ptr", 0)
+
+    ; Redibujar y actualizar GUI
+    miniGui.Show("NoActivate")
+
+    static WM_SETREDRAW := 0x000B
+    static RDW_FLAGS    := 0x0001 | 0x0004 | 0x0080 | 0x0100
+    DllCall("SendMessageW", "Ptr", miniGui.Hwnd, "UInt", WM_SETREDRAW, "Ptr", 1, "Ptr", 0)
+    DllCall("RedrawWindow", "Ptr", miniGui.Hwnd, "Ptr", 0, "Ptr", 0, "UInt", RDW_FLAGS)
+}
+
 ActualizarRGB(*) {
     global barra, barraHistorial, logoMacro, tituloMacro, timerLabel
     global cooldownText, afkText, secuenciasLabel, destruccionesLabel
@@ -8727,6 +8852,7 @@ Minimizar(*) {
 Cerrar(*) {
     global miGui, historialGui, overlayPartMain, overlayPartHist, heartbeatPath, miniGui, modoMini
     global perfilActivo, configPath, historialVisible
+    ResetearCicloEstado()
     GuardarStats()
     GuardarRGBs()
     IniWrite(historialVisible ? 1 : 0, configPath, "UI", "HistorialVisible")
@@ -8760,6 +8886,7 @@ Cerrar(*) {
 
 Reiniciar(*) {
     global perfilActivo, configPath, historialVisible
+    ResetearCicloEstado()
     GuardarStats()
     GuardarRGBs()
     IniWrite(historialVisible ? 1 : 0, configPath, "UI", "HistorialVisible")
@@ -9057,9 +9184,16 @@ DecoOverlaySubclassProc(hWnd, uMsg, wParam, lParam, idSubclass, refData) {
 
 PintarDecoracionesEnHDC(hdc, w, h, esMini := false) {
     global temas, temaActual, sukunaSlashFrame, gojoAuraFrame
-    if (!temas[temaActual].HasProp("unlock"))
+
+    unlock := ""
+    decoTema := ""
+    if (temas[temaActual].HasProp("unlock"))
+        unlock := temas[temaActual].unlock
+    if (temas[temaActual].HasProp("deco"))
+        decoTema := temas[temaActual].deco
+
+    if (!unlock && !decoTema)
         return
-    unlock := temas[temaActual].unlock
 
     ; Centro del logo EN COORDENADAS DEL OVERLAY (resta BAR_H=25 a la y del logo):
     ;   Principal: logo x19 y31 w95 h95 en miGui → centro (66, 78) → overlay (66, 53)
@@ -9080,6 +9214,10 @@ PintarDecoracionesEnHDC(hdc, w, h, esMini := false) {
     } else if (unlock = "gojo") {
         PintarSixEyesGojo(hdc, lcx, lcy, radioOjos)   ; 6 ojos orbitando el logo
         PintarAnilloGojo(hdc, lcx, lcy, radioAnillo)  ; anillo Limitless
+    } else if (decoTema = "azul") {
+        PintarAuraAzul(hdc, lcx, lcy, radioAnillo)    ; aura azul brillante
+    } else if (decoTema = "rojo") {
+        PintarAuraRojo(hdc, lcx, lcy, radioAnillo)    ; aura rojo brillante
     }
 
     ; ── ANIMACIONES PUNTUALES (al detectar) ──
@@ -9248,6 +9386,68 @@ PintarAnilloGojo(hdc, cx, cy, radioBase) {
         argbRing := (alpha << 24) | (cR << 16) | (cG << 8) | cB
         pen := 0
         DllCall("gdiplus\GdipCreatePen1", "UInt", argbRing, "Float", 1.5, "Int", 2, "Ptr*", &pen)
+        DllCall("gdiplus\GdipDrawEllipse", "Ptr", g, "Ptr", pen, "Float", cx - radio, "Float", cy - radio, "Float", radio * 2.0, "Float", radio * 2.0)
+        DllCall("gdiplus\GdipDeletePen", "Ptr", pen)
+    }
+
+    DllCall("gdiplus\GdipDeleteGraphics", "Ptr", g)
+}
+
+PintarAuraAzul(hdc, cx, cy, radioBase) {
+    ; Aura azul brillante con ondas suaves
+    fase := Mod(A_TickCount / 1000.0 * 0.8, 6.2831853)
+
+    g := 0
+    DllCall("gdiplus\GdipCreateFromHDC", "Ptr", hdc, "Ptr*", &g)
+    if (!g)
+        return
+    DllCall("gdiplus\GdipSetSmoothingMode", "Ptr", g, "Int", 4)
+
+    Loop 3 {
+        i := A_Index - 1
+        ondaFase := fase + i * 2.0944
+        radio := radioBase + 3.0 * Sin(ondaFase)
+        alpha := Round(70 + 40 * Sin(ondaFase))
+        if (alpha < 20)
+            alpha := 20
+        ; Azul brillante
+        cR := 0
+        cG := 150
+        cB := 255
+        argbRing := (alpha << 24) | (cR << 16) | (cG << 8) | cB
+        pen := 0
+        DllCall("gdiplus\GdipCreatePen1", "UInt", argbRing, "Float", 2.0, "Int", 2, "Ptr*", &pen)
+        DllCall("gdiplus\GdipDrawEllipse", "Ptr", g, "Ptr", pen, "Float", cx - radio, "Float", cy - radio, "Float", radio * 2.0, "Float", radio * 2.0)
+        DllCall("gdiplus\GdipDeletePen", "Ptr", pen)
+    }
+
+    DllCall("gdiplus\GdipDeleteGraphics", "Ptr", g)
+}
+
+PintarAuraRojo(hdc, cx, cy, radioBase) {
+    ; Aura rojo brillante con ondas suaves
+    fase := Mod(A_TickCount / 1000.0 * 0.8, 6.2831853)
+
+    g := 0
+    DllCall("gdiplus\GdipCreateFromHDC", "Ptr", hdc, "Ptr*", &g)
+    if (!g)
+        return
+    DllCall("gdiplus\GdipSetSmoothingMode", "Ptr", g, "Int", 4)
+
+    Loop 3 {
+        i := A_Index - 1
+        ondaFase := fase + i * 2.0944
+        radio := radioBase + 3.0 * Sin(ondaFase)
+        alpha := Round(70 + 40 * Sin(ondaFase))
+        if (alpha < 20)
+            alpha := 20
+        ; Rojo brillante
+        cR := 255
+        cG := 50
+        cB := 50
+        argbRing := (alpha << 24) | (cR << 16) | (cG << 8) | cB
+        pen := 0
+        DllCall("gdiplus\GdipCreatePen1", "UInt", argbRing, "Float", 2.0, "Int", 2, "Ptr*", &pen)
         DllCall("gdiplus\GdipDrawEllipse", "Ptr", g, "Ptr", pen, "Float", cx - radio, "Float", cy - radio, "Float", radio * 2.0, "Float", radio * 2.0)
         DllCall("gdiplus\GdipDeletePen", "Ptr", pen)
     }
@@ -9788,17 +9988,6 @@ AgregarHistorial(texto, CH := "") {
     ; Guardar SIEMPRE en archivo de log persistente (con fecha completa)
     ; Asi se puede revisar despues que paso si Brawlhalla se cerro misteriosamente.
     GuardarHistorialLog(texto)
-
-    ; Mini historial del modo mini: últimas 3 líneas, recortadas para que quepan
-    miniHistBuffer.Push(SubStr(texto, 1, 26))
-    if (miniHistBuffer.Length > 3)
-        miniHistBuffer.RemoveAt(1)
-    if (modoMini && IsObject(miniHistLabel)) {
-        local txtMini := ""
-        for ln in miniHistBuffer
-            txtMini .= (txtMini = "" ? "" : "`n") ln
-        try miniHistLabel.Value := txtMini
-    }
 
     ; Limitar historial a ~5000 líneas para evitar que el RichEdit colapse
     ; tras muchas horas de uso. Cada ~500 entradas comprobamos y recortamos.
@@ -10880,6 +11069,15 @@ GuardarCicloEstado() {
     try IniWrite(enDescanso ? 1 : 0, configPath, "Ciclo", "EnDescanso")
 }
 
+; Reinicia el ciclo de dormir desde cero (solo si el usuario cierra/reinicia manualmente)
+ResetearCicloEstado() {
+    global cicloInicio, enDescanso, descansoInicio
+    cicloInicio := ""
+    enDescanso := false
+    descansoInicio := ""
+    GuardarCicloEstado()
+}
+
 ; Alt+F4 real sobre Brawlhalla (con guardia para no cerrar otra ventana por error) +
 ; cierre de proceso como respaldo fiable si Alt+F4 no lo cerró.
 CerrarBrawlhallaAltF4() {
@@ -11261,19 +11459,32 @@ DefinirLogros() {
         { id: "lucky",        nombre: "Suertudo",             desc: "Tu primer crítico",                icono: Chr(0x2728), desbloqueado: false },
         { id: "luckyMax",     nombre: "Premio mayor",         desc: "50 críticos acumulados",           icono: Chr(0x1F340), desbloqueado: false },
         { id: "coleccionista", nombre: "Coleccionista",       desc: "Desbloquea 3 temas secretos",      icono: Chr(0x1F31F), desbloqueado: false },
-        { id: "godmode",      nombre: "God Mode",             desc: "Desbloquea TODOS los temas",       icono: Chr(0x1F451), desbloqueado: false },
-        ; ── Logros por desbloqueo de tema secreto (con pista) ───────────
-        { id: "themeShadow",  nombre: "Eclipse del tiempo",    desc: "??? (el ⏱ timer responde si insistes)",                       icono: Chr(0x2728), desbloqueado: false },
-        { id: "themeCosmos",  nombre: "Viajero estelar",       desc: "??? (gira y gira )",                            icono: Chr(0x2728), desbloqueado: false },
-        { id: "themeVoid",    nombre: "Abrazo del vacío",      desc: "??? (Tal vez algo AFK )",                icono: Chr(0x26A1), desbloqueado: false },
-        { id: "themeSolar",   nombre: "Renacer de las cenizas",desc: "??? (las 3 luces tienen un orden secreto: izq → centro → der)", icono: Chr(0x1F525), desbloqueado: false },
-        { id: "themeBlanco",  nombre: "Pureza absoluta",       desc: "??? (el historial guarda un secreto AFK)",              icono: Chr(0x2728), desbloqueado: false },
-        { id: "themePremium", nombre: "El elegido",            desc: "??? (consigue TODOS los demás secretos primero)",             icono: Chr(0x1F48E), desbloqueado: false },
-        { id: "gamerpack",    nombre: "Pack Gamer",            desc: "??? (Las SECUENCIAS son el camino)",     icono: Chr(0x1F3AE), desbloqueado: false },
-        { id: "leyendaspack", nombre: "Pack Leyendas",         desc: "??? (el medidor ⚡ gira en bucle... no pares de tocarlo)", icono: Chr(0x1F4FA), desbloqueado: false },
-        ; ── Logros de cifra ──────────────────────────────────────────
-        { id: "kiko",         nombre: "kiko",                  desc: "Llega a 67 secuencias",            icono: Chr(0x1F60E), desbloqueado: false },
-        { id: "jbs",          nombre: "JBS",                   desc: "Llega a 5000 secuencias",          icono: Chr(0x1F3C6), desbloqueado: false }
+        { id: "godmode",      nombre: "God Mode",             desc: "Desbloquea TODOS los temas",       icono: Chr(0x1F451), desbloqueado: false, pagina: 0 },
+        { id: "themeShadow",  nombre: "Eclipse del tiempo",    desc: "??? (el ⏱ timer responde si insistes)",                       icono: Chr(0x2728), desbloqueado: false, pagina: 0 },
+        { id: "themeCosmos",  nombre: "Viajero estelar",       desc: "??? (gira y gira )",                            icono: Chr(0x2728), desbloqueado: false, pagina: 0 },
+        { id: "themeVoid",    nombre: "Abrazo del vacío",      desc: "??? (Tal vez algo AFK )",                icono: Chr(0x26A1), desbloqueado: false, pagina: 0 },
+        { id: "themeSolar",   nombre: "Renacer de las cenizas",desc: "??? (las 3 luces tienen un orden secreto: izq → centro → der)", icono: Chr(0x1F525), desbloqueado: false, pagina: 0 },
+        { id: "themeBlanco",  nombre: "Pureza absoluta",       desc: "??? (el historial guarda un secreto AFK)",              icono: Chr(0x2728), desbloqueado: false, pagina: 0 },
+        { id: "themePremium", nombre: "El elegido",            desc: "??? (consigue TODOS los demás secretos primero)",             icono: Chr(0x1F48E), desbloqueado: false, pagina: 0 },
+        { id: "gamerpack",    nombre: "Pack Gamer",            desc: "??? (Las SECUENCIAS son el camino)",     icono: Chr(0x1F3AE), desbloqueado: false, pagina: 0 },
+        { id: "leyendaspack", nombre: "Pack Leyendas",         desc: "??? (el medidor ⚡ gira en bucle... no pares de tocarlo)", icono: Chr(0x1F4FA), desbloqueado: false, pagina: 0 },
+        { id: "kiko",         nombre: "kiko",                  desc: "Llega a 67 secuencias",            icono: Chr(0x1F60E), desbloqueado: false, pagina: 1 },
+        { id: "jbs",          nombre: "JBS",                   desc: "Llega a 5000 secuencias",          icono: Chr(0x1F3C6), desbloqueado: false, pagina: 1 },
+        { id: "primera",      nombre: "Primera secuencia",    desc: "Completa tu primera secuencia",    icono: Chr(0x1F947), desbloqueado: false, pagina: 1 },
+        { id: "centurion",    nombre: "Centurión",            desc: "100 secuencias totales",           icono: Chr(0x1F948), desbloqueado: false, pagina: 1 },
+        { id: "millennium",   nombre: "Millennium",           desc: "1000 secuencias totales",          icono: Chr(0x1F947), desbloqueado: false, pagina: 1 },
+        { id: "lucky",        nombre: "Suertudo",             desc: "Tu primer crítico",                icono: Chr(0x2728), desbloqueado: false, pagina: 1 },
+        { id: "luckyMax",     nombre: "Premio mayor",         desc: "50 críticos acumulados",           icono: Chr(0x1F340), desbloqueado: false, pagina: 1 },
+        { id: "phantom",      nombre: "Fantasma",             desc: "50 acciones seguidas sin AFK",     icono: Chr(0x1F47B), desbloqueado: false, pagina: 1 },
+        { id: "fruitMaster",  nombre: "Maestro de Frutas",    desc: "Completa 100 acciones en FRT",    icono: Chr(0x1F349), desbloqueado: false, pagina: 2 },
+        { id: "fruitLegend",  nombre: "Leyenda de Frutas",    desc: "Completa 500 acciones en FRT",    icono: Chr(0x1F95D), desbloqueado: false, pagina: 2 },
+        { id: "spamMaster",   nombre: "Spam Master",          desc: "10 minutos sin parar en FRT",     icono: Chr(0x26A1), desbloqueado: false, pagina: 2 },
+        { id: "generador",    nombre: "Generador",            desc: "Completa 50 detecciones en DSTV", icono: Chr(0x26A1), desbloqueado: false, pagina: 3 },
+        { id: "generadorPro", nombre: "Generador Pro",        desc: "Completa 200 detecciones en DSTV",icono: Chr(0x1F60E), desbloqueado: false, pagina: 3 },
+        { id: "resistencia",  nombre: "Resistencia",          desc: "24 horas totales acumuladas",      icono: Chr(0x23F0), desbloqueado: false, pagina: -1 },
+        { id: "marathon",     nombre: "Marathon",             desc: "8 horas en una sola sesión",       icono: Chr(0x1F3C3), desbloqueado: false, pagina: -1 },
+        { id: "destructor",   nombre: "Destructor",           desc: "10 destrucciones totales",         icono: Chr(0x1F4A5), desbloqueado: false, pagina: -1 },
+        { id: "coleccionista", nombre: "Coleccionista",       desc: "Desbloquea 3 temas secretos",      icono: Chr(0x1F31F), desbloqueado: false, pagina: 0 }
     ]
 }
 
@@ -11336,7 +11547,7 @@ VerificarLogros() {
 }
 
 AbrirPanelLogros(*) {
-    global logros, logrosGui, logrosGuiVisible
+    global logros, logrosGui, logrosGuiVisible, logrosPagina
     global colorFondoPrincipal, colorTextoPrincipal, colorBarra, colorTextoBarra, colorBotonNormal, colorBtnTexto
 
     if (logrosGuiVisible && IsObject(logrosGui)) {
@@ -11346,35 +11557,64 @@ AbrirPanelLogros(*) {
         return
     }
 
-    ; Layout 3 columnas compacto — panel mucho más pequeño que el 2-col anterior
+    logrosPagina := 0
+    MostrarPaginaLogrosGrid(logrosPagina)
+}
+
+MostrarPaginaLogrosGrid(pagina) {
+    global logros, logrosGui, logrosGuiVisible, logrosPagina
+    global colorFondoPrincipal, colorTextoPrincipal, colorBarra, colorTextoBarra, colorBotonNormal, colorBtnTexto
+
+    if (IsObject(logrosGui)) {
+        try LimpiarHoverGui(logrosGui)
+        try logrosGui.Destroy()
+    }
+
+    ; Filtrar logros por página
+    logrosEnPagina := []
+    for l in logros {
+        if (l.HasProp("pagina") && l.pagina = pagina)
+            logrosEnPagina.Push(l)
+    }
+
+    ; Nombres de páginas
+    paginas := ["🎨 TEMAS", "🌐 TCT & 🔒 SP", "⚔ FRT", "∅ DSTV"]
+    nombrePagina := paginas[pagina + 1]
+
+    ; Tamaño FIJO como el libro de parches
+    W := 400
+    H := 328
+
     cols    := 3
-    cellW   := 158
+    cellW   := 129
     cellH   := 40
-    gap     := 5
-    padding := 10
-    W := padding * 2 + cols * cellW + (cols - 1) * gap
-    filas := Ceil(logros.Length / cols)
-    H := 30 + padding + filas * (cellH + gap) - gap + padding
+    gap     := 2
+    padding := 4
 
     logrosGui := Gui("+AlwaysOnTop -Caption +ToolWindow")
     logrosGui.BackColor := colorFondoPrincipal
 
     desbloqueadosCount := 0
-    for l in logros
+    for l in logrosEnPagina
         if (l.desbloqueado)
             desbloqueadosCount += 1
 
-    barr := logrosGui.Add("Text", "x0 y0 w" W " h30 Background" colorBarra " Center +0x200", Chr(0x1F3C5) "  Logros  " Chr(0x2022) "  " desbloqueadosCount "/" logros.Length)
+    barr := logrosGui.Add("Text", "x0 y0 w" W " h30 Background" colorBarra " Center +0x200", Chr(0x1F3C5) "  " nombrePagina "  " Chr(0x2022) "  " desbloqueadosCount "/" logrosEnPagina.Length)
     barr.SetFont("s10 c" colorTextoBarra " Bold", "Segoe UI Semibold")
     barr.OnEvent("Click", (*) => (LimpiarHoverGui(logrosGui), logrosGui.Destroy(), logrosGuiVisible := false))
 
-    ; Layout en grid 3×N compacto
+    ; Layout en grid 3×N compacto — cabe en altura fija
     startY := 30 + padding
-    for i, l in logros {
+    contentH := H - 30 - padding - 40  ; altura disponible para logros
+    for i, l in logrosEnPagina {
         col := Mod(i - 1, cols)
         row := (i - 1) // cols
         cx := padding + col * (cellW + gap)
         cy := startY + row * (cellH + gap)
+
+        ; No mostrar si está fuera del área visible
+        if (cy + cellH > startY + contentH)
+            break
 
         if (l.desbloqueado) {
             cBg := colorBotonNormal
@@ -11385,23 +11625,50 @@ AbrirPanelLogros(*) {
             cFg := "888888"
             iconC := "666666"
         }
-        ; Fondo de la celda (un solo Text como contenedor del color)
         cell := logrosGui.Add("Text", "x" cx " y" cy " w" cellW " h" cellH " Background" cBg, "")
-        ; Icono a la izquierda
-        lblIcon := logrosGui.Add("Text", "x" (cx + 5) " y" (cy + 5) " w24 h" (cellH - 10) " Center Background" cBg " c" iconC, l.icono)
-        lblIcon.SetFont("s13", "Segoe UI Emoji")
-        ; Nombre
-        lblName := logrosGui.Add("Text", "x" (cx + 33) " y" (cy + 4) " w" (cellW - 38) " h14 Background" cBg " c" cFg, l.nombre)
-        lblName.SetFont("s8 Bold", "Segoe UI Semibold")
-        ; Descripción
-        lblDesc := logrosGui.Add("Text", "x" (cx + 33) " y" (cy + 20) " w" (cellW - 38) " h18 Background" cBg " c" cFg, l.desc)
-        lblDesc.SetFont("s6 Italic", "Segoe UI")
+        lblIcon := logrosGui.Add("Text", "x" (cx + 3) " y" (cy + 3) " w20 h" (cellH - 6) " Center Background" cBg " c" iconC, l.icono)
+        lblIcon.SetFont("s11", "Segoe UI Emoji")
+        lblName := logrosGui.Add("Text", "x" (cx + 25) " y" (cy + 2) " w" (cellW - 28) " h12 Background" cBg " c" cFg, l.nombre)
+        lblName.SetFont("s7 Bold", "Segoe UI Semibold")
+        lblDesc := logrosGui.Add("Text", "x" (cx + 25) " y" (cy + 16) " w" (cellW - 28) " h18 Background" cBg " c" cFg, l.desc)
+        lblDesc.SetFont("s5 Italic", "Segoe UI")
+    }
+
+    ; Botones de navegación (como el libro de parches)
+    btnPrev := logrosGui.Add("Text", "x20 y286 w120 h30 +0x201 Background" colorBotonNormal " c" colorBtnTexto " Center",
+                          Chr(0x25C0) "  Anterior")
+    btnPrev.SetFont("s10 Bold", "Segoe UI Semibold")
+    btnPrev.OnEvent("Click", (*) => CambiarPaginaLogrosGrid(pagina - 1))
+    RegistrarHover(btnPrev, () => colorBotonNormal)
+
+    lblCount := logrosGui.Add("Text", "x140 y292 w" (W - 280) " h20 +0x201 Background" colorFondoPrincipal " c" colorTextoPrincipal " Center")
+    lblCount.SetFont("s10 Bold", "Segoe UI")
+    lblCount.Value := (pagina + 1) " / 4"
+
+    btnNext := logrosGui.Add("Text", "x" (W - 20 - 120) " y286 w120 h30 +0x201 Background" colorBotonNormal " c" colorBtnTexto " Center",
+                          "Siguiente  " Chr(0x25B6))
+    btnNext.SetFont("s10 Bold", "Segoe UI Semibold")
+    btnNext.OnEvent("Click", (*) => CambiarPaginaLogrosGrid(pagina + 1))
+    RegistrarHover(btnNext, () => colorBotonNormal)
+
+    ; Deshabilitar botones en primera/última página
+    if (pagina = 0) {
+        btnPrev.Opt("Background888888 c666666")
+    }
+    if (pagina = 3) {
+        btnNext.Opt("Background888888 c666666")
     }
 
     logrosGui.Show("w" W " h" H " Center")
     try RedondearVentana(logrosGui.Hwnd, 14)
     logrosGuiVisible := true
+    logrosPagina := pagina
     RegistrarAutoCierre(logrosGui, (*) => (LimpiarHoverGui(logrosGui), logrosGui.Destroy(), logrosGuiVisible := false))
+}
+
+CambiarPaginaLogrosGrid(nuevaPagina) {
+    if (nuevaPagina >= 0 && nuevaPagina <= 3)
+        MostrarPaginaLogrosGrid(nuevaPagina)
 }
 
 FlashBarraHistorial() {
