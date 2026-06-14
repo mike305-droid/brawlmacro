@@ -5147,6 +5147,7 @@ if (enDescanso) {
     CerrarBrawlhallaAltF4()
     if (descansoInicio = "")
         descansoInicio := A_Now
+    AgregarHistorial(Chr(0x1F4A4) " Macro reiniciado durante el descanso — Brawlhalla cerrado, esperando para reanudar", "FF8800")
 }
 
 barra := miGui.Add("Text", "x0 y0 w400 h25 Background" colorBarra " Center", "MacroSmart v31")
