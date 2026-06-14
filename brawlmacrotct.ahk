@@ -10909,12 +10909,10 @@ EjecutarMacro(*) {
     if (perfilActivo = 3 || perfilActivo = 4)
         return
 
-    ; ===== PAUSA TOTAL EN MODO DESCANSO =====
-    if (enDescanso)
-        return
-
     tiempoSinCambios := A_TickCount - ultimoCambio
 
+    ; ===== PAUSA TOTAL EN MODO DESCANSO (pero mantener PC despierta) =====
+    if (!enDescanso) {
     ; ===== MODO DESTRUCCION =====
     ; Evaluar ANTES del anti-AFK para que el reset de ultimoCambio a los 400s
     ; no impida alcanzar los 420s necesarios para el Alt+F4.
@@ -10986,7 +10984,9 @@ EjecutarMacro(*) {
         AgregarHistorial("⚠️ Sin detección tras 2 min - relanzando secuencia Steam + Win + 'brawlhalla'", "FF8800")
         LanzarBrawlhallaConFoco()
     }
+    }  ; cierre del bloque if (!enDescanso)
 
+    ; Anti-sleep: mover ratón 1px incluso en modo dormir para que PC no se duerma
     MouseMove(1, 0, 0, "R")
     MouseMove(-1, 0, 0, "R")
     global ultimoAfkMove
