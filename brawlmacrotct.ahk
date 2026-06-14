@@ -10909,6 +10909,10 @@ EjecutarMacro(*) {
     if (perfilActivo = 3 || perfilActivo = 4)
         return
 
+    ; ===== PAUSA TOTAL EN MODO DESCANSO =====
+    if (enDescanso)
+        return
+
     tiempoSinCambios := A_TickCount - ultimoCambio
 
     ; ===== MODO DESTRUCCION =====
