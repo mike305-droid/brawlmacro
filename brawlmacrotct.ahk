@@ -435,9 +435,8 @@ global btnPersonalizar := ""
 global efectosAccionActivos := true
 global efAccionFrame := 0, efAccionColor := "", efAccionTipo := 1   ; tipo: 1=glow 2=zoom 3=slide
 global efAccionEstilo := "ring"   ; estilo del efecto por tema: ring/multi/cross/scan/nova/pulse
-; ── Historial Pro: vista de detección extendida (toggle en el historial) ──
+; ── Historial Pro: vista de detección extendida (opción en Optimización) ──
 global historialProActivo := false
-global btnHistPro := ""
 global efAccionOverlay := "", efAccionSubCb := 0, efAccionCx := 0, efAccionCy := 0
 
 ; ── Hotkeys personalizables (cualquier tecla reasignable; se guardan solas) ──
@@ -5091,12 +5090,6 @@ btnParches := historialGui.Add("Text", "x242 y3 w22 h19 +0x201 Background" color
 btnParches.SetFont("s9 c" colorTextoBarra, "Segoe UI Emoji")
 btnParches.OnEvent("Click", AbrirParches)
 DllCall("SetWindowPos", "Ptr", btnParches.Hwnd, "Ptr", 0, "Int", 0, "Int", 0, "Int", 0, "UInt", 0x13)
-; Botón 🔬 Historial Pro — alterna vista detallada de detección
-global btnHistPro
-btnHistPro := historialGui.Add("Text", "x218 y3 w22 h19 +0x201 Background" colorBarra " c" colorTextoBarra, Chr(0x1F50D))
-btnHistPro.SetFont("s9 c" colorTextoBarra, "Segoe UI Emoji")
-btnHistPro.OnEvent("Click", ToggleHistorialPro)
-DllCall("SetWindowPos", "Ptr", btnHistPro.Hwnd, "Ptr", 0, "Int", 0, "Int", 0, "Int", 0, "UInt", 0x13)
 ; WS_CLIPSIBLINGS en barraHistorial: sin esto, su repintado (shimmer/hover breath)
 ; invade el área de btnTutorial (hermano superpuesto) y lo tapa visualmente.
 estiloBarraHist := DllCall("GetWindowLong", "Ptr", barraHistorial.Hwnd, "Int", -16, "Int")
@@ -5183,6 +5176,7 @@ optDecoraciones  := Integer(IniRead(configPath, "Optimizacion", "Decoraciones", 
 optConfeti       := Integer(IniRead(configPath, "Optimizacion", "Confeti",       "1")) = 1
 optTypeReveal    := Integer(IniRead(configPath, "Optimizacion", "TypeReveal",    "1")) = 1
 optEscena        := Integer(IniRead(configPath, "Optimizacion", "Escena",        "1")) = 1
+historialProActivo := Integer(IniRead(configPath, "Historial", "ProActivo", "0")) = 1
 
 ; Cargar configuración de degradados (botón 🌈) y efectos de acción
 CargarDegradados()
@@ -6825,6 +6819,7 @@ AbrirPanelOptimizacion(*) {
         {var: "optConfeti",       label: "Confeti",              desc: "Confeti en milestones"},
         {var: "optTypeReveal",    label: "Type Reveal",          desc: "Revelado progresivo de texto"},
         {var: "optEscena",        label: "Decoración del tema",   desc: "Decorado del borde por tema. Se mantiene aunque las partículas/Eco estén apagadas"},
+        {var: "historialProActivo", label: "Pasos en vivo",       desc: "Muestra el estado de cada paso en el cooldownText mientras el macro está activo"},
     ]
 
     for t in toggles {
@@ -6883,17 +6878,19 @@ AbrirPanelOptimizacion(*) {
 OptGetValor(varName) {
     global optHoverAccent, optHoverBreath, optShimmerBarra, optPulsoBarra
     global optPulsoLogo, optLogoGiratorio, optDecoraciones, optConfeti, optTypeReveal, optEscena
+    global historialProActivo
     switch varName {
-        case "optHoverAccent":   return optHoverAccent
-        case "optHoverBreath":   return optHoverBreath
-        case "optShimmerBarra":  return optShimmerBarra
-        case "optPulsoBarra":    return optPulsoBarra
-        case "optPulsoLogo":     return optPulsoLogo
-        case "optLogoGiratorio": return optLogoGiratorio
-        case "optDecoraciones":  return optDecoraciones
-        case "optConfeti":       return optConfeti
-        case "optTypeReveal":    return optTypeReveal
-        case "optEscena":        return optEscena
+        case "optHoverAccent":      return optHoverAccent
+        case "optHoverBreath":      return optHoverBreath
+        case "optShimmerBarra":     return optShimmerBarra
+        case "optPulsoBarra":       return optPulsoBarra
+        case "optPulsoLogo":        return optPulsoLogo
+        case "optLogoGiratorio":    return optLogoGiratorio
+        case "optDecoraciones":     return optDecoraciones
+        case "optConfeti":          return optConfeti
+        case "optTypeReveal":       return optTypeReveal
+        case "optEscena":           return optEscena
+        case "historialProActivo":  return historialProActivo
     }
     return false
 }
@@ -6903,21 +6900,27 @@ OptToggleCallback(varName, ctrl, *) {
     global configPath
     global optHoverAccent, optHoverBreath, optShimmerBarra, optPulsoBarra
     global optPulsoLogo, optLogoGiratorio, optDecoraciones, optConfeti, optTypeReveal
+    global historialProActivo
     val := ctrl.Value = 1
     switch varName {
-        case "optHoverAccent":   optHoverAccent   := val
-        case "optHoverBreath":   optHoverBreath   := val
-        case "optShimmerBarra":  optShimmerBarra  := val
-        case "optPulsoBarra":    optPulsoBarra    := val
-        case "optPulsoLogo":     optPulsoLogo     := val
-        case "optLogoGiratorio": optLogoGiratorio := val
-        case "optDecoraciones":  optDecoraciones  := val
-        case "optConfeti":       optConfeti       := val
-        case "optTypeReveal":    optTypeReveal    := val
-        case "optEscena":        optEscena        := val
+        case "optHoverAccent":      optHoverAccent      := val
+        case "optHoverBreath":      optHoverBreath      := val
+        case "optShimmerBarra":     optShimmerBarra     := val
+        case "optPulsoBarra":       optPulsoBarra       := val
+        case "optPulsoLogo":        optPulsoLogo        := val
+        case "optLogoGiratorio":    optLogoGiratorio    := val
+        case "optDecoraciones":     optDecoraciones     := val
+        case "optConfeti":          optConfeti          := val
+        case "optTypeReveal":       optTypeReveal       := val
+        case "optEscena":           optEscena           := val
+        case "historialProActivo":  historialProActivo  := val
     }
-    iniKey := StrReplace(varName, "opt", "")
-    IniWrite(val ? 1 : 0, configPath, "Optimizacion", iniKey)
+    if (varName = "historialProActivo") {
+        IniWrite(val ? 1 : 0, configPath, "Historial", "ProActivo")
+    } else {
+        iniKey := StrReplace(varName, "opt", "")
+        IniWrite(val ? 1 : 0, configPath, "Optimizacion", iniKey)
+    }
     if (varName = "optEscena")
         RefrescarTimersVisuales()   ; encender/apagar la escena al instante (incluso en Eco)
 }
@@ -10552,12 +10555,9 @@ HexToBGR(hex) {
 }
 
 ToggleHistorialPro(*) {
-    global historialProActivo, btnHistPro, colorBarra, colorBotonNormal, colorTextoBarra
+    global historialProActivo, configPath
     historialProActivo := !historialProActivo
-    if (IsObject(btnHistPro)) {
-        c := historialProActivo ? colorBarra : colorBotonNormal
-        btnHistPro.Opt("Background" c)
-    }
+    IniWrite(historialProActivo ? 1 : 0, configPath, "Historial", "ProActivo")
 }
 
 ; ===== COOLDOWNS =====
