@@ -24,3 +24,7 @@ __pycache__/
 
 # PPTX generado (es output, no source)
 brawlmacro_mockups.pptx
+
+# Artefactos de compilación de BrawlMacroCS (.NET/C#)
+BrawlMacroCS/**/bin/
+BrawlMacroCS/**/obj/

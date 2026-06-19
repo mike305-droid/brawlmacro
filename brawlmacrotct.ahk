@@ -20,7 +20,7 @@ configPath := A_ScriptDir "\brawlmacro_config.ini"
 global eggsBackupPath := A_ScriptDir "\brawlmacro_eggs.txt"
 global heartbeatPath := A_ScriptDir "\brawlmacro_heartbeat.txt"
 global historialLogPath := A_ScriptDir "\brawlmacro_historial.log"
-global VERSION_ACTUAL := "31.1.1"
+global VERSION_ACTUAL := "31.3.0"
 
 ; ===== TEMAS =====
 temas := [
@@ -63,8 +63,8 @@ temas := [
     { nombre:"Océano",     fondo:"0A1929", texto:"9CDCEB", barra:"1B4D6B", textoBarra:"E0F7FF", historial:"050D1A", panel:"0F2438", cooldown:"FF6B6B", afk:"FFB347", boton:"1B4D6B", hover:"2C6E92", logo:"5EE5D6", luzOn:"00B4D8", luzAccion:"90E0EF", luzOff:"03455A",  btnTexto:"E0F7FF", histColor1:"9CDCEB", histColor2:"5EE5D6", histColor3:"00B4D8" },
     { nombre:"Aurora",     fondo:"060A12", texto:"80FFDB", barra:"0A1E30", textoBarra:"80FFDB", historial:"040810", panel:"0C1C28", cooldown:"FF3366", afk:"00FFCC", boton:"0A1E30", hover:"163050", logo:"80FFDB", luzOn:"00FFCC", luzAccion:"AA80FF", luzOff:"0A1E30",  btnTexto:"80FFDB", histColor1:"80FFDB", histColor2:"AA80FF", histColor3:"40C4FF" },
     ; Verdes oscuros
-    { nombre:"Cyber",      fondo:"030D06", texto:"00FF88", barra:"001A0D", textoBarra:"00FF88", historial:"020B05", panel:"041208", cooldown:"FF3355", afk:"00FFCC", boton:"002211", hover:"004422", logo:"00FF88", luzOn:"00CC66", luzAccion:"00FF88", luzOff:"001A0D",  btnTexto:"00FF88", histColor1:"00FF88", histColor2:"00CC66", histColor3:"00FFCC" },
-    { nombre:"Neon",       fondo:"050F03", texto:"39FF14", barra:"0A1F06", textoBarra:"39FF14", historial:"030A02", panel:"081A04", cooldown:"FF003C", afk:"CCFF00", boton:"0A1F06", hover:"133D0A", logo:"39FF14", luzOn:"39FF14", luzAccion:"CCFF00", luzOff:"0A1F06",  btnTexto:"39FF14", histColor1:"39FF14", histColor2:"CCFF00", histColor3:"00FF66" },
+    { nombre:"Cyber",      efecto:"multi", fondo:"030D06", texto:"00FF88", barra:"001A0D", textoBarra:"00FF88", historial:"020B05", panel:"041208", cooldown:"FF3355", afk:"00FFCC", boton:"002211", hover:"004422", logo:"00FF88", luzOn:"00CC66", luzAccion:"00FF88", luzOff:"001A0D",  btnTexto:"00FF88", histColor1:"00FF88", histColor2:"00CC66", histColor3:"00FFCC" },
+    { nombre:"Neon",       efecto:"multi", fondo:"050F03", texto:"39FF14", barra:"0A1F06", textoBarra:"39FF14", historial:"030A02", panel:"081A04", cooldown:"FF003C", afk:"CCFF00", boton:"0A1F06", hover:"133D0A", logo:"39FF14", luzOn:"39FF14", luzAccion:"CCFF00", luzOff:"0A1F06",  btnTexto:"39FF14", histColor1:"39FF14", histColor2:"CCFF00", histColor3:"00FF66" },
     { nombre:"Esmeralda",  fondo:"010F08", texto:"A8FFD0", barra:"003320", textoBarra:"C8FFE8", historial:"000A05", panel:"001A0F", cooldown:"FF4444", afk:"00FF88", boton:"002218", hover:"004430", logo:"FFD700", luzOn:"00CC66", luzAccion:"FFD700", luzOff:"010F08",  btnTexto:"C8FFE8", histColor1:"00FF88", histColor2:"FFD700", histColor3:"00CC66" },
     { nombre:"Jungla",     fondo:"0F1E0F", texto:"B4E197", barra:"1F4D2F", textoBarra:"E0FFCB", historial:"081108", panel:"152618", cooldown:"FF7043", afk:"FFB300", boton:"1F4D2F", hover:"2E6B3F", logo:"F4C430", luzOn:"4CAF50", luzAccion:"FFB300", luzOff:"0F1E0F",  btnTexto:"E0FFCB", histColor1:"B4E197", histColor2:"F4C430", histColor3:"4CAF50" },
     { nombre:"Bosque",     fondo:"1C1208", texto:"C8A96E", barra:"2D1E0A", textoBarra:"E8C97A", historial:"140E06", panel:"231508", cooldown:"FF5533", afk:"8BC34A", boton:"3B2610", hover:"5A3D18", logo:"8BC34A", luzOn:"6D9B2A", luzAccion:"C8A96E", luzOff:"1C1208",  btnTexto:"E8C97A", histColor1:"C8A96E", histColor2:"8BC34A", histColor3:"D4944A" },
@@ -75,9 +75,9 @@ temas := [
     { nombre:"Magma",      fondo:"0E0400", texto:"FF6B35", barra:"1E0800", textoBarra:"FF9A5C", historial:"080200", panel:"180600", cooldown:"FF1744", afk:"FF6B35", boton:"1E0800", hover:"330D00", logo:"FF9A5C", luzOn:"FF4500", luzAccion:"FF6B35", luzOff:"1E0800",  btnTexto:"FF9A5C", histColor1:"FF6B35", histColor2:"FF4500", histColor3:"FF9A5C" },
     { nombre:"Sangre",     fondo:"0A0000", texto:"F5DDD0", barra:"2A0000", textoBarra:"FFD0C0", historial:"060000", panel:"160000", cooldown:"FF0000", afk:"FF6644", boton:"1A0000", hover:"3A0000", logo:"FF2222", luzOn:"CC0000", luzAccion:"FF3322", luzOff:"0A0000",  btnTexto:"FFD0C0", histColor1:"F5DDD0", histColor2:"CC0000", histColor3:"FF3322" },
     { nombre:"Abismo",     fondo:"0A0010", texto:"D8C8FF", barra:"120020", textoBarra:"E0D0FF", historial:"0D0018", panel:"140025", cooldown:"FF4477", afk:"AA88FF", boton:"1A0030", hover:"280050", logo:"C8A8FF", luzOn:"9966FF", luzAccion:"BB88FF", luzOff:"1A0030",  btnTexto:"D8C8FF", histColor1:"D8C8FF", histColor2:"9966FF", histColor3:"BB88FF" },
-    { nombre:"Electrico",  fondo:"0A0A1A", texto:"E040FB", barra:"4A148C", textoBarra:"EA80FC", historial:"080812", panel:"0D0D22", cooldown:"FF1744", afk:"7B1FA2", boton:"4A148C", hover:"6A1EB0", logo:"E040FB", luzOn:"AA00FF", luzAccion:"E040FB", luzOff:"1A0030",  btnTexto:"EA80FC", histColor1:"E040FB", histColor2:"AA00FF", histColor3:"CE93D8" },
+    { nombre:"Electrico",  efecto:"multi", fondo:"0A0A1A", texto:"E040FB", barra:"4A148C", textoBarra:"EA80FC", historial:"080812", panel:"0D0D22", cooldown:"FF1744", afk:"7B1FA2", boton:"4A148C", hover:"6A1EB0", logo:"E040FB", luzOn:"AA00FF", luzAccion:"E040FB", luzOff:"1A0030",  btnTexto:"EA80FC", histColor1:"E040FB", histColor2:"AA00FF", histColor3:"CE93D8" },
     ; Nuevos oscuros — paletas únicas no duplicadas
-    { nombre:"Glitch",     fondo:"050510", texto:"00FFFF", barra:"FF00FF", textoBarra:"00FFFF", historial:"030308", panel:"0A0A18", cooldown:"FFFF00", afk:"00FFFF", boton:"1A1A2A", hover:"FF00FF", logo:"00FFFF", luzOn:"FF00FF", luzAccion:"00FFFF", luzOff:"0A0A18",  btnTexto:"00FFFF", histColor1:"00FFFF", histColor2:"FF00FF", histColor3:"FFFF00" },
+    { nombre:"Glitch",     efecto:"multi", fondo:"050510", texto:"00FFFF", barra:"FF00FF", textoBarra:"00FFFF", historial:"030308", panel:"0A0A18", cooldown:"FFFF00", afk:"00FFFF", boton:"1A1A2A", hover:"FF00FF", logo:"00FFFF", luzOn:"FF00FF", luzAccion:"00FFFF", luzOff:"0A0A18",  btnTexto:"00FFFF", histColor1:"00FFFF", histColor2:"FF00FF", histColor3:"FFFF00" },
     { nombre:"Tundra",     fondo:"0C1A22", texto:"AED9E0", barra:"4F8A8B", textoBarra:"E0F4F5", historial:"081218", panel:"152A35", cooldown:"FF6B6B", afk:"79EAD0", boton:"4F8A8B", hover:"6BA8A9", logo:"FBD46D", luzOn:"79EAD0", luzAccion:"FBD46D", luzOff:"0C1A22",  btnTexto:"E0F4F5", histColor1:"AED9E0", histColor2:"FBD46D", histColor3:"79EAD0" },
     { nombre:"Veneno",     fondo:"0A1208", texto:"C8FF00", barra:"2A4505", textoBarra:"E5FF7A", historial:"060A04", panel:"131F0A", cooldown:"FF1493", afk:"00FF7F", boton:"2A4505", hover:"3D6010", logo:"C8FF00", luzOn:"7FFF00", luzAccion:"C8FF00", luzOff:"0A1208",  btnTexto:"E5FF7A", histColor1:"C8FF00", histColor2:"7FFF00", histColor3:"00FF7F" },
     { nombre:"Cobre",      fondo:"180F0A", texto:"D97849", barra:"4A2818", textoBarra:"F2A878", historial:"100A08", panel:"261810", cooldown:"FFD700", afk:"B85C2E", boton:"4A2818", hover:"6B3A22", logo:"D97849", luzOn:"B85C2E", luzAccion:"FFD700", luzOff:"180F0A",  btnTexto:"F2A878", histColor1:"D97849", histColor2:"B85C2E", histColor3:"FFD700" },
@@ -87,28 +87,28 @@ temas := [
     { nombre:"Rojo",       fondo:"2A0000", texto:"FFFFFF", barra:"DD0000", textoBarra:"FFFFFF", historial:"1A0000", panel:"3A0000", cooldown:"FF8888", afk:"FF4444", boton:"DD0000", hover:"FF2222", logo:"FF4444", luzOn:"FF4444", luzAccion:"FF4444", luzOff:"1A0000",  btnTexto:"FFFFFF", histColor1:"FFFFFF", histColor2:"FF4444", histColor3:"DD0000", deco:"rojo" },
     ; ─────────── SECRETOS — PACK GAMER ───────────
     { nombre:"★ Brawl",       secreto:true, unlock:"gamer", fondo:"000000", texto:"FFFFFF", barra:"0050D5", textoBarra:"FFFFFF", historial:"000000", panel:"0A1A30", cooldown:"FF4444", afk:"4FC3F7", boton:"0050D5", hover:"1976D2", logo:"FFFFFF", luzOn:"00B0FF", luzAccion:"FFFFFF", luzOff:"050E1C",  btnTexto:"FFFFFF", histColor1:"FFFFFF", histColor2:"00B0FF", histColor3:"0050D5" },
-    { nombre:"◆ Cyberpunk",   secreto:true, unlock:"gamer", fondo:"0D0B1F", texto:"00FFFF", barra:"FF00AA", textoBarra:"FFFF00", historial:"070518", panel:"130E2E", cooldown:"FFFF00", afk:"00FFFF", boton:"FF00AA", hover:"FF33BB", logo:"FFFF00", luzOn:"FF00AA", luzAccion:"00FFFF", luzOff:"1A1240",  btnTexto:"FFFFFF", histColor1:"00FFFF", histColor2:"FF00AA", histColor3:"FFFF00" },
-    { nombre:"☀ Retrowave",   secreto:true, unlock:"gamer", fondo:"1A0833", texto:"FF6EC7", barra:"7A1FA2", textoBarra:"00E5FF", historial:"0F051F", panel:"23104D", cooldown:"FF4081", afk:"FF8A50", boton:"7A1FA2", hover:"9C27B0", logo:"FF8A50", luzOn:"FF6EC7", luzAccion:"00E5FF", luzOff:"1A0833",  btnTexto:"FFFFFF", histColor1:"FF6EC7", histColor2:"00E5FF", histColor3:"FF8A50" },
+    { nombre:"◆ Cyberpunk",   secreto:true, unlock:"gamer", efecto:"multi", fondo:"0D0B1F", texto:"00FFFF", barra:"FF00AA", textoBarra:"FFFF00", historial:"070518", panel:"130E2E", cooldown:"FFFF00", afk:"00FFFF", boton:"FF00AA", hover:"FF33BB", logo:"FFFF00", luzOn:"FF00AA", luzAccion:"00FFFF", luzOff:"1A1240",  btnTexto:"FFFFFF", histColor1:"00FFFF", histColor2:"FF00AA", histColor3:"FFFF00" },
+    { nombre:"☀ Retrowave",   secreto:true, unlock:"gamer", efecto:"nova", fondo:"1A0833", texto:"FF6EC7", barra:"7A1FA2", textoBarra:"00E5FF", historial:"0F051F", panel:"23104D", cooldown:"FF4081", afk:"FF8A50", boton:"7A1FA2", hover:"9C27B0", logo:"FF8A50", luzOn:"FF6EC7", luzAccion:"00E5FF", luzOff:"1A0833",  btnTexto:"FFFFFF", histColor1:"FF6EC7", histColor2:"00E5FF", histColor3:"FF8A50" },
     { nombre:"✦ Discord",    secreto:true, unlock:"gamer", fondo:"2C2F33", texto:"DCDDDE", barra:"5865F2", textoBarra:"FFFFFF", historial:"23272A", panel:"36393F", cooldown:"ED4245", afk:"57F287", boton:"40444B", hover:"5865F2", logo:"FFFFFF", luzOn:"5865F2", luzAccion:"57F287", luzOff:"2C2F33",  btnTexto:"FFFFFF", histColor1:"DCDDDE", histColor2:"5865F2", histColor3:"57F287" },
     { nombre:"♪ Spotify",    secreto:true, unlock:"gamer", fondo:"121212", texto:"B3B3B3", barra:"1DB954", textoBarra:"FFFFFF", historial:"0A0A0A", panel:"1A1A1A", cooldown:"FF4444", afk:"1DB954", boton:"282828", hover:"1DB954", logo:"1DB954", luzOn:"1DB954", luzAccion:"1ED760", luzOff:"181818",  btnTexto:"FFFFFF", histColor1:"B3B3B3", histColor2:"1DB954", histColor3:"1ED760" },
     { nombre:"⌖ Valorant",    secreto:true, unlock:"gamer", fondo:"0F1923", texto:"ECE8E1", barra:"FF4655", textoBarra:"FFFFFF", historial:"0A1018", panel:"162030", cooldown:"FFFF00", afk:"BD3944", boton:"1A2A3A", hover:"FF4655", logo:"FF4655", luzOn:"FF4655", luzAccion:"ECE8E1", luzOff:"0F1923",  btnTexto:"FFFFFF", histColor1:"ECE8E1", histColor2:"FF4655", histColor3:"BD3944" },
     { nombre:"⛏ Minecraft",   secreto:true, unlock:"gamer", fondo:"3B2A1A", texto:"7CFC00", barra:"5D8A3C", textoBarra:"FFFFFF", historial:"2E2010", panel:"4A3620", cooldown:"FF3333", afk:"55FF55", boton:"5D8A3C", hover:"6FA04A", logo:"7CFC00", luzOn:"55FF55", luzAccion:"7CFC00", luzOff:"3B2A1A",  btnTexto:"FFFFFF", histColor1:"7CFC00", histColor2:"55FF55", histColor3:"5D8A3C" },
     ; ─────────── SECRETOS — PACK LEYENDAS ───────────
     { nombre:"☆ Sky",         secreto:true, unlock:"leyendas", fondo:"E1F5FE", texto:"0277BD", barra:"FFFFFF", textoBarra:"0277BD", historial:"F0FAFE", panel:"B3E5FC", cooldown:"F06292", afk:"81D4FA", boton:"FFFFFF", hover:"F5F9FB", logo:"0277BD", luzOn:"81D4FA", luzAccion:"F8BBD9", luzOff:"0277BD",  btnTexto:"0277BD", histColor1:"0277BD", histColor2:"F06292", histColor3:"81D4FA" },
-    { nombre:"▣ Matrix",      secreto:true, unlock:"leyendas", fondo:"000000", texto:"00FF00", barra:"002200", textoBarra:"00FF00", historial:"000800", panel:"001100", cooldown:"FF0000", afk:"00FF00", boton:"002200", hover:"003800", logo:"00FF00", luzOn:"00FF00", luzAccion:"FFFFFF", luzOff:"001100",  btnTexto:"00FF00", histColor1:"00FF00", histColor2:"00FF88", histColor3:"FFFFFF" },
+    { nombre:"▣ Matrix",      secreto:true, unlock:"leyendas", efecto:"scan", fondo:"000000", texto:"00FF00", barra:"002200", textoBarra:"00FF00", historial:"000800", panel:"001100", cooldown:"FF0000", afk:"00FF00", boton:"002200", hover:"003800", logo:"00FF00", luzOn:"00FF00", luzAccion:"FFFFFF", luzOff:"001100",  btnTexto:"00FF00", histColor1:"00FF00", histColor2:"00FF88", histColor3:"FFFFFF" },
     { nombre:"◓ Pokémon",     secreto:true, unlock:"leyendas", fondo:"FFFFFF", texto:"1C2B43", barra:"FF1A1A", textoBarra:"FFFFFF", historial:"F5F7FA", panel:"E8EDF5", cooldown:"FFC107", afk:"3F7CE6", boton:"FF1A1A", hover:"E60000", logo:"FFC107", luzOn:"FF1A1A", luzAccion:"FFC107", luzOff:"1C2B43",  btnTexto:"FFFFFF", histColor1:"1C2B43", histColor2:"FF1A1A", histColor3:"FFC107" },
-    { nombre:"➰ Naruto",      secreto:true, unlock:"leyendas", fondo:"1A1008", texto:"FF9020", barra:"FF6600", textoBarra:"FFFFFF", historial:"120A05", panel:"281A08", cooldown:"3366FF", afk:"4488FF", boton:"FF6600", hover:"FF8830", logo:"4488FF", luzOn:"FF6600", luzAccion:"4488FF", luzOff:"1A1008",  btnTexto:"FFFFFF", histColor1:"FF9020", histColor2:"FF6600", histColor3:"4488FF" },
+    { nombre:"➰ Naruto",      secreto:true, unlock:"leyendas", efecto:"multi", fondo:"1A1008", texto:"FF9020", barra:"FF6600", textoBarra:"FFFFFF", historial:"120A05", panel:"281A08", cooldown:"3366FF", afk:"4488FF", boton:"FF6600", hover:"FF8830", logo:"4488FF", luzOn:"FF6600", luzAccion:"4488FF", luzOff:"1A1008",  btnTexto:"FFFFFF", histColor1:"FF9020", histColor2:"FF6600", histColor3:"4488FF" },
     { nombre:"⚓ One Piece",   secreto:true, unlock:"leyendas", fondo:"0A2540", texto:"FFE066", barra:"FF8C42", textoBarra:"2C1810", historial:"071E33", panel:"103056", cooldown:"E63946", afk:"06D6A0", boton:"FF8C42", hover:"FFA866", logo:"FFE066", luzOn:"FF8C42", luzAccion:"06D6A0", luzOff:"0A2540",  btnTexto:"2C1810", histColor1:"FFE066", histColor2:"FF8C42", histColor3:"06D6A0" },
     ; ─────────── SECRETOS — PACK ORIGINAL ───────────
-    { nombre:"✦ E C L I P S E ✦", secreto:true, unlock:"shadow",  fondo:"050508", texto:"C8A060", barra:"0D0A20", textoBarra:"FFB347", historial:"030306", panel:"0A0818", cooldown:"FF2244", afk:"00FFCC", boton:"14102A", hover:"221840", logo:"FFB347", luzOn:"FF6600", luzAccion:"FFD700", luzOff:"080520",  btnTexto:"FFB347", histColor1:"FFD700", histColor2:"FF6600", histColor3:"00FFCC" },
-    { nombre:"✦ C O S M O S ✦",   secreto:true, unlock:"cosmos",  fondo:"03000F", texto:"E2C9FF", barra:"180040", textoBarra:"FFD700", historial:"020008", panel:"0D001E", cooldown:"FF1493", afk:"00E5FF", boton:"12002E", hover:"1E0050", logo:"FFD700", luzOn:"BF00FF", luzAccion:"FF69B4", luzOff:"080020",  btnTexto:"FFD700", histColor1:"FF69B4", histColor2:"BF00FF", histColor3:"00E5FF" },
-    { nombre:"⚡ V O I D ⚡",      secreto:true, unlock:"void",    fondo:"000000", texto:"FFFFFF", barra:"0A0A0A", textoBarra:"FF0000", historial:"050505", panel:"0D0D0D", cooldown:"FF0000", afk:"FF0000", boton:"111111", hover:"1C1C1C", logo:"FF0000", luzOn:"FF0000", luzAccion:"FFFFFF", luzOff:"000000",  btnTexto:"FF0000", histColor1:"FFFFFF", histColor2:"FF0000", histColor3:"CC0000" },
+    { nombre:"✦ E C L I P S E ✦", secreto:true, unlock:"shadow",  efecto:"nova", fondo:"050508", texto:"C8A060", barra:"0D0A20", textoBarra:"FFB347", historial:"030306", panel:"0A0818", cooldown:"FF2244", afk:"00FFCC", boton:"14102A", hover:"221840", logo:"FFB347", luzOn:"FF6600", luzAccion:"FFD700", luzOff:"080520",  btnTexto:"FFB347", histColor1:"FFD700", histColor2:"FF6600", histColor3:"00FFCC" },
+    { nombre:"✦ C O S M O S ✦",   secreto:true, unlock:"cosmos",  efecto:"pulse", fondo:"03000F", texto:"E2C9FF", barra:"180040", textoBarra:"FFD700", historial:"020008", panel:"0D001E", cooldown:"FF1493", afk:"00E5FF", boton:"12002E", hover:"1E0050", logo:"FFD700", luzOn:"BF00FF", luzAccion:"FF69B4", luzOff:"080020",  btnTexto:"FFD700", histColor1:"FF69B4", histColor2:"BF00FF", histColor3:"00E5FF" },
+    { nombre:"⚡ V O I D ⚡",      secreto:true, unlock:"void",    efecto:"cross", fondo:"000000", texto:"FFFFFF", barra:"0A0A0A", textoBarra:"FF0000", historial:"050505", panel:"0D0D0D", cooldown:"FF0000", afk:"FF0000", boton:"111111", hover:"1C1C1C", logo:"FF0000", luzOn:"FF0000", luzAccion:"FFFFFF", luzOff:"000000",  btnTexto:"FF0000", histColor1:"FFFFFF", histColor2:"FF0000", histColor3:"CC0000" },
     { nombre:"☀ F E N I X ☀",   secreto:true, unlock:"solar",   fondo:"FFF8EC", texto:"8B3A00", barra:"FF6B00", textoBarra:"FFFFFF", historial:"FFFBF5", panel:"FFE5C0", cooldown:"00C9B7", afk:"00C9B7", boton:"FFB347", hover:"FF8C00", logo:"00C9B7", luzOn:"00C9B7", luzAccion:"FF6B00", luzOff:"FFB347",  btnTexto:"FFFFFF", histColor1:"FFD700", histColor2:"FF6B00", histColor3:"00C9B7" },
     { nombre:"✦ N I K A ✦",       secreto:true, unlock:"blanco",  fondo:"FFFFFF", texto:"CC0000", barra:"CC0000", textoBarra:"FFFFFF", historial:"FFFFFF", panel:"FFF2F2", cooldown:"990000", afk:"CC0000", boton:"FFF2F2", hover:"FFE0E0", logo:"CC0000", luzOn:"DD0000", luzAccion:"FF2222", luzOff:"CC0000",  btnTexto:"CC0000", histColor1:"CC0000", histColor2:"DD0000", histColor3:"FF2222" },
     { nombre:"♦ P R E M I U M ♦", secreto:true, unlock:"premium", fondo:"050008", texto:"FFFFFF", barra:"0F0020", textoBarra:"FFFFFF", historial:"030005", panel:"0A0015", cooldown:"FF0066", afk:"00FFCC", boton:"15002A", hover:"25004A", logo:"FFFFFF", luzOn:"FF00FF", luzAccion:"FFD700", luzOff:"0A0015",  btnTexto:"FFFFFF", histColor1:"FF00FF", histColor2:"00FFFF", histColor3:"FFFF00" },
     ; ── GOJO: el más fuerte. Uniforme negro + pelo blanco + Limitless beige + Six Eyes azul + Hollow Purple ──
     ; Logo: ∞ (Limitless). Negro azulado del uniforme, blanco del pelo, beige del Infinito, azul cielo, morado Hollow Purple.
-    { nombre:"♾ G O J O ♾", secreto:true, unlock:"gojo", logoChar:Chr(0x221E),
+    { nombre:"♾ G O J O ♾", secreto:true, unlock:"gojo", logoChar:Chr(0x221E), efecto:"pulse",
       fondo:"0A0E1F", texto:"E8DEC4", barra:"5B2A8C", textoBarra:"FFFFFF",
       historial:"070B18", panel:"131A30", cooldown:"D4C8A8", afk:"4FC3F7",
       boton:"1A1F35", hover:"3D1F66", logo:"FFFFFF",
@@ -116,13 +116,26 @@ temas := [
       btnTexto:"E8DEC4", histColor1:"E8DEC4", histColor2:"4FC3F7", histColor3:"8A2BE2" },
     ; ── SUKUNA: Rey de las Maldiciones. Negro + rojos + gris rojizo + blanco hueso ──
     ; Acentos en BLANCO (los huesos visibles del Rey). Paleta de alto contraste.
-    { nombre:"⛩ S U K U N A ⛩", secreto:true, unlock:"sukuna", logoChar:Chr(0x26E9),
+    { nombre:"⛩ S U K U N A ⛩", secreto:true, unlock:"sukuna", logoChar:Chr(0x26E9), efecto:"cross",
       fondo:"0A0000", texto:"D9D5D2", barra:"2E0506", textoBarra:"D9D5D2",
       historial:"070000", panel:"3D1A1A", cooldown:"FF3030", afk:"D00000",
       boton:"3A0808", hover:"5C1010", logo:"B30000",
       luzOn:"D00000", luzAccion:"FF3030", luzOff:"2A1010",
       btnTexto:"D9D5D2", histColor1:"D9D5D2", histColor2:"FF3030", histColor3:"6E3838" },
 ]
+
+; ── TEMA PERSONALIZABLE (v31.2): editable por el usuario y guardado en [TemaCustom] ──
+; Se añade al final del array (no desplaza índices existentes). Los valores por
+; defecto son una base neutra; el editor de tema los sobrescribe y CargarTemaCustom()
+; restaura los guardados antes de aplicar el tema inicial.
+temas.Push({ nombre:Chr(0x270E) " Personalizado", custom:true,
+    fondo:"161A24", texto:"E6E6E6", barra:"3D7EBE", textoBarra:"FFFFFF",
+    historial:"10131B", panel:"222838", cooldown:"FF6B6B", afk:"6FB0E0",
+    boton:"2A3142", hover:"3A4459", logo:"FFFFFF",
+    luzOn:"6FB0E0", luzAccion:"3D7EBE", luzOff:"161A24",
+    btnTexto:"FFFFFF", histColor1:"E6E6E6", histColor2:"6FB0E0", histColor3:"3D7EBE" })
+global temaCustomIdx := temas.Length
+CargarTemaCustom()
 
 temaActual := LeerTemaGuardado()
 temaAnteriorNombre := ""  ; para detectar secuencia Azul → Rojo
@@ -300,11 +313,14 @@ global miniGui := "", modoMini := false, logoMacroMini := "", miniSubclassCb := 
 global miniHistLabel := "", miniHistBuffer := []   ; mini historial del modo mini (últimas 3 líneas)
 global barraMini := "", miniBarraSubclassCb := 0
 global overlayPartMini := "", particulasMini := [], overlayDecoMini := "", overlayDecoMiniSubCb := 0
-global btnIniciar, btnParar, btnCodigo, btnReset, btnHistorial, btnTema, btnMin, btnClose, btnUpdate, btnOverlay, btnRGBBtn, btnStatsBtn, btnWebhook, btnLogros, btnPart, btnPerfil, btnMini, btnOptimizar, btnTutorial, btnVelocidad, btnParches, btnMiniTema
+global btnIniciar, btnParar, btnCodigo, btnReset, btnHistorial, btnTema, btnMin, btnClose, btnUpdate, btnOverlay, btnStatsBtn, btnWebhook, btnLogros, btnPerfil, btnMini, btnTutorial, btnParches, btnMiniTema
 global btnMiniIniciar := "", btnMiniParar := "", btnMiniCerrar := ""
 global hoverAccent := "", hoverAnimStep := 0, hoverAccentTop := "", hoverAccentHist := ""
 global hoverAccentBot := "", hoverAccentRight := "", hoverAccentBotHist := "", hoverAccentRightHist := ""
 global glowTitulo := "", sepEstado := "", sepAccion := ""  ; polish visual estático
+global glowTituloL := "", glowTituloR := ""               ; degradado fade línea título
+global sepEstadoL  := "", sepEstadoR  := ""               ; degradado fade línea estado
+global sepAccionL  := "", sepAccionR  := ""               ; degradado fade línea acción
 global colorBotonNormal, colorBotonHover, colorFondoPrincipal, colorTextoPrincipal, colorBarra, colorTextoBarra
 global colorVentanaHistorial, colorFondoHistorial, colorCooldown, colorAFK, colorLogoMacro
 global colorLuzActiva, colorLuzAccion, colorLuzApagado
@@ -316,6 +332,7 @@ global pulsoBrilloDir := 1, pulsoBrilloT := 0.0
 global logosPulsoDir := 1, logosPulsoT := 0.0
 global hoverBreathT := 0.0, hoverBreathDir := 1, hoverBreathBase := ""
 global hoverBotones := Map()  ; hwnd -> {btn, baseFn}
+global _ctrlRadios  := Map()  ; ctrl_obj -> {radio, rw, rh}
 
 ; ===== CONFIG DE PARTÍCULAS (panel de decoración) =====
 ; Porcentajes (0-200) sobre los valores base. Se cargan desde INI más abajo.
@@ -363,7 +380,8 @@ global eggSukunaClicks := 0, eggSukunaUltimo := 0   ; 4 clicks (cuatro brazos) e
 global overlayDecoraciones := "", overlayDecoSubclassCb := 0
 global sukunaSlashFrame := 0     ; > 0 = pintando cortes Sukuna
 global sukunaCortesActuales := []  ; trayectorias aleatorias del slash actual (se regeneran por secuencia)
-global gojoAuraFrame := 0        ; > 0 = pintando anillo Gojo
+global gojoAuraFrame := 0        ; > 0 = pintando anillo Gojo (Hollow Purple)
+global gojoDominioFrame := 0     ; > 0 = Expansión de Dominio: Vacío Ilimitado (無量空処)
 global DECO_COLORKEY_HEX := "010203"
 global DECO_COLORKEY_BGR := 0x030201
 global temaPremiumActivo := false
@@ -405,6 +423,41 @@ global optEscena         := true   ; escena temática del borde (lo más pesado)
 global optGui := "", optGuiVisible := false
 global tutGui := "", tutGuiVisible := false, tutPagina := 1  ; tutorial tipo libro
 global parchesGui := "", parchesGuiVisible := false, parchesPagina := 1  ; libro de parches (📋)
+
+; ===== MEJORAS v31.2: DEGRADADOS / HOTKEYS / TEMA CUSTOM / HISTORIAL PRO / EFECTOS =====
+; ── Botón de control de degradados (shimmer/gradiente de las barras) ──
+global degradadosActivos  := true   ; ON = barras con bandas de brillo en movimiento
+global degradadoIntensidad := 100    ; 0-200%, escala el alpha de las bandas de brillo
+global degradGui := "", degradGuiVisible := false
+global btnPersonalizar := ""
+
+; ── Efectos de acción dinámicos (fade/glow/zoom/slide cuando se detecta una acción) ──
+global efectosAccionActivos := true
+global efAccionFrame := 0, efAccionColor := "", efAccionTipo := 1   ; tipo: 1=glow 2=zoom 3=slide
+global efAccionEstilo := "ring"   ; estilo del efecto por tema: ring/multi/cross/scan/nova/pulse
+; ── Historial Pro: vista de detección extendida (toggle en el historial) ──
+global historialProActivo := false
+global btnHistPro := ""
+global efAccionOverlay := "", efAccionSubCb := 0, efAccionCx := 0, efAccionCy := 0
+
+; ── Hotkeys personalizables (cualquier tecla reasignable; se guardan solas) ──
+global hkIniciar := "F1", hkParar := "F2", hkMini := "", hkHistorial := "", hkTema := "", hkPerfil := ""
+global hotkeysGui := "", hotkeysGuiVisible := false, hkRegistradas := Map(), hkCapturando := ""
+
+; ── Tema totalmente personalizable + guardado ──
+; temaCustomIdx (índice del tema custom en `temas`) se fija junto a temas.Push() al inicio.
+global temaCustomActivo := false
+global editorTemaGui := "", editorTemaVisible := false, editorTemaCampos := Map()
+global temaCustomData := Map()
+
+; ── Historial Pro avanzado (registro completo categorizado + filtros) ──
+global histProGui := "", histProVisible := false, histProBox := "", histProFiltro := 99
+global histProBuffer := []   ; registro en memoria: [{ts, texto, cat, color}]
+global histProInfoLbl := ""
+global HISTPRO_MAX := 4000   ; máximo de entradas guardadas en memoria
+
+; ── Centro de personalización (hub que abre degradados/tema/atajos/historial pro) ──
+global centroPersGui := "", centroPersVisible := false
 
 ; ===== PRESETS DE RENDIMIENTO =====
 global presetRendimiento := 3
@@ -1417,6 +1470,10 @@ CrearMiniGui(posX, posY) {
 
     miniGui.Show("x" posX " y" posY " w" MINI_W " h" MINI_H)
     RedondearVentana(miniGui.Hwnd, 14)
+    for _btn in [btnMiniIniciar, btnMiniParar]
+        RedondearControl(_btn, 8)
+    for _btn in [btnMiniTema, btnMiniCerrar]
+        RedondearControl(_btn, 4)
 
     ; ── Overlay de partículas + escena (decoración pequeña) para mini ──
     ; El overlay solo cubre hasta encima de los botones (MINI_OVL_H), así la
@@ -1537,7 +1594,7 @@ ActualizarLogoAnimacion() {
 
 ; ===== BARRAS CON GRADIENTE Y ONDA (GDI+) =====
 DibujarBarraGradiente(hdc, w, h, hexBase, hexTexto, texto, phase, brillo) {
-    global gdipInited, temaPremiumActivo, rgbBarraHue
+    global gdipInited, temaPremiumActivo, rgbBarraHue, degradadosActivos, degradadoIntensidad
     memDC := DllCall("CreateCompatibleDC", "Ptr", hdc, "Ptr")
     hbm   := DllCall("CreateCompatibleBitmap", "Ptr", hdc, "Int", w, "Int", h, "Ptr")
     oldBmp := DllCall("SelectObject", "Ptr", memDC, "Ptr", hbm, "Ptr")
@@ -1602,11 +1659,13 @@ DibujarBarraGradiente(hdc, w, h, hexBase, hexTexto, texto, phase, brillo) {
                 DllCall("gdiplus\GdipFillRectangle", "Ptr", g, "Ptr", brushBase, "Float", 0, "Float", 0, "Float", w, "Float", h)
                 DllCall("gdiplus\GdipDeleteBrush", "Ptr", brushBase)
 
-                ; Bandas de brillo (3 fases desplazadas) — gauss columna a columna
+                ; Bandas de brillo (3 fases desplazadas) — gauss columna a columna.
+                ; El botón de degradados las apaga (degradadosActivos=false) o escala
+                ; su intensidad (degradadoIntensidad, 0-200%).
                 bandaW := w * 0.40
                 cols := 26
                 colW := bandaW / cols
-                Loop 3 {
+                Loop (degradadosActivos ? 3 : 0) {
                     i := A_Index - 1
                     offset := Mod(phase + i * 0.33, 1.0)
                     cx := (offset * (w + bandaW)) - bandaW / 2
@@ -1615,7 +1674,9 @@ DibujarBarraGradiente(hdc, w, h, hexBase, hexTexto, texto, phase, brillo) {
                         tCol := j / cols
                         d := (tCol - 0.5) * 2
                         gauss := Exp(-d * d * 4)
-                        alpha := Round(gauss * 50)
+                        alpha := Round(gauss * 50 * degradadoIntensidad / 100)
+                        if (alpha > 255)
+                            alpha := 255
                         if (alpha < 4)
                             continue
                         argbHi := (alpha << 24) | 0x00FFFFFF
@@ -5000,6 +5061,7 @@ SendMessage(0x0443, 0, HexToBGR(colorFondoHistorial), , "ahk_id " historialBox.H
 DllCall("ShowScrollBar", "Ptr", historialBox.Hwnd, "Int", 1, "Int", 0)  ; SB_VERT=1, bShow=0
 
 cooldownText := historialGui.Add("Text", "x10 y155 w250 h88 vCooldownText c" colorCooldown " Background" colorVentanaHistorial)
+cooldownText.SetFont("s8", "Segoe UI")   ; fuente compacta para el visor de detección en vivo
 separadorHistorial := historialGui.Add("Text", "x0 y148 w270 h2 Background" MezclarHex(colorBarra, colorFondoPrincipal, 0.45), "")
 secuenciasLabel := historialGui.Add("Text", "x10 y245 w250 h20 +0x201 vSecuenciasLabel c" colorTextoPrincipal " Background" colorVentanaHistorial)
 destruccionesLabel := historialGui.Add("Text", "x10 y265 w250 h20 +0x201 vDestruccionesLabel c" colorTextoPrincipal " Background" colorVentanaHistorial)
@@ -5028,36 +5090,31 @@ global btnParches
 btnParches := historialGui.Add("Text", "x242 y3 w22 h19 +0x201 Background" colorBarra " c" colorTextoBarra, Chr(0x1F4CB))
 btnParches.SetFont("s9 c" colorTextoBarra, "Segoe UI Emoji")
 btnParches.OnEvent("Click", AbrirParches)
-DllCall("SetWindowPos", "Ptr", btnParches.Hwnd, "Ptr", 0, "Int", 0, "Int", 0, "Int", 0, "Int", 0, "UInt", 0x13)
+DllCall("SetWindowPos", "Ptr", btnParches.Hwnd, "Ptr", 0, "Int", 0, "Int", 0, "Int", 0, "UInt", 0x13)
+; Botón 🔬 Historial Pro — alterna vista detallada de detección
+global btnHistPro
+btnHistPro := historialGui.Add("Text", "x218 y3 w22 h19 +0x201 Background" colorBarra " c" colorTextoBarra, Chr(0x1F50D))
+btnHistPro.SetFont("s9 c" colorTextoBarra, "Segoe UI Emoji")
+btnHistPro.OnEvent("Click", ToggleHistorialPro)
+DllCall("SetWindowPos", "Ptr", btnHistPro.Hwnd, "Ptr", 0, "Int", 0, "Int", 0, "Int", 0, "UInt", 0x13)
 ; WS_CLIPSIBLINGS en barraHistorial: sin esto, su repintado (shimmer/hover breath)
 ; invade el área de btnTutorial (hermano superpuesto) y lo tapa visualmente.
 estiloBarraHist := DllCall("GetWindowLong", "Ptr", barraHistorial.Hwnd, "Int", -16, "Int")
 DllCall("SetWindowLong", "Ptr", barraHistorial.Hwnd, "Int", -16, "Int", estiloBarraHist | 0x04000000)
 ; Botón de velocidad de pasos: cicla 🐢 lento → 🚶 medio → ⚡ rápido
-global btnVelocidad
-btnVelocidad := historialGui.Add("Text", "x33 y327 w22 h20 +0x201 Background" colorBotonNormal " c" colorBtnTexto, EmojiVelocidad())
-btnVelocidad.SetFont("s9 c" colorBtnTexto, "Segoe UI Emoji")
-btnVelocidad.OnEvent("Click", CiclarVelocidadPasos)
-btnOverlay := historialGui.Add("Text", "x59 y327 w22 h20 +0x201 Background" colorBotonNormal " c" colorBtnTexto, Chr(0x1F441))
-btnOverlay.SetFont("s9 c" colorBtnTexto, "Segoe UI Emoji")
-btnOverlay.OnEvent("Click", ToggleOverlayPixeles)
-btnStatsBtn := historialGui.Add("Text", "x85 y327 w22 h20 +0x201 Background" colorBotonNormal " c" colorBtnTexto, Chr(0x1F4CA))
+btnStatsBtn := historialGui.Add("Text", "x72  y327 w22 h20 +0x201 Background" colorBotonNormal " c" colorBtnTexto, Chr(0x1F4CA))
 btnStatsBtn.SetFont("s9 c" colorBtnTexto, "Segoe UI Emoji")
 btnStatsBtn.OnEvent("Click", MostrarEstadisticas)
-btnLogros := historialGui.Add("Text", "x111 y327 w22 h20 +0x201 Background" colorBotonNormal " c" colorBtnTexto, Chr(0x1F3C5))
+btnLogros := historialGui.Add("Text", "x98  y327 w22 h20 +0x201 Background" colorBotonNormal " c" colorBtnTexto, Chr(0x1F3C5))
 btnLogros.SetFont("s9 c" colorBtnTexto, "Segoe UI Emoji")
 btnLogros.OnEvent("Click", AbrirPanelLogros)
-btnWebhook := historialGui.Add("Text", "x137 y327 w22 h20 +0x201 Background" colorBotonNormal " c" colorBtnTexto, Chr(0x1F514))
+btnWebhook := historialGui.Add("Text", "x124 y327 w22 h20 +0x201 Background" colorBotonNormal " c" colorBtnTexto, Chr(0x1F514))
 btnWebhook.SetFont("s9 c" colorBtnTexto, "Segoe UI Emoji")
 btnWebhook.OnEvent("Click", AbrirPanelWebhook)
-global btnOptimizar
-btnOptimizar := historialGui.Add("Text", "x163 y327 w22 h20 +0x201 Background" colorBotonNormal " c" colorBtnTexto, Chr(0x2699))
-btnOptimizar.SetFont("s9 c" colorBtnTexto, "Segoe UI Symbol")
-btnOptimizar.OnEvent("Click", AbrirPanelOptimizacion)
-btnCodigo := historialGui.Add("Text", "x189 y327 w22 h20 +0x201 Background" colorBotonNormal " c" colorBtnTexto, Chr(9000))
+btnCodigo := historialGui.Add("Text", "x150 y327 w22 h20 +0x201 Background" colorBotonNormal " c" colorBtnTexto, Chr(9000))
 btnCodigo.SetFont("s10 c" colorBtnTexto " Bold", "Segoe UI Symbol")
 btnCodigo.OnEvent("Click", AbrirCodigo)
-btnUpdate := historialGui.Add("Text", "x215 y327 w22 h20 +0x201 Background" colorBotonNormal " c" colorBtnTexto, Chr(8593))
+btnUpdate := historialGui.Add("Text", "x176 y327 w22 h20 +0x201 Background" colorBotonNormal " c" colorBtnTexto, Chr(8593))
 btnUpdate.SetFont("s8 c" colorBtnTexto, "Segoe UI Symbol")
 btnUpdate.OnEvent("Click", AbrirVentanaActualizacion)
 
@@ -5069,6 +5126,10 @@ hoverAccentRightHist := historialGui.Add("Text", "x-20 y-20 w5 h0  Background" c
 
 historialGui.Show("x" (A_ScreenWidth-270) " y100 w270 h352")
 RedondearVentana(historialGui.Hwnd, 14)
+for _btn in [btnTutorial, btnParches]
+    RedondearControl(_btn, 8)
+for _btn in [btnStatsBtn, btnLogros, btnWebhook, btnCodigo, btnUpdate]
+    RedondearControl(_btn, 8)
 
 ; Restaurar posición guardada del historial
 _savedHistX := IniRead(configPath, "Pos", "HistX", "")
@@ -5081,9 +5142,9 @@ historialVisible := Integer(IniRead(configPath, "UI", "HistorialVisible", "1")) 
 if (!historialVisible)
     historialGui.Hide()
 
-; Restaurar perfil activo guardado (1=tct, 2=sp, 3=frt, 4=dstv)
+; Restaurar perfil activo guardado (1=tct, 2=sp, 3=frt, 4=dstv, 5/6=vacíos extra)
 perfilActivo := Integer(IniRead(configPath, "UI", "PerfilActivo", "1"))
-if (perfilActivo < 1 || perfilActivo > 4)
+if (perfilActivo < 1 || perfilActivo > 6)
     perfilActivo := 1
 
 ; Restaurar velocidad de pasos (1=lento, 2=medio, 3=rápido)
@@ -5092,7 +5153,6 @@ if (perfilActivo < 1 || perfilActivo > 4)
 velocidadPasos := Integer(IniRead(configPath, "UI", "VelocidadPasos", "2"))
 if (velocidadPasos < 1 || velocidadPasos > 3)
     velocidadPasos := 2
-try btnVelocidad.Value := EmojiVelocidad()
 
 ; Estimador de oro/XP (ajustable a mano en el config si cambian los valores del juego)
 estXpPartida  := Integer(IniRead(configPath, "Estimador", "XpPartida9min",   "280"))
@@ -5123,6 +5183,10 @@ optDecoraciones  := Integer(IniRead(configPath, "Optimizacion", "Decoraciones", 
 optConfeti       := Integer(IniRead(configPath, "Optimizacion", "Confeti",       "1")) = 1
 optTypeReveal    := Integer(IniRead(configPath, "Optimizacion", "TypeReveal",    "1")) = 1
 optEscena        := Integer(IniRead(configPath, "Optimizacion", "Escena",        "1")) = 1
+
+; Cargar configuración de degradados (botón 🌈) y efectos de acción
+CargarDegradados()
+efectosAccionActivos := Integer(IniRead(configPath, "Efectos", "Accion", "1")) = 1
 
 ; Ciclo automático de descanso (jugar X h → Alt+F4 + descanso Y min → repetir)
 cicloActivo  := Integer(IniRead(configPath, "Ciclo", "Activo",  "1")) = 1
@@ -5183,19 +5247,25 @@ presetLabel.OnEvent("Click", ClickPresetLeyendas)  ; cicla preset + egg secreto 
 fpsLabel := miGui.Add("Text", "x335 y155 w55 h14 +0x201 Background" colorFondoPrincipal " c" colorTextoPrincipal, "-- fps")
 fpsLabel.SetFont("s8 c" colorTextoPrincipal, "Segoe UI")
 
-luzActiva := miGui.Add("Progress", "x40 y130 w20 h20 c" colorBotonNormal " Background" colorFondoPrincipal, 100)
-luzAccion := miGui.Add("Progress", "x70 y130 w20 h20 c" colorBotonNormal " Background" colorFondoPrincipal, 100)
-luzApagado := miGui.Add("Progress", "x100 y130 w20 h20 c" colorLuzApagado " Background" colorFondoPrincipal, 100)
-OnMessage(0x0201, ManejarClickLuces)
+; Luces: controles Text (sin borde) — el color de la luz es su Background.
+; (Antes eran Progress, que dibujan un marco propio imposible de quitar en modo coloreable.)
+luzActiva := miGui.Add("Text", "x40 y130 w20 h20 +0x201 +0x100 Background" colorBotonNormal, "")
+luzAccion := miGui.Add("Text", "x70 y130 w20 h20 +0x201 +0x100 Background" colorBotonNormal, "")
+luzApagado := miGui.Add("Text", "x100 y130 w20 h20 +0x201 +0x100 Background" colorLuzApagado, "")
+luzActiva.OnEvent("Click", (*) => ClickLuzSecuencia(1))
+luzAccion.OnEvent("Click", (*) => ClickLuzSecuencia(2))
+luzApagado.OnEvent("Click", (*) => ClickLuzSecuencia(3))
 OnMessage(0x0003, OnMiGuiMove)   ; WM_MOVE → reposicionar overlays EN VIVO al mover la ventana
 
 ; Barra principal: Apariencia (Temas, RGB, Partículas) · Toggle Historial
 ; Posiciones originales: tema(240), RGB y part ocupan los huecos de hist y notas, hist va al hueco que dejó reset
-btnTema      := miGui.Add("Text", "x240 y59 w26 h26 +0x201 Background" colorBotonNormal " c" colorBtnTexto, Chr(9680))
-btnRGBBtn    := miGui.Add("Text", "x272 y59 w26 h26 +0x201 Background" colorBotonNormal " c" colorBtnTexto, Chr(0x1F3A8))
-btnPart      := miGui.Add("Text", "x304 y59 w26 h26 +0x201 Background" colorBotonNormal " c" colorBtnTexto, Chr(0x2728))
-btnHistorial := miGui.Add("Text", "x336 y59 w26 h26 +0x201 Background" colorBotonNormal " c" colorBtnTexto, Chr(128203))
-btnMini      := miGui.Add("Text", "x368 y59 w26 h26 +0x201 Background" colorBotonNormal " c" colorBtnTexto, Chr(0x25A3))
+; Fila de apariencia (5 botones, w24, espaciado 28px → x230..342):
+;   ◐ Tema · 🖌 Personalización · 📋 Historial · 👁 Overlay · ▣ Mini
+btnTema         := miGui.Add("Text", "x230 y59 w24 h26 +0x201 Background" colorBotonNormal " c" colorBtnTexto, Chr(9680))
+btnPersonalizar := miGui.Add("Text", "x258 y59 w24 h26 +0x201 Background" colorBotonNormal " c" colorBtnTexto, Chr(0x1F58C))
+btnHistorial    := miGui.Add("Text", "x286 y59 w24 h26 +0x201 Background" colorBotonNormal " c" colorBtnTexto, Chr(128203))
+btnOverlay      := miGui.Add("Text", "x314 y59 w24 h26 +0x201 Background" colorBotonNormal " c" colorBtnTexto, Chr(0x1F441))
+btnMini         := miGui.Add("Text", "x342 y59 w24 h26 +0x201 Background" colorBotonNormal " c" colorBtnTexto, Chr(0x25A3))
 btnIniciar   := miGui.Add("Text", "x40 y178 w140 h36 +0x201 Background" colorBotonNormal " c" colorBtnTexto, Chr(9654) " Iniciar (F1)")
 btnParar     := miGui.Add("Text", "x220 y178 w140 h36 +0x201 Background" colorBotonNormal " c" colorBtnTexto, Chr(9632) " Parar (F2)")
 ; Cuenta atrás del ciclo de descanso (cuánto falta para el Alt+F4 / para volver a jugar)
@@ -5204,9 +5274,19 @@ cicloLabel.SetFont("s8", "Segoe UI")
 ; ── Polish visual: línea glow bajo título + separadores de sección ──
 ; Los separadores van mezclados ~55% hacia el fondo: se notan sin gritar
 ; en temas de barra saturada (Glitch magenta, Chicle, etc.)
-glowTitulo := miGui.Add("Text", "x0 y25 w400 h2 Background" AclararHex(colorBarra, 0.35), "")
-sepEstado  := miGui.Add("Text", "x120 y98 w250 h1 Background" MezclarHex(colorBarra, colorFondoPrincipal, 0.55), "")
-sepAccion  := miGui.Add("Text", "x30 y170 w340 h1 Background" MezclarHex(colorBarra, colorFondoPrincipal, 0.55), "")
+; Líneas decorativas dimensionadas para coincidir con los elementos del UI:
+;   glowTitulo: de logo (x19) a botón cerrar (x388)  — debajo de la barra de título
+;   sepEstado:  de logo (x19) a btnMini (x366)        — debajo del área AFK/timer
+;   sepAccion:  de btnIniciar (x40) a fin de btnParar (x360) — encima de Iniciar/Parar
+glowTituloL := miGui.Add("Text", "x0 y25 w0 h0", "")   ; placeholders (AplicarTema los recolorea)
+glowTitulo  := miGui.Add("Text", "x19  y25 w369 h2 Background" AclararHex(colorBarra, 0.35), "")
+glowTituloR := miGui.Add("Text", "x0 y25 w0 h0", "")
+sepEstadoL  := miGui.Add("Text", "x0 y98 w0 h0", "")
+sepEstado   := miGui.Add("Text", "x19  y98 w347 h1 Background" MezclarHex(colorBarra, colorFondoPrincipal, 0.55), "")
+sepEstadoR  := miGui.Add("Text", "x0 y98 w0 h0", "")
+sepAccionL  := miGui.Add("Text", "x0 y170 w0 h0", "")
+sepAccion   := miGui.Add("Text", "x40  y170 w320 h1 Background" MezclarHex(colorBarra, colorFondoPrincipal, 0.55), "")
+sepAccionR  := miGui.Add("Text", "x0 y170 w0 h0", "")
 
 ; Franjas de acento para hover — 4 lados (izquierda, derecha, arriba, abajo)
 hoverAccent      := miGui.Add("Text", "x-20 y-20 w5 h0 Background" colorBarra, "")
@@ -5216,8 +5296,8 @@ hoverAccentRight := miGui.Add("Text", "x-20 y-20 w5 h0 Background" colorBarra, "
 
 for btn in [btnTema, btnHistorial, btnReset, btnMin, btnClose]
     btn.SetFont("s11 c" colorBtnTexto " Bold", "Segoe UI Symbol")
-btnRGBBtn.SetFont("s9 c" colorBtnTexto, "Segoe UI Emoji")
-btnPart.SetFont("s9 c" colorBtnTexto, "Segoe UI Emoji")
+btnOverlay.SetFont("s9 c" colorBtnTexto, "Segoe UI Emoji")
+btnPersonalizar.SetFont("s9 c" colorBtnTexto, "Segoe UI Emoji")
 for btn in [btnIniciar, btnParar]
     btn.SetFont("s10 c" colorBtnTexto " Bold", "Segoe UI Semibold")
 
@@ -5225,8 +5305,8 @@ btnTema.OnEvent("Click", CambiarTema)
 btnHistorial.OnEvent("Click", ToggleHistorial)
 btnIniciar.OnEvent("Click", Iniciar)
 btnParar.OnEvent("Click", Parar)
-btnRGBBtn.OnEvent("Click", AbrirPanelRGB)
-btnPart.OnEvent("Click", AbrirPanelParticulas)
+btnOverlay.OnEvent("Click", ToggleOverlayPixeles)
+btnPersonalizar.OnEvent("Click", AbrirCentroPersonalizacion)
 btnMini.SetFont("s11 c" colorBtnTexto " Bold", "Segoe UI Symbol")
 btnMini.OnEvent("Click", ToggleMiniMode)
 
@@ -5238,6 +5318,7 @@ RegistrarHover(btnIniciar,   () => (activo ? (rgbBotones ? colorRGBActual : Mezc
 RegistrarHover(btnParar,     () => (rgbBotones ? colorRGBActual : colorBotonNormal),
                              () => MezclarHex(colorCooldown, colorBotonNormal, 0.45))
 RegistrarHover(btnTema,      () => (rgbBotones ? colorRGBActual : colorBotonNormal))
+RegistrarHover(btnPersonalizar, () => (rgbBotones ? colorRGBActual : colorBotonNormal))
 RegistrarHover(btnHistorial, () => (rgbBotones ? colorRGBActual : colorBotonNormal))
 RegistrarHover(btnCodigo,    () => (rgbBotones ? colorRGBActual : colorBotonNormal))
 RegistrarHover(btnReset,     () => (rgbBotones ? colorRGBActual : colorBotonNormal))
@@ -5246,15 +5327,11 @@ RegistrarHover(btnMin,       () => (rgbBotones ? colorRGBActual : colorBotonNorm
 RegistrarHover(btnClose,     () => (rgbBotones ? colorRGBActual : colorBotonNormal), () => "C42B1C")
 RegistrarHover(btnUpdate,    () => (rgbBotones ? colorRGBActual : colorBotonNormal))
 RegistrarHover(btnOverlay,   () => (rgbBotones ? colorRGBActual : colorBotonNormal))
-RegistrarHover(btnRGBBtn,    () => (rgbBotones ? colorRGBActual : colorBotonNormal))
 RegistrarHover(btnStatsBtn,  () => (rgbBotones ? colorRGBActual : colorBotonNormal))
 RegistrarHover(btnWebhook,   () => (rgbBotones ? colorRGBActual : colorBotonNormal))
 RegistrarHover(btnLogros,    () => (rgbBotones ? colorRGBActual : colorBotonNormal))
-RegistrarHover(btnOptimizar, () => (rgbBotones ? colorRGBActual : colorBotonNormal))
-RegistrarHover(btnVelocidad, () => (rgbBotones ? colorRGBActual : colorBotonNormal))
 RegistrarHover(btnTutorial,  () => colorBarra, () => AclararHex(colorBarra, 0.25))
 RegistrarHover(btnParches,   () => colorBarra, () => AclararHex(colorBarra, 0.25))
-RegistrarHover(btnPart,      () => (rgbBotones ? colorRGBActual : colorBotonNormal))
 RegistrarHover(btnMini,      () => (rgbBotones ? colorRGBActual : colorBotonNormal))
 
 timerLabel := miGui.Add("Text", "x220 y130 w140 h25 Center Background" colorFondoPrincipal " c" colorTextoPrincipal, Chr(0x23F0) " 00:00")
@@ -5262,7 +5339,17 @@ timerLabel.SetFont("s13 c" colorTextoPrincipal " Bold", "Segoe UI Semibold")
 timerLabel.OnEvent("Click", ClickTimer)
 
 miGui.Show("w400 h240")
-RedondearVentana(miGui.Hwnd, 14)
+RedondearVentana(miGui.Hwnd, 20)
+RedondearControl(btnPerfil, 7)
+for _btn in [btnReset, btnMin, btnClose]
+    RedondearControl(_btn, 10)
+for _btn in [btnTema, btnPersonalizar, btnOverlay, btnHistorial, btnMini]
+    RedondearControl(_btn, 12)
+for _btn in [btnIniciar, btnParar]
+    RedondearControl(_btn, 14)
+; Luces redondeadas (ahora son Text, sin borde propio — solo hace falta la región).
+for _btn in [luzActiva, luzAccion, luzApagado]
+    RedondearControl(_btn, 10)
 logoVelObjetivo := 0.0
 SetTimer(ActualizarLogoAnimacion, 33)
 
@@ -5272,6 +5359,7 @@ _savedMainY := IniRead(configPath, "Pos", "MainY", "")
 if (_savedMainX != "" && _savedMainY != "")
     miGui.Move(Integer(_savedMainX), Integer(_savedMainY))
 AplicarTema(temas[temaActual], false)
+AplicarTransparenciaGuardada()   ; transparencia del tema personalizado (si se configuró)
 global hoverActual := ""
 AplicarPreset(presetRendimiento)
 InstalarSubclassBarras()
@@ -5318,7 +5406,7 @@ try {
 ; Si la instancia anterior se reinició por watchdog, auto-arrancar el macro.
 ; Pequeño delay para que la GUI termine de asentarse antes de Iniciar().
 ; El descanso solo bloquea el auto-arranque en tct/sp — en frt/dstv el ciclo no aplica.
-if ((!enDescanso || perfilActivo = 3 || perfilActivo = 4) && IniRead(configPath, "Watchdog", "AutoStart", "0") = "1") {
+if ((!enDescanso || PerfilSinGestion()) && IniRead(configPath, "Watchdog", "AutoStart", "0") = "1") {
     try IniDelete(configPath, "Watchdog", "AutoStart")  ; consumir flag (single-shot)
     SetTimer(() => Iniciar(), -1500)
 }
@@ -5459,7 +5547,7 @@ ChequearAutoCierre() {
 HoverPoll() {
     global hoverBotones, hoverActual, hoverBreathT, hoverBreathDir, hoverBreathBase
     global colorBotonHover, colorBtnTexto, rgbBotones, colorRGBActual, temaPremiumActivo
-    global fpsContador
+    global fpsContador, _ctrlRadios
     fpsContador++
 
     ; ── En modo RGB (o PREMIUM): hover desactivado para evitar parpadeo.
@@ -5488,11 +5576,19 @@ HoverPoll() {
         return
 
     ; ── Quitar hover del botón anterior — restaurar su color base ─────────
+    ; ORDEN CRÍTICO: Opt() puede resetear la región; hay que restaurarla (SetWindowRgn)
+    ; ANTES de cualquier repintado (InvalidateRect/UpdateWindow). Si se hace al revés,
+    ; UpdateWindow fuerza un pintado cuadrado antes de que la región quede redonda.
     if (hoverActual != "") {
         try {
             info := hoverBotones[hoverActual.Hwnd]
             base := info.baseFn.Call()
             hoverActual.Opt("Background" base)
+            if (_ctrlRadios.Has(hoverActual)) {
+                _ri := _ctrlRadios[hoverActual]
+                _rrgn := DllCall("CreateRoundRectRgn", "Int", 0, "Int", 0, "Int", _ri.rw+1, "Int", _ri.rh+1, "Int", _ri.radio, "Int", _ri.radio, "Ptr")
+                DllCall("SetWindowRgn", "Ptr", hoverActual.Hwnd, "Ptr", _rrgn, "Int", 0)
+            }
             DllCall("InvalidateRect", "Ptr", hoverActual.Hwnd, "Ptr", 0, "Int", 1)
             DllCall("UpdateWindow",   "Ptr", hoverActual.Hwnd)
         }
@@ -5508,6 +5604,11 @@ HoverPoll() {
         else
             hoverBg := (rgbBotones ? colorRGBActual : colorBotonHover)
         encontrado.Opt("Background" hoverBg)
+        if (_ctrlRadios.Has(encontrado)) {
+            _ri := _ctrlRadios[encontrado]
+            _ergn := DllCall("CreateRoundRectRgn", "Int", 0, "Int", 0, "Int", _ri.rw+1, "Int", _ri.rh+1, "Int", _ri.radio, "Int", _ri.radio, "Ptr")
+            DllCall("SetWindowRgn", "Ptr", encontrado.Hwnd, "Ptr", _ergn, "Int", 0)
+        }
         DllCall("InvalidateRect", "Ptr", encontrado.Hwnd, "Ptr", 0, "Int", 1)
         DllCall("UpdateWindow",   "Ptr", encontrado.Hwnd)
         hoverBreathT    := 0.0
@@ -5523,7 +5624,7 @@ HoverPoll() {
 ; Pulso respiratorio del botón con hover — misma cadencia que PulsoBarraActivo
 HoverBreath() {
     global hoverActual, hoverBreathT, hoverBreathDir, hoverBreathBase
-    global rgbBotones, temaEnTransicion, optHoverBreath
+    global rgbBotones, temaEnTransicion, optHoverBreath, _ctrlRadios
 
     if (!optHoverBreath || hoverActual = "" || hoverBreathBase = "" || temaEnTransicion || rgbBotones)
         return
@@ -5548,6 +5649,11 @@ HoverBreath() {
 
     try {
         hoverActual.Opt("Background" c)
+        if (_ctrlRadios.Has(hoverActual)) {
+            _ri := _ctrlRadios[hoverActual]
+            _brgn := DllCall("CreateRoundRectRgn", "Int", 0, "Int", 0, "Int", _ri.rw+1, "Int", _ri.rh+1, "Int", _ri.radio, "Int", _ri.radio, "Ptr")
+            DllCall("SetWindowRgn", "Ptr", hoverActual.Hwnd, "Ptr", _brgn, "Int", 0)
+        }
         DllCall("InvalidateRect", "Ptr", hoverActual.Hwnd, "Ptr", 0, "Int", 1)
     }
 }
@@ -5701,15 +5807,8 @@ NombreVelocidad() {
 }
 
 CiclarVelocidadPasos(*) {
-    global velocidadPasos, btnVelocidad, configPath
+    global velocidadPasos, configPath
     velocidadPasos := (velocidadPasos >= 3) ? 1 : velocidadPasos + 1
-    if (IsObject(btnVelocidad)) {
-        try {
-            btnVelocidad.Value := EmojiVelocidad()
-            DllCall("InvalidateRect", "Ptr", btnVelocidad.Hwnd, "Ptr", 0, "Int", 1)
-            DllCall("UpdateWindow",   "Ptr", btnVelocidad.Hwnd)
-        }
-    }
     IniWrite(velocidadPasos, configPath, "UI", "VelocidadPasos")
     AgregarHistorial(EmojiVelocidad() " Velocidad de pasos: " NombreVelocidad(), "")
     ToolTip("Velocidad de pasos: " NombreVelocidad() "  (no afecta a pasos con cooldown de 10s+)")
@@ -5734,6 +5833,14 @@ ClickLogo(*) {
     global eggVoidDesbloqueado, eggShadowDesbloqueado, eggSolarDesbloqueado, eggBlancoDesbloqueado
     global eggPremiumDesbloqueado, eggPremiumClicks, eggPremiumUltimo
     global eggGojoClicks, eggGojoUltimo, eggGojoDesbloqueado
+    global temas, temaActual
+
+    ; ── GOJO: con el tema Gojo activo, un click en el ∞ DESPLIEGA su Expansión de
+    ;    Dominio (Vacío Ilimitado). Shift+click se reserva para el egg de los Six Eyes. ──
+    if (!GetKeyState("Shift", "P") && temas[temaActual].HasProp("unlock") && temas[temaActual].unlock = "gojo") {
+        LanzarDominioGojo()
+        return
+    }
 
     ; ═════════════════════════════════════════════════════════════════
     ; EGG GOJO: SHIFT + 6 clicks en el logo. Cada click "abre" uno de
@@ -6749,6 +6856,22 @@ AbrirPanelOptimizacion(*) {
     btnTodoOff.SetFont("s9 Bold", "Segoe UI Semibold")
     btnTodoOff.OnEvent("Click", OptTodoOff)
     RegistrarHover(btnTodoOff, () => colorBotonNormal)
+    y += 38
+
+    ; ── Extra: efectos de acción + degradados (movidos desde Personalización) ──
+    optGui.Add("Text", "x16 y" y " w" (W - 32) " h1 Background" colorBarra, "")
+    y += 8
+    btnEfOpt := optGui.Add("Text", "x16 y" y " w" (W-32) " h30 +0x201 Background" (efectosAccionActivos ? colorBarra : colorBotonNormal) " c" colorBtnTexto " Center",
+        (efectosAccionActivos ? Chr(0x2714) : Chr(0x2716)) " Efectos de acción")
+    btnEfOpt.SetFont("s9 Bold", "Segoe UI Semibold")
+    btnEfOpt.OnEvent("Click", (*) => (ToggleEfectosAccion(), SetTimer(() => (CerrarPanelOptimizacion(), AbrirPanelOptimizacion()), -1)))
+    RegistrarHover(btnEfOpt, () => (efectosAccionActivos ? colorBarra : colorBotonNormal))
+    y += 36
+    btnDegradOpt := optGui.Add("Text", "x16 y" y " w" (W-32) " h30 +0x201 Background" colorBotonNormal " c" colorBtnTexto " Center",
+        Chr(0x1F308) " Degradados  " Chr(0x25B6))
+    btnDegradOpt.SetFont("s9 Bold", "Segoe UI Semibold")
+    btnDegradOpt.OnEvent("Click", (*) => (CerrarPanelOptimizacion(), AbrirPanelDegradados()))
+    RegistrarHover(btnDegradOpt, () => colorBotonNormal)
 
     y += 38
     optGui.Show("w" W " h" y " Center")
@@ -7072,39 +7195,53 @@ CerrarTutorial(*) {
 ; ═══════════════════════════════════════════════════════════════
 ParchesPaginas() {
     return [
-    { ico: Chr(0x1F4CB), tit: "Parche 30.7.9 (actual)",
-      txt: "· Estimador de oro y XP también en el historial, junto a Secuencias`n"
-         . "· Stats: oro total estimado y oro/hora arriba, junto a XP estimada`n"
-         . "· Estimador de oro y XP en 📊 Stats y en el webhook`n"
-         . "· Scroller del historial eliminado: rueda y listo, como el panel de temas`n"
-         . "· Lo nuevo SIEMPRE arriba; si lees con la rueda te respeta 10s`n"
-         . "· Dormir/anti-AFK/destrucción son SOLO para tct y sp`n"
-         . "· Webhook arreglado: secuencias ya se cuentan y se avisan`n"
-         . "· Stats se guardan cada 5 min (ya no se pierden con crashes)`n"
-         . "· Relanzamiento en bucle: reintenta abrir el juego cada 30s`n"
-         . "· Modo mini: botones más pequeños, ✕ en la esquina y mini historial`n"
-         . "· El historial también lleva la decoración del tema`n"
-         . "· Nuevo sistema de velocidad en el macro (🐢/🚶/⚡)`n"
-         . "· Cada paso revisa la pantalla a su propio ritmo`n"
-         . "· Descanso: 1 hora, reabre Brawlhalla solo y el macro YA NO se apaga`n"
+    { ico: Chr(0x1F4CB), tit: "Parche 31.2 (actual)",
+      txt: "· BOTONES Y LUCES REDONDEADOS: la región se re-aplica tras cada cambio de color`n"
+         . "· Luces siempre curvas: al iniciar, parar y cambiar tema ya no se cuadran`n"
+         . "· Líneas decorativas a ancho completo (barra título, estado, acciones)`n"
+         . "· Botón 'Abrir macro en bloc de notas' eliminado`n"
+         . "· 5 botones superiores recentrados en la ventana`n"
+         . "· Personalización: incluye RGB y Partículas directamente`n"
+         . "· Degradados y Efectos de acción movidos a Optimización`n"
+         . "· Historial Pro 🔍 (toggle): vista detallada de qué escanea el macro`n"
+         . "· Efecto de acción distinto por tema (ring/multi/cross/scan/nova/pulse)`n"
+         . "· Gojo → pulse · Sukuna → cross · Void → cross · Matrix → scan`n"
+         . "· Cyberpunk/Neon/Cyber/Glitch/Electrico → multi (ráfaga de anillos)`n"
+         . "· Eclipse/Retrowave → nova · Cosmos/Gojo → pulse · Naruto → multi`n" },
+
+    { ico: Chr(0x1F3A8), tit: "Parche 31.1 — Mejoras UI",
+      txt: "· Notificación en historial cuando el macro arranca ya cerrando Brawlhalla`n"
+         . "· Modo dormir: cierre de Brawlhalla fiable, sin despertar al instante`n"
+         . "· Relanzamiento correcto tras cancelar el descanso`n"
+         . "· Cierre directo del proceso de Brawlhalla sin Alt+F4`n"
+         . "· Modo dormir pausa acciones pero mantiene PC despierta con mov. ratón`n"
+         . "· Efectos de acción en TODOS los temas (onda glow/zoom al detectar)`n"
+         . "· Expansión de Dominio Gojo: animación completa 30 frames al hacer clic`n"
+         . "· Sistema de temas 100% personalizable: editor de colores + guardado`n"
+         . "· Perfiles 5 y 6 vacíos: sin timers ni AFK, modo base libre`n"
+         . "· Hotkeys reasignables: F1/F2/Mini configurables desde la UI`n"
+         . "· Visor en vivo: ● parpadeante muestra qué paso detecta en tiempo real`n"
+         . "· Botón 📝 abre el macro directamente en el Bloc de notas`n" },
+
+    { ico: Chr(0x1F4D6), tit: "Parche 30.7.9 — Rendimiento",
+      txt: "· Estimador de oro y XP en historial, Stats y webhook`n"
+         . "· Lo nuevo SIEMPRE arriba; rueda de scroll respeta 10s`n"
+         . "· Modo mini: botones, ✕ y mini historial`n"
+         . "· Descanso de 1h: reabre Brawlhalla solo`n"
+         . "· Sistema de velocidad (🐢/🚶/⚡) por paso`n"
+         . "· Stats se guardan cada 5 min`n"
+         . "· Webhook arreglado: secuencias contadas`n"
          . "· Libro de parches 📋 separado del tutorial`n"
-         . "· Botones del historial ordenados`n"
          . "· 25 temas mejorados o rediseñados`n"
-         . "· Vino con partículas nuevas`n"
-         . "· El Update ya no instala versiones viejas (caché)`n"
          . "· Bugs arreglados" },
 
-    { ico: Chr(0x1F4D6), tit: "Parche 30.6",
-      txt: "· Tutorial 📖 con libro navegable`n"
-         . "· Tema Noche mejorado`n"
+    { ico: Chr(0x1F30C), tit: "Parche 30.5-30.6 — Visual",
+      txt: "· Tutorial 📖 con libro navegable de páginas`n"
+         . "· Decoración única para los 65 temas (cero repetición)`n"
          . "· Temas Agua, Hielo, Polar, Nube y más mejorados`n"
-         . "· Decoración independiente del preset`n"
+         . "· Sukuna sin cortes feos en la decoración`n"
+         . "· Decoración independiente del preset de partículas`n"
          . "· Fix del botón Tutorial tapado por el hover`n"
-         . "· Bugs arreglados" },
-
-    { ico: Chr(0x1F3A8), tit: "Parche 30.5",
-      txt: "· Decoración única para los 65 temas (cero repetición)`n"
-         . "· Sukuna sin cortes feos`n"
          . "· Bugs arreglados" }
     ]
 }
@@ -8201,10 +8338,10 @@ TransicionPaso() {
     global tituloMacro, timerLabel, cooldownText, afkText, secuenciasLabel, destruccionesLabel, contadorLabel, logoMacro
     global presetLabel, fpsLabel
     global btnIniciar, btnParar, btnCodigo, btnReset, btnHistorial, btnTema, btnMin, btnClose
-    global btnUpdate, btnOverlay, btnRGBBtn, btnStatsBtn, btnWebhook, btnLogros, btnPart, btnPerfil
+    global btnUpdate, btnOverlay, btnStatsBtn, btnWebhook, btnLogros, btnPerfil
     global colorLogoEnTransicion, colorFondoEnTransicion, colorTextoBarra
     global luzActiva, luzAccion, luzApagado, historialBox, separadorHistorial
-    global glowTitulo, sepEstado, sepAccion, activo
+    global glowTitulo, glowTituloL, glowTituloR, sepEstado, sepEstadoL, sepEstadoR, sepAccion, sepAccionL, sepAccionR, activo
     global btnTutorial, cicloLabel
     global hoverAccent, hoverAccentTop, hoverAccentBot, hoverAccentRight
     global hoverAccentHist, hoverAccentBotHist, hoverAccentRightHist
@@ -8262,13 +8399,17 @@ TransicionPaso() {
         DllCall("SendMessageW", "Ptr", historialBox.Hwnd, "UInt", 0x0443, "Ptr", 0, "Ptr", HexToBGR(cFondoHist))
     }
 
-    ; Botones — fondo + texto
-    for btn in [btnIniciar, btnParar, btnCodigo, btnReset, btnHistorial, btnTema, btnMin, btnClose, btnUpdate, btnOverlay, btnRGBBtn, btnStatsBtn, btnWebhook, btnLogros, btnPart, btnMini, btnOptimizar, btnVelocidad] {
-        if (IsObject(btn))
+    ; Botones — fondo + texto (AplicarRegion después de Opt para mantener curvas)
+    for btn in [btnIniciar, btnParar, btnCodigo, btnReset, btnHistorial, btnTema, btnMin, btnClose, btnUpdate, btnOverlay, btnStatsBtn, btnWebhook, btnLogros, btnMini, btnPersonalizar] {
+        if (IsObject(btn)) {
             btn.Opt("Background" cBoton " c" cBtnTexto)
+            AplicarRegion(btn)
+        }
     }
-    if (IsObject(btnPerfil))
+    if (IsObject(btnPerfil)) {
         btnPerfil.Opt("Background" cBoton " c" cBtnTexto)
+        AplicarRegion(btnPerfil)
+    }
 
     ; Labels con bg sólido en miGui — fondo + texto
     for ctrl in [tituloMacro, timerLabel, presetLabel, fpsLabel] {
@@ -8286,26 +8427,32 @@ TransicionPaso() {
     if (IsObject(afkText))
         afkText.Opt("Background" cFondoHist " c" cAFK)
 
-    ; Luces — fondo + color de fill segun estado activo
+    ; Luces (controles Text) — AplicarRegion tras Opt para conservar la forma redondeada.
     if (activo) {
         if (IsObject(luzActiva)) {
-            luzActiva.Opt("Background" cFondo " c" cLuzOn)
+            luzActiva.Opt("Background" cLuzOn)
+            AplicarRegion(luzActiva)
         }
         if (IsObject(luzAccion)) {
-            luzAccion.Opt("Background" cFondo " c" cBoton)
+            luzAccion.Opt("Background" cBoton)
+            AplicarRegion(luzAccion)
         }
         if (IsObject(luzApagado)) {
-            luzApagado.Opt("Background" cFondo " c" cBoton)
+            luzApagado.Opt("Background" cBoton)
+            AplicarRegion(luzApagado)
         }
     } else {
         if (IsObject(luzActiva)) {
-            luzActiva.Opt("Background" cFondo " c" cBoton)
+            luzActiva.Opt("Background" cBoton)
+            AplicarRegion(luzActiva)
         }
         if (IsObject(luzAccion)) {
-            luzAccion.Opt("Background" cFondo " c" cBoton)
+            luzAccion.Opt("Background" cBoton)
+            AplicarRegion(luzAccion)
         }
         if (IsObject(luzApagado)) {
-            luzApagado.Opt("Background" cFondo " c" cLuzOff)
+            luzApagado.Opt("Background" cLuzOff)
+            AplicarRegion(luzApagado)
         }
     }
 
@@ -8314,13 +8461,28 @@ TransicionPaso() {
         separadorHistorial.Opt("Background" MezclarHex(cBarra, cFondo, 0.45))
     }
     if (IsObject(glowTitulo)) {
-        glowTitulo.Opt("Background" AclararHex(cBarra, 0.35))
+        _cG := AclararHex(cBarra, 0.35)
+        glowTitulo.Opt("Background" _cG)
+        if (IsObject(glowTituloL))
+            glowTituloL.Opt("Background" MezclarHex(_cG, cFondo, 0.8))
+        if (IsObject(glowTituloR))
+            glowTituloR.Opt("Background" MezclarHex(_cG, cFondo, 0.8))
     }
     if (IsObject(sepEstado)) {
-        sepEstado.Opt("Background" MezclarHex(cBarra, cFondo, 0.55))
+        _cS := MezclarHex(cBarra, cFondo, 0.55)
+        sepEstado.Opt("Background" _cS)
+        if (IsObject(sepEstadoL))
+            sepEstadoL.Opt("Background" MezclarHex(cBarra, cFondo, 0.11))
+        if (IsObject(sepEstadoR))
+            sepEstadoR.Opt("Background" MezclarHex(cBarra, cFondo, 0.11))
     }
     if (IsObject(sepAccion)) {
-        sepAccion.Opt("Background" MezclarHex(cBarra, cFondo, 0.55))
+        _cA := MezclarHex(cBarra, cFondo, 0.55)
+        sepAccion.Opt("Background" _cA)
+        if (IsObject(sepAccionL))
+            sepAccionL.Opt("Background" MezclarHex(cBarra, cFondo, 0.11))
+        if (IsObject(sepAccionR))
+            sepAccionR.Opt("Background" MezclarHex(cBarra, cFondo, 0.11))
     }
 
     ; Scrollbar personalizado
@@ -8410,7 +8572,12 @@ AplicarTema(tema, guardar := true, fromTrans := false) {
     global colorBotonNormal, colorBotonHover, colorLogoMacro, colorLuzActiva, colorLuzAccion, colorLuzApagado
     global colorBtnTexto, colorHist1, colorHist2, colorHist3
     global activo
+    global glowTitulo, glowTituloL, glowTituloR, sepEstado, sepEstadoL, sepEstadoR, sepAccion, sepAccionL, sepAccionR
     global temaPremiumActivo, rgbActivo, rgbBarra, rgbBotones, rgbLogo, rgbTexto
+
+    ; ── Estilo de efecto de acción según el tema ──
+    global efAccionEstilo
+    efAccionEstilo := tema.HasProp("efecto") ? tema.efecto : "ring"
 
     ; ── Detección del tema PREMIUM (multi-hue RGB en todo) ──
     temaPremiumActivo := InStr(tema.nombre, "P R E M I U M") > 0
@@ -8482,12 +8649,30 @@ AplicarTema(tema, guardar := true, fromTrans := false) {
     if (IsObject(hoverAccentRightHist))
         hoverAccentRightHist.Opt("Background" colorBarra)
     ; Polish visual: glow bajo el título + separadores de sección (mezclados al fondo)
-    if (IsObject(glowTitulo))
-        glowTitulo.Opt("Background" AclararHex(colorBarra, 0.35))
-    if (IsObject(sepEstado))
-        sepEstado.Opt("Background" MezclarHex(colorBarra, colorFondoPrincipal, 0.55))
-    if (IsObject(sepAccion))
-        sepAccion.Opt("Background" MezclarHex(colorBarra, colorFondoPrincipal, 0.55))
+    if (IsObject(glowTitulo)) {
+        _cG := AclararHex(colorBarra, 0.35)
+        glowTitulo.Opt("Background" _cG)
+        if (IsObject(glowTituloL))
+            glowTituloL.Opt("Background" MezclarHex(_cG, colorFondoPrincipal, 0.8))
+        if (IsObject(glowTituloR))
+            glowTituloR.Opt("Background" MezclarHex(_cG, colorFondoPrincipal, 0.8))
+    }
+    if (IsObject(sepEstado)) {
+        _cS := MezclarHex(colorBarra, colorFondoPrincipal, 0.55)
+        sepEstado.Opt("Background" _cS)
+        if (IsObject(sepEstadoL))
+            sepEstadoL.Opt("Background" MezclarHex(colorBarra, colorFondoPrincipal, 0.11))
+        if (IsObject(sepEstadoR))
+            sepEstadoR.Opt("Background" MezclarHex(colorBarra, colorFondoPrincipal, 0.11))
+    }
+    if (IsObject(sepAccion)) {
+        _cA := MezclarHex(colorBarra, colorFondoPrincipal, 0.55)
+        sepAccion.Opt("Background" _cA)
+        if (IsObject(sepAccionL))
+            sepAccionL.Opt("Background" MezclarHex(colorBarra, colorFondoPrincipal, 0.11))
+        if (IsObject(sepAccionR))
+            sepAccionR.Opt("Background" MezclarHex(colorBarra, colorFondoPrincipal, 0.11))
+    }
     logoMacro.Opt("c" colorLogoMacro)
     ; Cambiar el carácter del logo si el tema define uno especial (Gojo=∞, Sukuna=⛩)
     try logoMacro.Text := (tema.HasProp("logoChar") ? tema.logoChar : Chr(9881))
@@ -8507,18 +8692,19 @@ AplicarTema(tema, guardar := true, fromTrans := false) {
         destruccionesLabel.Opt("Background" colorVentanaHistorial " c" colorTextoPrincipal)
     cooldownText.Opt("Background" colorVentanaHistorial " c" colorCooldown)
     afkText.Opt("Background" colorVentanaHistorial " c" colorAFK)
-    luzActiva.Opt("Background" colorFondoPrincipal)
-    luzAccion.Opt("Background" colorFondoPrincipal)
-    luzApagado.Opt("Background" colorFondoPrincipal)
+    ; (Las luces, controles Text, las recolorea ActualizarEstadoVisual() más abajo
+    ;  según el estado activo — su color es su Background.)
     SendMessage(0x0443, 0, HexToBGR(colorFondoHistorial), , "ahk_id " historialBox.Hwnd)
-    for btn in [btnIniciar, btnParar, btnCodigo, btnReset, btnHistorial, btnTema, btnMin, btnClose, btnUpdate, btnOverlay, btnRGBBtn, btnStatsBtn, btnWebhook, btnLogros, btnPart, btnMini, btnOptimizar, btnVelocidad] {
+    for btn in [btnIniciar, btnParar, btnCodigo, btnReset, btnHistorial, btnTema, btnMin, btnClose, btnUpdate, btnOverlay, btnStatsBtn, btnWebhook, btnLogros, btnMini, btnPersonalizar] {
         btn.Opt("Background" colorBotonNormal " c" colorBtnTexto)
+        AplicarRegion(btn)
         if (!fromTrans) {
             DllCall("InvalidateRect", "Ptr", btn.Hwnd, "Ptr", 0, "Int", 1)
             DllCall("UpdateWindow",   "Ptr", btn.Hwnd)
         }
     }
     btnPerfil.Opt("Background" colorBotonNormal " c" colorBtnTexto)
+    AplicarRegion(btnPerfil)
     if (!fromTrans) {
         DllCall("InvalidateRect", "Ptr", btnPerfil.Hwnd, "Ptr", 0, "Int", 1)
         DllCall("UpdateWindow",   "Ptr", btnPerfil.Hwnd)
@@ -8629,6 +8815,10 @@ AplicarTemaAlMini(tema) {
     btnMiniCerrar.SetFont("s6 c" colorTextoPrincipal " Bold", "Segoe UI")
     btnMiniCerrar.OnEvent("Click", Cerrar)
     RegistrarHover(btnMiniCerrar, () => colorFondoPrincipal, () => "C42B1C")
+    for _btn in [btnMiniIniciar, btnMiniParar]
+        RedondearControl(_btn, 8)
+    for _btn in [btnMiniTema, btnMiniCerrar]
+        RedondearControl(_btn, 4)
 
     ; Logo NO se toca — mantiene su posición exacta
     logoMacroMini.SetFont("s48 c" colorLogoMacro " Bold", "Segoe UI Symbol")
@@ -8737,8 +8927,10 @@ ActualizarRGB(*) {
         if (IsObject(destruccionesLabel))
             destruccionesLabel.Opt("c" cTexto)
 
-        for btn in [btnIniciar, btnParar, btnCodigo, btnReset, btnHistorial, btnTema, btnMin, btnClose, btnUpdate, btnOverlay, btnRGBBtn, btnStatsBtn, btnWebhook, btnLogros, btnPart, btnPerfil, btnMini, btnOptimizar, btnVelocidad]
+        for btn in [btnIniciar, btnParar, btnCodigo, btnReset, btnHistorial, btnTema, btnMin, btnClose, btnUpdate, btnOverlay, btnStatsBtn, btnWebhook, btnLogros, btnPerfil, btnMini, btnPersonalizar] {
             btn.Opt("Background" cBoton " c000000")
+            AplicarRegion(btn)
+        }
 
         ; Actualizar preview RGB si está abierto
         if (rgbGuiVisible && IsObject(rgbPreviewCtrl)) {
@@ -8765,18 +8957,45 @@ ActualizarRGB(*) {
         DllCall("InvalidateRect", "Ptr", barra.Hwnd, "Ptr", 0, "Int", 1)
         barraHistorial.Opt("Background" colorRGBActual)
         DllCall("InvalidateRect", "Ptr", barraHistorial.Hwnd, "Ptr", 0, "Int", 1)
-        global glowTitulo, sepEstado, sepAccion
+        global glowTitulo, glowTituloL, glowTituloR, sepEstado, sepEstadoL, sepEstadoR, sepAccion, sepAccionL, sepAccionR
         if (IsObject(glowTitulo)) {
-            glowTitulo.Opt("Background" AclararHex(colorRGBActual, 0.35))
+            _cG := AclararHex(colorRGBActual, 0.35)
+            glowTitulo.Opt("Background" _cG)
             DllCall("InvalidateRect", "Ptr", glowTitulo.Hwnd, "Ptr", 0, "Int", 1)
+            if (IsObject(glowTituloL)) {
+                glowTituloL.Opt("Background" MezclarHex(_cG, colorFondoPrincipal, 0.8))
+                DllCall("InvalidateRect", "Ptr", glowTituloL.Hwnd, "Ptr", 0, "Int", 1)
+            }
+            if (IsObject(glowTituloR)) {
+                glowTituloR.Opt("Background" MezclarHex(_cG, colorFondoPrincipal, 0.8))
+                DllCall("InvalidateRect", "Ptr", glowTituloR.Hwnd, "Ptr", 0, "Int", 1)
+            }
         }
         if (IsObject(sepEstado)) {
-            sepEstado.Opt("Background" MezclarHex(colorRGBActual, colorFondoPrincipal, 0.55))
+            _cS := MezclarHex(colorRGBActual, colorFondoPrincipal, 0.55)
+            sepEstado.Opt("Background" _cS)
             DllCall("InvalidateRect", "Ptr", sepEstado.Hwnd, "Ptr", 0, "Int", 1)
+            if (IsObject(sepEstadoL)) {
+                sepEstadoL.Opt("Background" MezclarHex(colorRGBActual, colorFondoPrincipal, 0.11))
+                DllCall("InvalidateRect", "Ptr", sepEstadoL.Hwnd, "Ptr", 0, "Int", 1)
+            }
+            if (IsObject(sepEstadoR)) {
+                sepEstadoR.Opt("Background" MezclarHex(colorRGBActual, colorFondoPrincipal, 0.11))
+                DllCall("InvalidateRect", "Ptr", sepEstadoR.Hwnd, "Ptr", 0, "Int", 1)
+            }
         }
         if (IsObject(sepAccion)) {
-            sepAccion.Opt("Background" MezclarHex(colorRGBActual, colorFondoPrincipal, 0.55))
+            _cA := MezclarHex(colorRGBActual, colorFondoPrincipal, 0.55)
+            sepAccion.Opt("Background" _cA)
             DllCall("InvalidateRect", "Ptr", sepAccion.Hwnd, "Ptr", 0, "Int", 1)
+            if (IsObject(sepAccionL)) {
+                sepAccionL.Opt("Background" MezclarHex(colorRGBActual, colorFondoPrincipal, 0.11))
+                DllCall("InvalidateRect", "Ptr", sepAccionL.Hwnd, "Ptr", 0, "Int", 1)
+            }
+            if (IsObject(sepAccionR)) {
+                sepAccionR.Opt("Background" MezclarHex(colorRGBActual, colorFondoPrincipal, 0.11))
+                DllCall("InvalidateRect", "Ptr", sepAccionR.Hwnd, "Ptr", 0, "Int", 1)
+            }
         }
     }
     if (rgbLogo) {
@@ -8793,8 +9012,10 @@ ActualizarRGB(*) {
             destruccionesLabel.Opt("c" colorRGBActual)
     }
     if (rgbBotones) {
-        for btn in [btnIniciar, btnParar, btnCodigo, btnReset, btnHistorial, btnTema, btnMin, btnClose, btnUpdate, btnOverlay, btnRGBBtn, btnStatsBtn, btnWebhook, btnLogros, btnPart, btnPerfil, btnMini, btnOptimizar, btnVelocidad]
+        for btn in [btnIniciar, btnParar, btnCodigo, btnReset, btnHistorial, btnTema, btnMin, btnClose, btnUpdate, btnOverlay, btnStatsBtn, btnWebhook, btnLogros, btnPerfil, btnMini, btnPersonalizar] {
             btn.Opt("Background" colorRGBActual " c000000")
+            AplicarRegion(btn)
+        }
     }
 
     }  ; fin del try que envuelve todo el cuerpo de ActualizarRGB
@@ -8832,13 +9053,17 @@ ActualizarEstadoVisual() {
         ; Activo → Iniciar se tiñe con la luz "on" del tema (verde/acento), mezclada
         ; con el botón para no romper el contraste del texto en temas extremos.
         btnIniciar.Opt("Background" (rgbBotones ? colorRGBActual : MezclarHex(colorLuzActiva, colorBotonNormal, 0.45)) " c" colorBtnTexto)
+        AplicarRegion(btnIniciar)
         btnParar.Opt("Background"   (rgbBotones ? colorRGBActual : colorBotonNormal) " c" colorBtnTexto)
+        AplicarRegion(btnParar)
         SetLuz(luzActiva, colorLuzActiva)
         SetLuz(luzAccion, colorBotonNormal)
         SetLuz(luzApagado, colorBotonNormal)
     } else {
         btnIniciar.Opt("Background" (rgbBotones ? colorRGBActual : colorBotonNormal) " c" colorBtnTexto)
+        AplicarRegion(btnIniciar)
         btnParar.Opt("Background"   (rgbBotones ? colorRGBActual : colorBotonNormal) " c" colorBtnTexto)
+        AplicarRegion(btnParar)
         SetLuz(luzActiva, colorBotonNormal)
         SetLuz(luzAccion, colorBotonNormal)
         SetLuz(luzApagado, colorLuzApagado)
@@ -8908,6 +9133,16 @@ AbrirCodigo(*) {
     Run('notepad.exe "' A_ScriptDir '\brawlmacrotct.ahk"')
 }
 
+; Perfiles que NO gestionan Brawlhalla: sin anti-AFK, sin modo destrucción,
+; sin ciclo de descanso, sin relanzamientos ni Alt+F4. Son frt(3), dstv(4) y
+; los dos perfiles vacíos extra (5 y 6, "macro base lista para configurar").
+PerfilSinGestion(idx := 0) {
+    global perfilActivo
+    if (idx = 0)
+        idx := perfilActivo
+    return (idx >= 3)
+}
+
 ; Devuelve solo el emoji del perfil (para el boton visible).
 EmojiPerfil(idx := 0) {
     global perfilActivo
@@ -8919,7 +9154,11 @@ EmojiPerfil(idx := 0) {
         return Chr(0x1F512)  ; 🔒 privado
     if (idx = 3)
         return Chr(0x2694)   ; ⚔ frt (spam mode)
-    return Chr(0x2205)        ; ∅ dstv (vacio, no hace nada)
+    if (idx = 4)
+        return Chr(0x2205)   ; ∅ dstv (detector circular)
+    if (idx = 5)
+        return Chr(0x2464)   ; ⑤ perfil vacío extra A
+    return Chr(0x2465)        ; ⑥ perfil vacío extra B
 }
 
 ; Devuelve el nombre legible completo (emoji + nombre) para el historial.
@@ -8933,14 +9172,18 @@ NombrePerfil(idx := 0) {
         return Chr(0x1F512) " sp"      ; 🔒 sp (privado)
     if (idx = 3)
         return Chr(0x2694) " frt"      ; ⚔ frt (spam clicks + 1-7)
-    return Chr(0x2205) " dstv"          ; ∅ dstv (vacio - sin pasos ni acciones)
+    if (idx = 4)
+        return Chr(0x2205) " dstv"      ; ∅ dstv (detector circular)
+    if (idx = 5)
+        return Chr(0x2464) " base 1"    ; ⑤ perfil vacío extra A (sin timers/AFK/AltF4)
+    return Chr(0x2465) " base 2"        ; ⑥ perfil vacío extra B (sin timers/AFK/AltF4)
 }
 
-; Cicla 1 → 2 → 3 → 4 → 1 → ...
+; Cicla 1 → 2 → 3 → 4 → 5 → 6 → 1 → ...
 CambiarPerfil(*) {
     global perfilActivo, btnPerfil, configPath, brawlhallaLanzado
     global ultimoCambio, modoDestruccion, tiempoUltimoLanzamiento, ultimoPasoEjecutado
-    perfilActivo := (perfilActivo >= 4) ? 1 : perfilActivo + 1
+    perfilActivo := (perfilActivo >= 6) ? 1 : perfilActivo + 1
     btnPerfil.Value := EmojiPerfil()
     DllCall("InvalidateRect", "Ptr", btnPerfil.Hwnd, "Ptr", 0, "Int", 1)
     DllCall("UpdateWindow",   "Ptr", btnPerfil.Hwnd)
@@ -9004,6 +9247,39 @@ RedondearVentana(hwnd, curva := 14) {
     }
 }
 
+; Re-aplica el SetWindowRgn redondeado almacenado en _ctrlRadios.
+; DEBE llamarse después de cualquier ctrl.Opt("Background...") para que
+; Windows no descarte la región al cambiar el color/estilo de fondo.
+AplicarRegion(ctrl) {
+    global _ctrlRadios
+    if (_ctrlRadios.Has(ctrl)) {
+        _ri := _ctrlRadios[ctrl]
+        rgn := DllCall("CreateRoundRectRgn", "Int", 0, "Int", 0,
+                       "Int", _ri.rw + 1, "Int", _ri.rh + 1,
+                       "Int", _ri.radio, "Int", _ri.radio, "Ptr")
+        DllCall("SetWindowRgn", "Ptr", ctrl.Hwnd, "Ptr", rgn, "Int", true)
+    }
+}
+
+RedondearControl(ctrl, radio := 8) {
+    global _ctrlRadios
+    ; Usamos GetClientRect (píxeles FÍSICOS reales del control) en vez de
+    ; ctrl.GetPos (que devuelve coords lógicas escaladas por +DPIScale). Así la
+    ; región redondeada coincide EXACTAMENTE con el control en cualquier escala
+    ; de Windows → esquinas curvas limpias, sin borde cuadrado y sin recortar de
+    ; más. El radio sí se escala por DPI para que la curva sea proporcional.
+    rc := Buffer(16, 0)
+    DllCall("GetClientRect", "Ptr", ctrl.Hwnd, "Ptr", rc)
+    w := NumGet(rc, 8, "Int"), h := NumGet(rc, 12, "Int")
+    if (w <= 0 || h <= 0) {   ; fallback si el control aún no tiene tamaño
+        ctrl.GetPos(,, &w, &h)
+    }
+    rr := Round(radio * (A_ScreenDPI / 96.0))
+    rgn := DllCall("CreateRoundRectRgn", "Int", 0, "Int", 0, "Int", w + 1, "Int", h + 1, "Int", rr, "Int", rr, "Ptr")
+    DllCall("SetWindowRgn", "Ptr", ctrl.Hwnd, "Ptr", rgn, "Int", true)
+    _ctrlRadios[ctrl] := {radio: rr, rw: w, rh: h}
+}
+
 MostrarAviso(*) {
     global avisoGui, colorFondoPrincipal, colorTextoPrincipal
     avisoGui := Gui("+AlwaysOnTop -Caption +ToolWindow")
@@ -9049,12 +9325,17 @@ ExportarSesion(*) {
 }
 
 ; ===== LUCES =====
+; Las luces son controles Text: su color es el Background. Repintamos al cambiar.
+; AplicarRegion() re-aplica SetWindowRgn tras Opt() para mantener el borde redondeado.
 SetLuz(control, color) {
-    control.Opt("c" color)
+    control.Opt("Background" color)
+    AplicarRegion(control)
+    try DllCall("InvalidateRect", "Ptr", control.Hwnd, "Ptr", 0, "Int", 1)
 }
 
 LuzAccionFlash(catColor := "") {
     global luzAccion, colorLuzAccion, colorBotonNormal
+    EfectoAccion(catColor)   ; efectos dinámicos (glow/fade/zoom/slide) — no bloqueante
     flashColor := (catColor != "" ? catColor : colorLuzAccion)
     SetLuz(luzAccion, "FFFFFF")
     Sleep(35)
@@ -9192,7 +9473,7 @@ DecoOverlaySubclassProc(hWnd, uMsg, wParam, lParam, idSubclass, refData) {
 }
 
 PintarDecoracionesEnHDC(hdc, w, h, esMini := false) {
-    global temas, temaActual, sukunaSlashFrame, gojoAuraFrame
+    global temas, temaActual, sukunaSlashFrame, gojoAuraFrame, efAccionFrame, gojoDominioFrame
 
     unlock := ""
     decoTema := ""
@@ -9200,9 +9481,6 @@ PintarDecoracionesEnHDC(hdc, w, h, esMini := false) {
         unlock := temas[temaActual].unlock
     if (temas[temaActual].HasProp("deco"))
         decoTema := temas[temaActual].deco
-
-    if (!unlock && !decoTema)
-        return
 
     ; Centro del logo EN COORDENADAS DEL OVERLAY (resta BAR_H=25 a la y del logo):
     ;   Principal: logo x19 y31 w95 h95 en miGui → centro (66, 78) → overlay (66, 53)
@@ -9214,6 +9492,13 @@ PintarDecoracionesEnHDC(hdc, w, h, esMini := false) {
         lcx := 66.0, lcy := 53.0
         radioOjos := 52.0, radioAnillo := 38.0
     }
+
+    ; ── EFECTO DE ACCIÓN UNIVERSAL (todos los temas): onda glow/zoom al detectar ──
+    if (efAccionFrame > 0)
+        PintarEfectoAccion(hdc, lcx, lcy, efAccionFrame, 14)
+
+    if (!unlock && !decoTema)
+        return
 
     ; ── DECORACIONES PERMANENTES (cada frame mientras el tema esté activo) ──
     if (unlock = "sukuna") {
@@ -9235,6 +9520,10 @@ PintarDecoracionesEnHDC(hdc, w, h, esMini := false) {
     } else if (unlock = "gojo" && gojoAuraFrame > 0) {
         PintarAuraGojoEnHDC(hdc, lcx, lcy, gojoAuraFrame, 14)
     }
+
+    ; ── EXPANSIÓN DE DOMINIO GOJO: Vacío Ilimitado (無量空処) — se pinta encima de todo ──
+    if (unlock = "gojo" && gojoDominioFrame > 0)
+        PintarDominioGojoEnHDC(hdc, w, h, lcx, lcy, gojoDominioFrame, 30)
 }
 
 ; ═══════════════════ DECORACIONES PERMANENTES SUKUNA ═══════════════════
@@ -9644,6 +9933,121 @@ DibujarBolaSolida(hdc, cx, cy, r, colorBGR, nullBrush) {
     DllCall("SelectObject", "Ptr", hdc, "Ptr", oldPen)
     DllCall("DeleteObject", "Ptr", brush)
     DllCall("DeleteObject", "Ptr", hPenNul)
+}
+
+; ═══════════════════ EXPANSIÓN DE DOMINIO GOJO ═══════════════════
+; "Vacío Ilimitado" (無量空処, Muryōkū). El dominio se despliega desde el ∞:
+; una esfera de vacío azul-morado cósmico llena la ventana, aparece el símbolo
+; del Infinito, estrellas (información infinita) y los anillos de la barrera;
+; luego colapsa. Se pinta sobre el overlay topmost (color-key), encima de todo.
+PintarDominioGojoEnHDC(hdc, w, h, cx, cy, frame, maxFrame) {
+    static stars := ""
+    t := (maxFrame - frame) / (maxFrame * 1.0)   ; 0 → 1 (avance)
+    radioMax := 430.0
+    if (t < 0.30)
+        radio := radioMax * (t / 0.30)            ; despliegue
+    else if (t > 0.82)
+        radio := radioMax * (1 - (t - 0.82) / 0.18)  ; colapso
+    else
+        radio := radioMax
+    if (radio < 2)
+        radio := 2
+    ; Alpha global del dominio (fade-in / fade-out)
+    if (t < 0.12)
+        aDom := Round(232 * (t / 0.12))
+    else if (t > 0.85)
+        aDom := Round(232 * (1 - (t - 0.85) / 0.15))
+    else
+        aDom := 232
+    if (aDom < 1)
+        return
+
+    g := 0
+    DllCall("gdiplus\GdipCreateFromHDC", "Ptr", hdc, "Ptr*", &g)
+    if (!g)
+        return
+    DllCall("gdiplus\GdipSetSmoothingMode", "Ptr", g, "Int", 4)
+
+    ; Cuerpo del Vacío: elipses concéntricas (azul profundo → morado Hollow → núcleo)
+    DibujarEllipseGdip(g, cx, cy, radio,        (aDom << 24) | 0x0A0A2A)
+    DibujarEllipseGdip(g, cx, cy, radio * 0.72, (aDom << 24) | 0x140A33)
+    DibujarEllipseGdip(g, cx, cy, radio * 0.45, (aDom << 24) | 0x1A1048)
+    DibujarEllipseGdip(g, cx, cy, radio * 0.22, (Round(aDom * 0.92) << 24) | 0x0A0520)
+
+    ; Estrellas (información infinita): posiciones fijas por lanzamiento, titilan.
+    if (!IsObject(stars)) {
+        stars := []
+        Loop 72
+            stars.Push({ x: Random(0.0, w * 1.0), y: Random(0.0, h * 1.0), ph: Random(0.0, 6.28), sp: Random(2.0, 6.0), r: Random(0.6, 1.9) })
+    }
+    fase := A_TickCount / 1000.0
+    for s in stars {
+        dx := s.x - cx, dy := s.y - cy
+        if (dx * dx + dy * dy > radio * radio)
+            continue
+        tw := 0.5 + 0.5 * Sin(fase * s.sp + s.ph)
+        aSt := Round(aDom / 255.0 * (85 + 150 * tw))
+        col := (Mod(A_Index, 3) = 0) ? 0x9D7BFF : 0x9CE0FF
+        DibujarEllipseGdip(g, s.x, s.y, s.r + tw * 0.6, (aSt << 24) | col)
+    }
+
+    ; Anillos de la barrera del dominio, girando lento hacia afuera.
+    Loop 3 {
+        i := A_Index - 1
+        rr := radio * (0.50 + i * 0.17)
+        penR := 0
+        DllCall("gdiplus\GdipCreatePen1", "UInt", (Round(aDom * 0.5) << 24) | 0x7B5CFF, "Float", 1.6, "Int", 2, "Ptr*", &penR)
+        DllCall("gdiplus\GdipDrawEllipse", "Ptr", g, "Ptr", penR, "Float", cx - rr, "Float", cy - rr, "Float", rr * 2, "Float", rr * 2)
+        DllCall("gdiplus\GdipDeletePen", "Ptr", penR)
+    }
+
+    ; Símbolo del Infinito (∞) brillante en el centro — dos anillos contiguos.
+    if (t > 0.24 && t < 0.86) {
+        aInf := Round(aDom * (0.72 + 0.28 * Sin(fase * 3)))
+        sep := 11.5, rInf := 8.5
+        DibujarEllipseGdip(g, cx - sep, cy, rInf + 3, (Round(aInf * 0.38) << 24) | 0x5DC8FF)
+        DibujarEllipseGdip(g, cx + sep, cy, rInf + 3, (Round(aInf * 0.38) << 24) | 0x9D4EDD)
+        penL := 0
+        DllCall("gdiplus\GdipCreatePen1", "UInt", (aInf << 24) | 0xBFD8FF, "Float", 2.4, "Int", 2, "Ptr*", &penL)
+        DllCall("gdiplus\GdipDrawEllipse", "Ptr", g, "Ptr", penL, "Float", cx - sep - rInf, "Float", cy - rInf, "Float", rInf * 2, "Float", rInf * 2)
+        DllCall("gdiplus\GdipDrawEllipse", "Ptr", g, "Ptr", penL, "Float", cx + sep - rInf, "Float", cy - rInf, "Float", rInf * 2, "Float", rInf * 2)
+        DllCall("gdiplus\GdipDeletePen", "Ptr", penL)
+    }
+
+    ; Destello blanco al alcanzar pleno despliegue.
+    if (t >= 0.27 && t <= 0.37) {
+        aFl := Round(170 * (1 - Abs(t - 0.32) / 0.05))
+        if (aFl > 0)
+            DibujarEllipseGdip(g, cx, cy, radio, (aFl << 24) | 0xFFFFFF)
+    }
+
+    DllCall("gdiplus\GdipDeleteGraphics", "Ptr", g)
+}
+
+; Dispara la Expansión de Dominio (solo si el tema Gojo está activo).
+LanzarDominioGojo() {
+    global temas, temaActual, gojoDominioFrame, presetDecoraciones, optDecoraciones
+    if (!presetDecoraciones || !optDecoraciones)
+        return
+    if (!temas[temaActual].HasProp("unlock") || temas[temaActual].unlock != "gojo")
+        return
+    if (gojoDominioFrame > 0)
+        return   ; ya desplegándose
+    gojoDominioFrame := 30
+    try ReposicionarOverlayDeco()
+    AgregarHistorial(Chr(0x267E) " 領域展開 · 無量空処 — Expansión de Dominio: Vacío Ilimitado", "8A2BE2")
+    SetTimer(AnimarDominioGojo, 40)
+}
+
+AnimarDominioGojo() {
+    global gojoDominioFrame
+    if (gojoDominioFrame <= 0) {
+        SetTimer(AnimarDominioGojo, 0)
+        try InvalidarOverlayDeco()
+        return
+    }
+    gojoDominioFrame -= 1
+    try InvalidarOverlayDeco()
 }
 
 ReposicionarOverlayDeco() {
@@ -10147,50 +10551,102 @@ HexToBGR(hex) {
     return (b << 16) | (g << 8) | r
 }
 
+ToggleHistorialPro(*) {
+    global historialProActivo, btnHistPro, colorBarra, colorBotonNormal, colorTextoBarra
+    historialProActivo := !historialProActivo
+    if (IsObject(btnHistPro)) {
+        c := historialProActivo ? colorBarra : colorBotonNormal
+        btnHistPro.Opt("Background" c)
+    }
+}
+
 ; ===== COOLDOWNS =====
+; Visor de detección EN VIVO: muestra qué pasos busca y cuáles están en cooldown.
+; Modo Pro (historialProActivo): muestra CADA paso con su estado individualmente.
 ActualizarCooldowns(*) {
-    global pasosPrioridad, pasosNormales, cooldownText
-    textoCooldown := ""
+    global pasosPrioridad, pasosNormales, cooldownText, activo, historialProActivo
+    marca := (Mod(A_TickCount // 350, 2) = 0) ? Chr(0x25CF) : Chr(0x25CB)
 
-    restanteGlobal := BloqueoGlobalRestante()
-    if (restanteGlobal > 0)
-        textoCooldown .= "[GLOBAL] bloqueo: " Round(restanteGlobal / 1000, 1) "s`n"
-
-    for paso in pasosPrioridad {
-        if !paso.HasProp("lastUsed")
-            paso.lastUsed := 0
-        if !PasoActivoEnPerfil(paso)
-            continue
-        if paso.HasProp("cooldown") {
-            restante := paso.cooldown - (A_TickCount - paso.lastUsed)
-            if (restante > 0)
-                textoCooldown .= "[P] " paso.nombre ": " Round(restante / 1000, 1) "s`n"
-        }
+    if (!activo) {
+        out := "Detenido — pulsa Iniciar"
+        if (cooldownText.Value != out)
+            cooldownText.Value := out
+        return
     }
 
-    for paso in pasosNormales {
-        if !paso.HasProp("lastUsed")
-            paso.lastUsed := 0
-        if !PasoActivoEnPerfil(paso)
-            continue
-        if paso.HasProp("cooldown") {
+    if (historialProActivo) {
+        ; ── Modo Pro: cada paso con su estado ──
+        out := marca " HISTORIAL PRO — EN VIVO`n"
+        restanteGlobal := BloqueoGlobalRestante()
+        if (restanteGlobal > 0)
+            out .= "  " Chr(0x1F512) " GLOBAL  " Round(restanteGlobal / 1000, 1) "s`n"
+        for paso in pasosPrioridad {
+            if !paso.HasProp("lastUsed")
+                paso.lastUsed := 0
+            if (!PasoActivoEnPerfil(paso) || !paso.HasProp("cooldown"))
+                continue
             restante := paso.cooldown - (A_TickCount - paso.lastUsed)
             if (restante > 0)
-                textoCooldown .= "[N] " paso.nombre ": " Round(restante / 1000, 1) "s`n"
+                out .= "  " Chr(0x23F3) " " paso.nombre "  " Round(restante / 1000, 1) "s`n"
+            else
+                out .= "  " marca " " paso.nombre "`n"
         }
+        for paso in pasosNormales {
+            if !paso.HasProp("lastUsed")
+                paso.lastUsed := 0
+            if (!PasoActivoEnPerfil(paso) || !paso.HasProp("cooldown"))
+                continue
+            restante := paso.cooldown - (A_TickCount - paso.lastUsed)
+            if (restante > 0)
+                out .= "  " Chr(0x23F3) " " paso.nombre "  " Round(restante / 1000, 1) "s`n"
+            else
+                out .= "  " marca " " paso.nombre "`n"
+        }
+    } else {
+        ; ── Modo estándar: resumen agrupado ──
+        enEspera := ""
+        buscando := ""
+        nBuscando := 0
+        restanteGlobal := BloqueoGlobalRestante()
+        if (restanteGlobal > 0)
+            enEspera .= "  " Chr(0x1F512) " GLOBAL  " Round(restanteGlobal / 1000, 1) "s`n"
+        for paso in pasosPrioridad {
+            if !paso.HasProp("lastUsed")
+                paso.lastUsed := 0
+            if (!PasoActivoEnPerfil(paso) || !paso.HasProp("cooldown"))
+                continue
+            restante := paso.cooldown - (A_TickCount - paso.lastUsed)
+            if (restante > 0)
+                enEspera .= "  " paso.nombre "  " Round(restante / 1000, 1) "s`n"
+            else
+                buscando .= (nBuscando++ ? ", " : "") paso.nombre
+        }
+        for paso in pasosNormales {
+            if !paso.HasProp("lastUsed")
+                paso.lastUsed := 0
+            if (!PasoActivoEnPerfil(paso) || !paso.HasProp("cooldown"))
+                continue
+            restante := paso.cooldown - (A_TickCount - paso.lastUsed)
+            if (restante > 0)
+                enEspera .= "  " paso.nombre "  " Round(restante / 1000, 1) "s`n"
+            else
+                buscando .= (nBuscando++ ? ", " : "") paso.nombre
+        }
+        out := marca " Detectando (" nBuscando ")`n"
+        if (buscando != "")
+            out .= marca " " buscando "`n"
+        if (enEspera != "")
+            out .= Chr(0x23F3) " En cooldown:`n" enEspera
     }
-
-    if textoCooldown = ""
-        textoCooldown := "Sin cooldowns activos"
-    if cooldownText.Value != textoCooldown
-        cooldownText.Value := textoCooldown
+    if (cooldownText.Value != out)
+        cooldownText.Value := out
 }
 
 ActualizarAFK(*) {
     global ultimoCambio, afkText, colorAFK, rgbActivo, modoDestruccion
     global timerLabel, colorTextoPrincipal, afkAlertaFlash, perfilActivo, enDescanso
     ; En modo frt y dstv no hay anti-AFK ni modo destruccion
-    if (perfilActivo = 3 || perfilActivo = 4)
+    if (PerfilSinGestion())
         return
     ; Durante el descanso del ciclo NO se arma el modo destrucción ni el anti-AFK
     ; (el contador lleva parado a propósito desde el Alt+F4) — solo mostrar cuánto falta.
@@ -10684,6 +11140,9 @@ CheckPrioridad() {
                                     ; ── Efecto único de SUKUNA: Fuga (flame arrow) en la barra al completar secuencia ──
                                     if (temas[temaActual].HasProp("unlock") && temas[temaActual].unlock = "sukuna")
                                         SetTimer(BarraFlashFuga, -1)
+                                    ; ── Efecto único de GOJO: Expansión de Dominio (Vacío Ilimitado) al completar secuencia ──
+                                    else if (temas[temaActual].HasProp("unlock") && temas[temaActual].unlock = "gojo")
+                                        SetTimer(LanzarDominioGojo, -1)
                                 } else {
                                     AgregarHistorial(paso.nombre " -> COOLDOWN " Round(paso.cooldown/1000) "s", paso.HasProp("categoria") ? ObtenerColorCategoria(paso.categoria) : "")
                                     DespuesDeAccion(false)
@@ -10734,7 +11193,7 @@ EjecutarMacro(*) {
     global modoCadena, pasoCadena, finCadena
     global ultimoPasoEjecutado
     global modoDestruccion, contadorDestruccion
-    global tiempoUltimoLanzamiento
+    global tiempoUltimoLanzamiento, tiempoLanzamientoSteam
     global ultimoAfkMove, ultimaDeteccionReal, perfilActivo, enDescanso
     static PASOS_ENTRE_PRIO := 5   ; CheckPrioridad cada N pasos normales revisados
 
@@ -10915,7 +11374,7 @@ EjecutarMacro(*) {
     ; frt y dstv: sin anti-AFK, sin modo destrucción, sin relanzamientos, sin
     ; MouseMove — todo eso es SOLO para tct/sp (frt tiene su propio spam y el
     ; Esc/c del anti-AFK le estorbaría al juego).
-    if (perfilActivo = 3 || perfilActivo = 4)
+    if (PerfilSinGestion())
         return
 
     tiempoSinCambios := A_TickCount - ultimoCambio
@@ -10987,7 +11446,8 @@ EjecutarMacro(*) {
 
     ; ===== REINTENTO LANZAMIENTO =====
 
-    if (activo && tiempoUltimoLanzamiento > 0 && (A_TickCount - tiempoUltimoLanzamiento) > 60000) {
+    if (activo && tiempoUltimoLanzamiento > 0 && (A_TickCount - tiempoUltimoLanzamiento) > 60000
+        && ultimaDeteccionReal <= tiempoLanzamientoSteam) {
         tiempoUltimoLanzamiento := A_TickCount
         ultimoCambio := A_TickCount
         AgregarHistorial("⚠️ Sin detección tras 2 min - relanzando secuencia Steam + Win + 'brawlhalla'", "FF8800")
@@ -11016,7 +11476,7 @@ TickCicloDescanso() {
     ; El ciclo jugar/descanso es SOLO para tct (1) y sp (2) — Brawlhalla.
     ; En frt y dstv no se acumula tiempo ni se dispara el descanso; el reloj
     ; es de pared (A_Now), así que al volver a tct/sp el ciclo sigue donde iba.
-    if (perfilActivo = 3 || perfilActivo = 4)
+    if (PerfilSinGestion())
         return
     if (enDescanso) {
         ; Durante el descanso el macro NO se apaga: sigue encendido en pausa de
@@ -11876,7 +12336,7 @@ ActualizarTimersFrt() {
 ActualizarVisibilidadFrt() {
     global perfilActivo, afkText, secuenciasLabel, destruccionesLabel
     global contadorLabel, cooldownText
-    ocultar := (perfilActivo = 3 || perfilActivo = 4)
+    ocultar := (PerfilSinGestion())
     for ctrl in [afkText, secuenciasLabel, destruccionesLabel, contadorLabel, cooldownText] {
         if (IsObject(ctrl)) {
             try ctrl.Visible := !ocultar
@@ -11966,7 +12426,7 @@ LanzarBrawlhalla_TypeName() {
 CheckBrawlhallaMinimizado() {
     global activo, perfilActivo, enDescanso
     ; frt (3) y dstv (4) no manejan Brawlhalla; en descanso el juego está cerrado a propósito
-    if (!activo || perfilActivo = 3 || perfilActivo = 4 || enDescanso)
+    if (!activo || PerfilSinGestion() || enDescanso)
         return
     try {
         if !ProcessExist("Brawlhalla.exe")
@@ -12061,6 +12521,7 @@ Parar(*) {
     SetTimer(EjecutarMacro, 0)
     SetTimer(TickCirculoDetectorDstv, 0)
     SetTimer(ActualizarCooldowns, 0)
+    try cooldownText.Value := "Detenido — pulsa Iniciar"   ; limpiar el visor de detección
     SetTimer(ActualizarAFK, 0)
     SetTimer(PulsoBarraActivo, 0)
     SetTimer(PulsoLogoActivo, 0)
@@ -12555,11 +13016,926 @@ OverlayHoverCheck(*) {
     }
 }
 
-; Atajos de teclado retirados a petición del usuario: Ctrl+W (webhook), Ctrl+R (RGB),
-; Alt+H (estadísticas) y F3 (cambiar perfil). Esas funciones siguen accesibles por sus
-; botones / zonas de click. Se mantienen solo F1=Iniciar y F2=Parar para el juego.
-F1::Iniciar()
-F2::Parar()
+; ════════════════════════════════════════════════════════════════════════
+;  MEJORAS v31.2 — funciones nuevas
+;    (1) Efectos de acción dinámicos   (4) Historial Pro avanzado
+;    (2) Tema totalmente personalizable (5) Degradados + Centro de Personalización
+;    (7) Hotkeys reasignables
+; ════════════════════════════════════════════════════════════════════════
+
+; Helper GDI+: círculo relleno ARGB en (cx,cy) radio r.
+DibujarEllipseGdip(g, cx, cy, r, argb) {
+    br := 0
+    DllCall("gdiplus\GdipCreateSolidFill", "UInt", argb, "Ptr*", &br)
+    if (!br)
+        return
+    DllCall("gdiplus\GdipFillEllipse", "Ptr", g, "Ptr", br, "Float", cx - r, "Float", cy - r, "Float", r * 2.0, "Float", r * 2.0)
+    DllCall("gdiplus\GdipDeleteBrush", "Ptr", br)
+}
+
+; ─────────────────────── (1) EFECTOS DE ACCIÓN ───────────────────────
+; Onda glow/zoom/fade que se dispara al detectar una acción (hook en LuzAccionFlash).
+; Se pinta sobre el overlay de decoraciones (topmost, click-through), así funciona
+; en CUALQUIER tema. No bloquea: solo arranca un timer que invalida el overlay.
+EfectoAccion(catColor := "") {
+    global efectosAccionActivos, efAccionFrame, efAccionColor, colorLuzAccion, modoMini, efAccionEstilo
+    if (!efectosAccionActivos)
+        return
+    try OndaBarra()   ; onda + brillo en la barra (glow/slide)
+    if (modoMini)
+        return
+    efAccionColor := (catColor != "" && StrLen(catColor) = 6) ? catColor : colorLuzAccion
+    ; "scan" y "nova" necesitan más frames para que la animación sea visible
+    efAccionFrame := (efAccionEstilo = "scan" || efAccionEstilo = "nova") ? 20 : 14
+    try ReposicionarOverlayDeco()
+    SetTimer(AnimarEfectoAccion, 22)
+}
+
+AnimarEfectoAccion() {
+    global efAccionFrame
+    if (efAccionFrame <= 0) {
+        SetTimer(AnimarEfectoAccion, 0)
+        try InvalidarOverlayDeco()
+        return
+    }
+    efAccionFrame -= 1
+    try InvalidarOverlayDeco()
+}
+
+; Dibuja la onda de acción en el HDC del overlay — despacha según efAccionEstilo.
+PintarEfectoAccion(hdc, cx, cy, frame, maxFrame) {
+    global efAccionColor, efAccionEstilo
+    bgr := HexToBGR(efAccionColor)
+    avance := (maxFrame - frame) / (maxFrame * 1.0)
+    nullBrush := DllCall("GetStockObject", "Int", 5, "Ptr")
+
+    switch efAccionEstilo {
+        case "multi":
+            ; 3 anillos concéntricos escalonados — energético
+            offsets := [0, 0.25, 0.5]
+            for off in offsets {
+                av2 := Min(1.0, avance + off)
+                r2 := Round(8 + av2 * 55)
+                g2 := Max(1, Round(5 * (1 - av2)))
+                hP := DllCall("CreatePen", "Int", 0, "Int", g2, "UInt", bgr, "Ptr")
+                DllCall("SelectObject", "Ptr", hdc, "Ptr", hP)
+                DllCall("SelectObject", "Ptr", hdc, "Ptr", nullBrush)
+                DllCall("Ellipse", "Ptr", hdc, "Int", Round(cx-r2), "Int", Round(cy-r2), "Int", Round(cx+r2), "Int", Round(cy+r2))
+                DllCall("DeleteObject", "Ptr", hP)
+            }
+            if (frame >= maxFrame - 2)
+                DibujarBolaSolida(hdc, cx, cy, 6, bgr, nullBrush)
+
+        case "cross":
+            ; Cruz/plus expandiéndose desde el centro — agresivo
+            longitud := Round(20 + avance * 50)
+            grosorC := Max(1, Round(5 * (1 - avance)))
+            hPc := DllCall("CreatePen", "Int", 0, "Int", grosorC, "UInt", bgr, "Ptr")
+            oldPc := DllCall("SelectObject", "Ptr", hdc, "Ptr", hPc)
+            DllCall("MoveToEx", "Ptr", hdc, "Int", cx - longitud, "Int", cy, "Ptr", 0)
+            DllCall("LineTo", "Ptr", hdc, "Int", cx + longitud, "Int", cy)
+            DllCall("MoveToEx", "Ptr", hdc, "Int", cx, "Int", cy - longitud, "Ptr", 0)
+            DllCall("LineTo", "Ptr", hdc, "Int", cx, "Int", cy + longitud)
+            DllCall("SelectObject", "Ptr", hdc, "Ptr", oldPc)
+            DllCall("DeleteObject", "Ptr", hPc)
+            if (frame >= maxFrame - 3)
+                DibujarBolaSolida(hdc, cx, cy, 5 + (frame - (maxFrame-3)) * 2, bgr, nullBrush)
+
+        case "scan":
+            ; Línea horizontal que barre desde el centro hacia los bordes
+            y1 := Round(cy - avance * 60)
+            y2 := Round(cy + avance * 60)
+            grosorS := Max(1, Round(4 * (1 - avance)))
+            hPs := DllCall("CreatePen", "Int", 0, "Int", grosorS, "UInt", bgr, "Ptr")
+            DllCall("SelectObject", "Ptr", hdc, "Ptr", hPs)
+            ancho := Round(40 + avance * 80)
+            DllCall("MoveToEx", "Ptr", hdc, "Int", cx - ancho, "Int", y1, "Ptr", 0)
+            DllCall("LineTo", "Ptr", hdc, "Int", cx + ancho, "Int", y1)
+            if (y2 != y1) {
+                DllCall("MoveToEx", "Ptr", hdc, "Int", cx - ancho, "Int", y2, "Ptr", 0)
+                DllCall("LineTo", "Ptr", hdc, "Int", cx + ancho, "Int", y2)
+            }
+            DllCall("DeleteObject", "Ptr", hPs)
+
+        case "nova":
+            ; Anillo grande que aparece rápido y desvanece — explosión suave
+            radio := Round(60 - avance * 50)
+            grosorN := Max(1, Round(8 * (1 - avance * 0.7)))
+            hPn := DllCall("CreatePen", "Int", 0, "Int", grosorN, "UInt", bgr, "Ptr")
+            DllCall("SelectObject", "Ptr", hdc, "Ptr", hPn)
+            DllCall("SelectObject", "Ptr", hdc, "Ptr", nullBrush)
+            DllCall("Ellipse", "Ptr", hdc, "Int", cx-radio, "Int", cy-radio, "Int", cx+radio, "Int", cy+radio)
+            DllCall("DeleteObject", "Ptr", hPn)
+            if (frame >= maxFrame - 4)
+                DibujarBolaSolida(hdc, cx, cy, 10, bgr, nullBrush)
+
+        case "pulse":
+            ; Glow central suave que se expande lentamente — místico
+            radio := Round(6 + avance * 40)
+            for i in [1, 2, 3] {
+                ri := radio * i // 2
+                gi := Max(1, Round((4 - i) * (1 - avance * 0.6)))
+                hPp := DllCall("CreatePen", "Int", 0, "Int", gi, "UInt", bgr, "Ptr")
+                DllCall("SelectObject", "Ptr", hdc, "Ptr", hPp)
+                DllCall("SelectObject", "Ptr", hdc, "Ptr", nullBrush)
+                DllCall("Ellipse", "Ptr", hdc, "Int", cx-ri, "Int", cy-ri, "Int", cx+ri, "Int", cy+ri)
+                DllCall("DeleteObject", "Ptr", hPp)
+            }
+            if (frame >= maxFrame - 4)
+                DibujarBolaSolida(hdc, cx, cy, 8, bgr, nullBrush)
+
+        default:
+            ; "ring" — anillo clásico expandiéndose (comportamiento original)
+            radio := Round(12 + avance * 50)
+            grosor := Max(1, Round(6 * (1 - avance)))
+            hPen := DllCall("CreatePen", "Int", 0, "Int", grosor, "UInt", bgr, "Ptr")
+            oldPen := DllCall("SelectObject", "Ptr", hdc, "Ptr", hPen)
+            DllCall("SelectObject", "Ptr", hdc, "Ptr", nullBrush)
+            DllCall("Ellipse", "Ptr", hdc, "Int", Round(cx-radio), "Int", Round(cy-radio), "Int", Round(cx+radio), "Int", Round(cy+radio))
+            if (avance < 0.72) {
+                radio2 := Round(8 + avance * 26)
+                hPen2 := DllCall("CreatePen", "Int", 0, "Int", Max(1, grosor-1), "UInt", bgr, "Ptr")
+                DllCall("SelectObject", "Ptr", hdc, "Ptr", hPen2)
+                DllCall("Ellipse", "Ptr", hdc, "Int", Round(cx-radio2), "Int", Round(cy-radio2), "Int", Round(cx+radio2), "Int", Round(cy+radio2))
+                DllCall("SelectObject", "Ptr", hdc, "Ptr", hPen)
+                DllCall("DeleteObject", "Ptr", hPen2)
+            }
+            if (frame >= maxFrame - 3)
+                DibujarBolaSolida(hdc, cx, cy, 4 + (frame - (maxFrame-3)) * 2, bgr, nullBrush)
+            DllCall("SelectObject", "Ptr", hdc, "Ptr", oldPen)
+            DllCall("DeleteObject", "Ptr", hPen)
+    }
+}
+
+ToggleEfectosAccion() {
+    global efectosAccionActivos, configPath
+    efectosAccionActivos := !efectosAccionActivos
+    IniWrite(efectosAccionActivos ? 1 : 0, configPath, "Efectos", "Accion")
+}
+
+; ─────────────────────── (5) DEGRADADOS ───────────────────────
+CargarDegradados() {
+    global configPath, degradadosActivos, degradadoIntensidad
+    degradadosActivos := Integer(IniRead(configPath, "Degradados", "Activos", "1")) = 1
+    degradadoIntensidad := Integer(IniRead(configPath, "Degradados", "Intensidad", "100"))
+    if (degradadoIntensidad < 0)
+        degradadoIntensidad := 0
+    else if (degradadoIntensidad > 200)
+        degradadoIntensidad := 200
+}
+
+GuardarDegradados() {
+    global configPath, degradadosActivos, degradadoIntensidad
+    IniWrite(degradadosActivos ? 1 : 0, configPath, "Degradados", "Activos")
+    IniWrite(degradadoIntensidad, configPath, "Degradados", "Intensidad")
+}
+
+; Repinta las barras al instante para reflejar el cambio de degradado.
+AplicarDegradados() {
+    global barra, barraHistorial, barraMini, modoMini
+    if (IsObject(barra))
+        DllCall("InvalidateRect", "Ptr", barra.Hwnd, "Ptr", 0, "Int", 0)
+    if (IsObject(barraHistorial))
+        DllCall("InvalidateRect", "Ptr", barraHistorial.Hwnd, "Ptr", 0, "Int", 0)
+    if (modoMini && IsObject(barraMini))
+        DllCall("InvalidateRect", "Ptr", barraMini.Hwnd, "Ptr", 0, "Int", 0)
+}
+
+AbrirPanelDegradados(*) {
+    global degradGui, degradGuiVisible, degradadosActivos, degradadoIntensidad
+    global colorFondoPrincipal, colorTextoPrincipal, colorBarra, colorTextoBarra, colorBotonNormal, colorBtnTexto
+    if (degradGuiVisible && IsObject(degradGui)) {
+        try LimpiarHoverGui(degradGui)
+        try degradGui.Destroy()
+        degradGuiVisible := false
+        return
+    }
+    degradGui := Gui("+AlwaysOnTop -Caption +ToolWindow")
+    degradGui.BackColor := colorFondoPrincipal
+    W := 252
+    barr := degradGui.Add("Text", "x0 y0 w" W " h28 Background" colorBarra " Center +0x200", "  " Chr(0x1F308) "  Degradados")
+    barr.SetFont("s10 c" colorTextoBarra " Bold", "Segoe UI Semibold")
+    barr.OnEvent("Click", (*) => PostMessage(0xA1, 2,,, "ahk_id " degradGui.Hwnd))
+    barr.OnEvent("DoubleClick", (*) => CerrarPanelDegradados())
+
+    degradGui.Add("Text", "x16 y40 w" (W-32) " h16 c" colorTextoPrincipal " Background" colorFondoPrincipal, "Estado:").SetFont("s9 Bold", "Segoe UI")
+    btnTog := degradGui.Add("Text", "x16 y60 w" (W-32) " h30 +0x201 Background" (degradadosActivos ? colorBarra : colorBotonNormal) " c" colorBtnTexto " Center",
+        degradadosActivos ? Chr(0x2714) " Activados" : Chr(0x2716) " Desactivados")
+    btnTog.SetFont("s10 Bold", "Segoe UI Semibold")
+    btnTog.OnEvent("Click", (*) => ToggleDegradados())
+    RegistrarHover(btnTog, () => (degradadosActivos ? colorBarra : colorBotonNormal))
+
+    degradGui.Add("Text", "x16 y100 w" (W-32) " h16 c" colorTextoPrincipal " Background" colorFondoPrincipal, "Intensidad del brillo:").SetFont("s9 Bold", "Segoe UI")
+    niveles := [{lbl:"Sutil", v:50}, {lbl:"Normal", v:100}, {lbl:"Intenso", v:150}, {lbl:"Máx", v:200}]
+    wB := (W - 32 - 18) / 4
+    xb := 16.0
+    for item in niveles {
+        bg := (degradadoIntensidad = item.v) ? colorBarra : colorBotonNormal
+        b := degradGui.Add("Text", "x" Round(xb) " y120 w" Round(wB) " h28 +0x201 Background" bg " c" colorBtnTexto " Center", item.lbl)
+        b.SetFont("s8 Bold", "Segoe UI")
+        vv := item.v
+        b.OnEvent("Click", SetDegradadoIntensidad.Bind(vv))
+        RegistrarHover(b, MakeColorFn(bg))
+        xb += wB + 6
+    }
+    degradGui.Add("Text", "x16 y156 w" (W-32) " h34 c" MezclarHex(colorTextoPrincipal, colorFondoPrincipal, 0.4) " Background" colorFondoPrincipal,
+        "Los degradados son las bandas de brillo en movimiento de las barras de título.").SetFont("s7", "Segoe UI")
+    degradGui.Show("w" W " h198 Center")
+    RedondearVentana(degradGui.Hwnd, 12)
+    degradGuiVisible := true
+    RegistrarAutoCierre(degradGui, CerrarPanelDegradados)
+}
+
+CerrarPanelDegradados(*) {
+    global degradGui, degradGuiVisible
+    if (IsObject(degradGui)) {
+        try LimpiarHoverGui(degradGui)
+        try degradGui.Destroy()
+    }
+    degradGuiVisible := false
+}
+
+ToggleDegradados() {
+    global degradadosActivos
+    degradadosActivos := !degradadosActivos
+    GuardarDegradados()
+    AplicarDegradados()
+    SetTimer(RefrescarPanelDegradados, -1)
+}
+
+SetDegradadoIntensidad(v, *) {
+    global degradadoIntensidad
+    degradadoIntensidad := v
+    GuardarDegradados()
+    AplicarDegradados()
+    SetTimer(RefrescarPanelDegradados, -1)
+}
+
+RefrescarPanelDegradados() {
+    global degradGuiVisible
+    if (degradGuiVisible) {
+        AbrirPanelDegradados()
+        AbrirPanelDegradados()
+    }
+}
+
+; ──────────────── CENTRO DE PERSONALIZACIÓN (hub) ────────────────
+AbrirCentroPersonalizacion(*) {
+    global centroPersGui, centroPersVisible, efectosAccionActivos
+    global colorFondoPrincipal, colorTextoPrincipal, colorBarra, colorTextoBarra, colorBotonNormal, colorBtnTexto
+    if (centroPersVisible && IsObject(centroPersGui)) {
+        try LimpiarHoverGui(centroPersGui)
+        try centroPersGui.Destroy()
+        centroPersVisible := false
+        return
+    }
+    centroPersGui := Gui("+AlwaysOnTop -Caption +ToolWindow")
+    centroPersGui.BackColor := colorFondoPrincipal
+    W := 250
+    barr := centroPersGui.Add("Text", "x0 y0 w" W " h28 Background" colorBarra " Center +0x200", "  " Chr(0x1F58C) "  Personalización")
+    barr.SetFont("s10 c" colorTextoBarra " Bold", "Segoe UI Semibold")
+    barr.OnEvent("Click", (*) => PostMessage(0xA1, 2,,, "ahk_id " centroPersGui.Hwnd))
+    barr.OnEvent("DoubleClick", (*) => CerrarCentroPersonalizacion())
+
+    items := [
+        {lbl: Chr(0x1F3A8) " Editor de tema",        fn: "tema"},
+        {lbl: Chr(0x1F308) " RGB y Colores",          fn: "rgb"},
+        {lbl: Chr(0x2728)  " Partículas",             fn: "part"},
+        {lbl: Chr(0x2328)  " Atajos de teclado",      fn: "hotkeys"},
+        {lbl: Chr(0x2699)  " Optimización",           fn: "opt"},
+        {lbl: Chr(0x26A1)  " Velocidad del macro",    fn: "vel"},
+    ]
+    y := 38
+    for it in items {
+        b := centroPersGui.Add("Text", "x16 y" y " w" (W-32) " h32 +0x201 Background" colorBotonNormal " c" colorBtnTexto " Center", it.lbl)
+        b.SetFont("s10 Bold", "Segoe UI Semibold")
+        accion := it.fn
+        b.OnEvent("Click", CentroPersAbrir.Bind(accion))
+        RegistrarHover(b, () => colorBotonNormal)
+        y += 38
+    }
+    centroPersGui.Show("w" W " h" y " Center")
+    RedondearVentana(centroPersGui.Hwnd, 12)
+    centroPersVisible := true
+    RegistrarAutoCierre(centroPersGui, CerrarCentroPersonalizacion)
+}
+
+CentroPersAbrir(accion, *) {
+    switch accion {
+        case "tema":    AbrirEditorTema()
+        case "rgb":     AbrirPanelRGB()
+        case "part":    AbrirPanelParticulas()
+        case "hotkeys": AbrirEditorHotkeys()
+        case "opt":     AbrirPanelOptimizacion()
+        case "vel":     CiclarVelocidadPasos()
+    }
+}
+
+CerrarCentroPersonalizacion(*) {
+    global centroPersGui, centroPersVisible
+    if (IsObject(centroPersGui)) {
+        try LimpiarHoverGui(centroPersGui)
+        try centroPersGui.Destroy()
+    }
+    centroPersVisible := false
+}
+
+RefrescarCentroPers() {
+    global centroPersVisible
+    if (centroPersVisible) {
+        AbrirCentroPersonalizacion()
+        AbrirCentroPersonalizacion()
+    }
+}
+
+; ─────────────────────── (7) HOTKEYS REASIGNABLES ───────────────────────
+; Acciones disponibles y la función que disparan.
+HotkeyFnDe(accion) {
+    switch accion {
+        case "Iniciar":   return Iniciar
+        case "Parar":     return Parar
+        case "Historial": return ToggleHistorial
+        case "Tema":      return CambiarTema
+        case "Perfil":    return CambiarPerfil
+        case "Mini":      return ToggleMiniMode
+    }
+    return ""
+}
+
+NombreAccionHotkey(accion) {
+    switch accion {
+        case "Iniciar":   return Chr(0x25B6) " Iniciar macro"
+        case "Parar":     return Chr(0x25A0) " Parar macro"
+        case "Historial": return Chr(0x1F4CB) " Mostrar/ocultar historial"
+        case "Tema":      return Chr(0x25D0) " Cambiar tema"
+        case "Perfil":    return "Cambiar perfil"
+        case "Mini":      return Chr(0x25A3) " Modo mini"
+    }
+    return accion
+}
+
+; Lee del config y registra todas las hotkeys del usuario al arrancar.
+RegistrarHotkeysUsuario() {
+    global configPath
+    _AplicarHotkey("Iniciar", IniRead(configPath, "Hotkeys", "Iniciar", "F1"))
+    _AplicarHotkey("Parar",   IniRead(configPath, "Hotkeys", "Parar",   "F2"))
+    _AplicarHotkey("Mini",    IniRead(configPath, "Hotkeys", "Mini",    ""))
+    ActualizarLabelsHotkeys()
+}
+
+; Registra/reasigna una hotkey: apaga la tecla anterior de esa acción y enciende la nueva.
+_AplicarHotkey(accion, tecla) {
+    global hkRegistradas
+    fn := HotkeyFnDe(accion)
+    if (fn = "")
+        return
+    if (hkRegistradas.Has(accion)) {
+        prev := hkRegistradas[accion]
+        if (prev != "")
+            try Hotkey(prev, fn, "Off")
+    }
+    hkRegistradas[accion] := tecla
+    if (tecla = "")
+        return
+    try Hotkey(tecla, fn, "On")
+}
+
+; Texto legible de la tecla asignada a una acción ("F1", "L", "(sin asignar)").
+MostrarTeclaHotkey(accion) {
+    global hkRegistradas
+    if (hkRegistradas.Has(accion) && hkRegistradas[accion] != "")
+        return hkRegistradas[accion]
+    return "(sin asignar)"
+}
+
+; Actualiza el texto de los botones Iniciar/Parar para reflejar su tecla actual.
+ActualizarLabelsHotkeys() {
+    global btnIniciar, btnParar, hkRegistradas
+    tIni := (hkRegistradas.Has("Iniciar") && hkRegistradas["Iniciar"] != "") ? hkRegistradas["Iniciar"] : "-"
+    tPar := (hkRegistradas.Has("Parar")   && hkRegistradas["Parar"]   != "") ? hkRegistradas["Parar"]   : "-"
+    try btnIniciar.Text := Chr(9654) " Iniciar (" tIni ")"
+    try btnParar.Text   := Chr(9632) " Parar (" tPar ")"
+}
+
+AbrirEditorHotkeys(*) {
+    global hotkeysGui, hotkeysGuiVisible
+    global colorFondoPrincipal, colorTextoPrincipal, colorBarra, colorTextoBarra, colorBotonNormal, colorBtnTexto, colorCooldown
+    if (hotkeysGuiVisible && IsObject(hotkeysGui)) {
+        try LimpiarHoverGui(hotkeysGui)
+        try hotkeysGui.Destroy()
+        hotkeysGuiVisible := false
+        return
+    }
+    hotkeysGui := Gui("+AlwaysOnTop -Caption +ToolWindow")
+    hotkeysGui.BackColor := colorFondoPrincipal
+    W := 320
+    barr := hotkeysGui.Add("Text", "x0 y0 w" W " h28 Background" colorBarra " Center +0x200", "  " Chr(0x2328) "  Atajos de teclado")
+    barr.SetFont("s10 c" colorTextoBarra " Bold", "Segoe UI Semibold")
+    barr.OnEvent("Click", (*) => PostMessage(0xA1, 2,,, "ahk_id " hotkeysGui.Hwnd))
+    barr.OnEvent("DoubleClick", (*) => CerrarEditorHotkeys())
+
+    acciones := ["Iniciar", "Parar", "Mini"]
+    y := 38
+    for accion in acciones {
+        hotkeysGui.Add("Text", "x14 y" (y+4) " w150 h18 c" colorTextoPrincipal " Background" colorFondoPrincipal, NombreAccionHotkey(accion)).SetFont("s9 Bold", "Segoe UI")
+        lblKey := hotkeysGui.Add("Text", "x168 y" (y+4) " w64 h18 +0x201 Center c" colorCooldown " Background" colorFondoPrincipal, MostrarTeclaHotkey(accion))
+        lblKey.SetFont("s9 Bold", "Consolas")
+        bCambiar := hotkeysGui.Add("Text", "x236 y" y " w50 h24 +0x201 Background" colorBotonNormal " c" colorBtnTexto " Center", "Cambiar")
+        bCambiar.SetFont("s8 Bold", "Segoe UI")
+        bCambiar.OnEvent("Click", CambiarHotkeyAccion.Bind(accion))
+        RegistrarHover(bCambiar, () => colorBotonNormal)
+        bQuitar := hotkeysGui.Add("Text", "x290 y" y " w20 h24 +0x201 Background" colorBotonNormal " c" colorBtnTexto " Center", Chr(0x2716))
+        bQuitar.SetFont("s8 Bold", "Segoe UI")
+        bQuitar.OnEvent("Click", QuitarHotkeyAccion.Bind(accion))
+        RegistrarHover(bQuitar, () => colorBotonNormal, () => "C42B1C")
+        y += 30
+    }
+    hotkeysGui.Add("Text", "x14 y" (y+2) " w" (W-28) " h30 c" MezclarHex(colorTextoPrincipal, colorFondoPrincipal, 0.4) " Background" colorFondoPrincipal,
+        "Pulsa 'Cambiar' y luego la tecla nueva (ej. L). Se guarda automáticamente.").SetFont("s7", "Segoe UI")
+    hTot := y + 38
+    hotkeysGui.Show("w" W " h" hTot " Center")
+    RedondearVentana(hotkeysGui.Hwnd, 12)
+    hotkeysGuiVisible := true
+    RegistrarAutoCierre(hotkeysGui, CerrarEditorHotkeys, 20)
+}
+
+CerrarEditorHotkeys(*) {
+    global hotkeysGui, hotkeysGuiVisible
+    if (IsObject(hotkeysGui)) {
+        try LimpiarHoverGui(hotkeysGui)
+        try hotkeysGui.Destroy()
+    }
+    hotkeysGuiVisible := false
+}
+
+; Captura la siguiente tecla pulsada y la asigna a la acción.
+CambiarHotkeyAccion(accion, *) {
+    global configPath
+    ToolTip("Pulsa la tecla nueva para '" accion "'...  (Esc cancela)")
+    ih := InputHook("T5")     ; timeout 5s
+    ih.KeyOpt("{All}", "E")   ; cualquier tecla termina la captura
+    ih.Start()
+    ih.Wait()
+    ToolTip()
+    key := ih.EndKey
+    if (key = "" || key = "Escape")
+        return
+    ; EndKey puede venir como "vkXXscYYY" para teclas raras; quedarse con el nombre simple.
+    _AplicarHotkey(accion, key)
+    IniWrite(key, configPath, "Hotkeys", accion)
+    ActualizarLabelsHotkeys()
+    SetTimer(RefrescarEditorHotkeys, -1)
+}
+
+QuitarHotkeyAccion(accion, *) {
+    global configPath
+    _AplicarHotkey(accion, "")
+    IniWrite("", configPath, "Hotkeys", accion)
+    ActualizarLabelsHotkeys()
+    SetTimer(RefrescarEditorHotkeys, -1)
+}
+
+RefrescarEditorHotkeys() {
+    global hotkeysGuiVisible
+    if (hotkeysGuiVisible) {
+        AbrirEditorHotkeys()
+        AbrirEditorHotkeys()
+    }
+}
+
+; ─────────────────────── (2) TEMA PERSONALIZABLE ───────────────────────
+EsHexValido(s) {
+    s := Trim(StrReplace(s, "#"))
+    if (StrLen(s) != 6)
+        return false
+    loop 6 {
+        if !InStr("0123456789abcdefABCDEF", SubStr(s, A_Index, 1))
+            return false
+    }
+    return true
+}
+
+NormalizarHex(s) {
+    return Format("{:U}", Trim(StrReplace(s, "#")))
+}
+
+; Campos editables del tema personalizado (clave interna + etiqueta).
+TemaCustomCampos() {
+    return [
+        {k:"fondo",      l:"Fondo"},
+        {k:"texto",      l:"Texto"},
+        {k:"barra",      l:"Barra"},
+        {k:"textoBarra", l:"Texto barra"},
+        {k:"boton",      l:"Botón"},
+        {k:"hover",      l:"Botón hover"},
+        {k:"btnTexto",   l:"Texto botón"},
+        {k:"historial",  l:"Fondo historial"},
+        {k:"cooldown",   l:"Cooldown"},
+        {k:"afk",        l:"AFK / acento"},
+        {k:"logo",       l:"Logo"},
+        {k:"histColor1", l:"Hist color 1"},
+        {k:"histColor2", l:"Hist color 2"},
+        {k:"histColor3", l:"Hist color 3"}
+    ]
+}
+
+; Carga los colores guardados del tema custom (y deriva los que no se editan).
+CargarTemaCustom() {
+    global configPath, temas, temaCustomIdx
+    if (!temaCustomIdx)
+        return
+    t := temas[temaCustomIdx]
+    for c in TemaCustomCampos() {
+        v := IniRead(configPath, "TemaCustom", c.k, "")
+        if (v != "" && EsHexValido(v))
+            t.%c.k% := NormalizarHex(v)
+    }
+    ; Derivar los campos no editables a partir de los editables.
+    t.panel       := MezclarHex(t.fondo, t.barra, 0.18)
+    t.luzOn       := t.afk
+    t.luzAccion   := t.barra
+    t.luzOff      := t.fondo
+}
+
+GuardarTemaCustom() {
+    global configPath, temas, temaCustomIdx
+    if (!temaCustomIdx)
+        return
+    t := temas[temaCustomIdx]
+    for c in TemaCustomCampos()
+        IniWrite(t.%c.k%, configPath, "TemaCustom", c.k)
+}
+
+AplicarTransparencia(alpha) {
+    global miGui, historialGui
+    if (alpha > 255)
+        alpha := 255
+    if (alpha < 120)
+        alpha := 120
+    if (alpha >= 255) {
+        try WinSetTransparent("Off", "ahk_id " miGui.Hwnd)
+        if (IsObject(historialGui))
+            try WinSetTransparent("Off", "ahk_id " historialGui.Hwnd)
+    } else {
+        try WinSetTransparent(alpha, "ahk_id " miGui.Hwnd)
+        if (IsObject(historialGui))
+            try WinSetTransparent(alpha, "ahk_id " historialGui.Hwnd)
+    }
+}
+
+AplicarTransparenciaGuardada() {
+    global configPath
+    AplicarTransparencia(Integer(IniRead(configPath, "TemaCustom", "Alpha", "255")))
+}
+
+AbrirEditorTema(*) {
+    global editorTemaGui, editorTemaVisible, editorTemaCampos, temas, temaCustomIdx, configPath
+    global colorFondoPrincipal, colorTextoPrincipal, colorBarra, colorTextoBarra, colorBotonNormal, colorBtnTexto
+    if (editorTemaVisible && IsObject(editorTemaGui)) {
+        try LimpiarHoverGui(editorTemaGui)
+        try editorTemaGui.Destroy()
+        editorTemaVisible := false
+        return
+    }
+    editorTemaGui := Gui("+AlwaysOnTop -Caption +ToolWindow")
+    editorTemaGui.BackColor := colorFondoPrincipal
+    editorTemaGui.SetFont("s9 c" colorTextoPrincipal, "Segoe UI")
+    editorTemaCampos := Map()
+    W := 380
+    barr := editorTemaGui.Add("Text", "x0 y0 w" W " h28 Background" colorBarra " Center +0x200", "  " Chr(0x1F3A8) "  Editor de tema personalizado")
+    barr.SetFont("s10 c" colorTextoBarra " Bold", "Segoe UI Semibold")
+    barr.OnEvent("Click", (*) => PostMessage(0xA1, 2,,, "ahk_id " editorTemaGui.Hwnd))
+    barr.OnEvent("DoubleClick", (*) => CerrarEditorTema())
+
+    t := temas[temaCustomIdx]
+    campos := TemaCustomCampos()
+    ; Dos columnas de campos de color: etiqueta + edit hex + muestra.
+    colW := W // 2
+    y0 := 36
+    for i, c in campos {
+        col := Mod(i - 1, 2)
+        fila := (i - 1) // 2
+        x := 12 + col * colW
+        y := y0 + fila * 28
+        editorTemaGui.Add("Text", "x" x " y" (y+3) " w78 h18 c" colorTextoPrincipal " Background" colorFondoPrincipal, c.l).SetFont("s8", "Segoe UI")
+        ed := editorTemaGui.Add("Edit", "x" (x+80) " y" y " w58 h20 Background" colorFondoPrincipal " c" colorTextoPrincipal " Limit6", t.%c.k%)
+        ed.SetFont("s8", "Consolas")
+        sw := editorTemaGui.Add("Text", "x" (x+142) " y" y " w20 h20 Background" t.%c.k%, "")
+        editorTemaCampos[c.k] := {ed: ed, sw: sw}
+        ed.OnEvent("Change", EditorTemaPreviewSwatch.Bind(c.k))
+    }
+    filas := Ceil(campos.Length / 2)
+    yT := y0 + filas * 28 + 6
+
+    ; Transparencia
+    editorTemaGui.Add("Text", "x12 y" yT " w120 h18 c" colorTextoPrincipal " Background" colorFondoPrincipal, "Transparencia:").SetFont("s8 Bold", "Segoe UI")
+    transp := [{lbl:"100%", v:255}, {lbl:"95%", v:242}, {lbl:"90%", v:230}, {lbl:"80%", v:204}]
+    xb := 120.0
+    actualA := Integer(IniRead(configPath, "TemaCustom", "Alpha", "255"))
+    for it in transp {
+        bg := (actualA = it.v) ? colorBarra : colorBotonNormal
+        b := editorTemaGui.Add("Text", "x" Round(xb) " y" (yT-2) " w56 h22 +0x201 Background" bg " c" colorBtnTexto " Center", it.lbl)
+        b.SetFont("s8 Bold", "Segoe UI")
+        vv := it.v
+        b.OnEvent("Click", SetTransparenciaCustom.Bind(vv))
+        RegistrarHover(b, MakeColorFn(bg))
+        xb += 60
+    }
+    yT += 30
+
+    ; Botones de acción
+    bAplicar := editorTemaGui.Add("Text", "x12 y" yT " w110 h30 +0x201 Background" colorBarra " c" colorBtnTexto " Center", Chr(0x2714) " Aplicar")
+    bAplicar.SetFont("s9 Bold", "Segoe UI Semibold")
+    bAplicar.OnEvent("Click", (*) => EditorTemaAplicar())
+    RegistrarHover(bAplicar, () => colorBarra)
+    bGuardar := editorTemaGui.Add("Text", "x130 y" yT " w120 h30 +0x201 Background" colorBotonNormal " c" colorBtnTexto " Center", Chr(0x1F4BE) " Activar tema")
+    bGuardar.SetFont("s9 Bold", "Segoe UI Semibold")
+    bGuardar.OnEvent("Click", (*) => EditorTemaActivar())
+    RegistrarHover(bGuardar, () => colorBotonNormal)
+    bReset := editorTemaGui.Add("Text", "x258 y" yT " w110 h30 +0x201 Background" colorBotonNormal " c" colorBtnTexto " Center", Chr(0x21BA) " Restablecer")
+    bReset.SetFont("s9 Bold", "Segoe UI Semibold")
+    bReset.OnEvent("Click", (*) => EditorTemaReset())
+    RegistrarHover(bReset, () => colorBotonNormal)
+    yT += 40
+
+    editorTemaGui.Show("w" W " h" yT " Center")
+    RedondearVentana(editorTemaGui.Hwnd, 12)
+    editorTemaVisible := true
+    RegistrarAutoCierre(editorTemaGui, CerrarEditorTema, 30)
+}
+
+EditorTemaPreviewSwatch(clave, *) {
+    global editorTemaCampos
+    if (!editorTemaCampos.Has(clave))
+        return
+    v := editorTemaCampos[clave].ed.Value
+    if (EsHexValido(v))
+        try editorTemaCampos[clave].sw.Opt("Background" NormalizarHex(v))
+}
+
+CerrarEditorTema(*) {
+    global editorTemaGui, editorTemaVisible
+    if (IsObject(editorTemaGui)) {
+        try LimpiarHoverGui(editorTemaGui)
+        try editorTemaGui.Destroy()
+    }
+    editorTemaVisible := false
+}
+
+; Lee los edits, valida, vuelca al tema custom, lo activa y guarda.
+EditorTemaAplicar() {
+    global editorTemaCampos, temas, temaCustomIdx, temaActual
+    t := temas[temaCustomIdx]
+    invalidos := 0
+    for c in TemaCustomCampos() {
+        if (!editorTemaCampos.Has(c.k))
+            continue
+        v := editorTemaCampos[c.k].ed.Value
+        if (EsHexValido(v))
+            t.%c.k% := NormalizarHex(v)
+        else
+            invalidos += 1
+    }
+    ; Derivar campos no editables
+    t.panel     := MezclarHex(t.fondo, t.barra, 0.18)
+    t.luzOn     := t.afk
+    t.luzAccion := t.barra
+    t.luzOff    := t.fondo
+    GuardarTemaCustom()
+    ; Activar el tema custom para ver el resultado de inmediato
+    temaActual := temaCustomIdx
+    AplicarTema(temas[temaCustomIdx], false)
+    GuardarTema()
+    if (invalidos > 0)
+        AgregarHistorial(Chr(0x26A0) " Tema aplicado (" invalidos " color(es) inválidos ignorados)", "FF8800")
+    else
+        AgregarHistorial(Chr(0x1F3A8) " Tema personalizado aplicado", "")
+}
+
+EditorTemaActivar() {
+    global temas, temaCustomIdx, temaActual
+    temaActual := temaCustomIdx
+    AplicarTema(temas[temaCustomIdx], false)
+    GuardarTema()
+    AgregarHistorial(Chr(0x1F3A8) " Tema personalizado activado", "")
+}
+
+EditorTemaReset() {
+    global configPath, temas, temaCustomIdx
+    ; Borrar config y recargar valores por defecto base.
+    base := {fondo:"161A24", texto:"E6E6E6", barra:"3D7EBE", textoBarra:"FFFFFF",
+        historial:"10131B", cooldown:"FF6B6B", afk:"6FB0E0", boton:"2A3142",
+        hover:"3A4459", logo:"FFFFFF", btnTexto:"FFFFFF",
+        histColor1:"E6E6E6", histColor2:"6FB0E0", histColor3:"3D7EBE"}
+    t := temas[temaCustomIdx]
+    for c in TemaCustomCampos()
+        t.%c.k% := base.%c.k%
+    t.panel := MezclarHex(t.fondo, t.barra, 0.18)
+    t.luzOn := t.afk, t.luzAccion := t.barra, t.luzOff := t.fondo
+    try IniDelete(configPath, "TemaCustom")
+    GuardarTemaCustom()
+    AplicarTransparencia(255)
+    IniWrite(255, configPath, "TemaCustom", "Alpha")
+    SetTimer(RefrescarEditorTema, -1)
+}
+
+SetTransparenciaCustom(v, *) {
+    global configPath
+    AplicarTransparencia(v)
+    IniWrite(v, configPath, "TemaCustom", "Alpha")
+    SetTimer(RefrescarEditorTema, -1)
+}
+
+RefrescarEditorTema() {
+    global editorTemaVisible
+    if (editorTemaVisible) {
+        AbrirEditorTema()
+        AbrirEditorTema()
+    }
+}
+
+; ─────────────────────── (4) HISTORIAL PRO ───────────────────────
+; Deduce la categoría (1-6) a partir del color con el que se registró la acción,
+; comparándolo con los colores de categoría del tema actual. 0 = sistema/otros.
+CategoriaDeColor(ch) {
+    global temas, temaActual
+    if (ch = "")
+        return 0
+    try {
+        t := temas[temaActual]
+        if (ch = t.histColor1)
+            return 1
+        if (ch = t.histColor2)
+            return 2
+        if (ch = t.histColor3)
+            return 3
+        if (ch = t.texto)
+            return 4
+        if (ch = t.luzAccion)
+            return 5
+        if (ch = t.afk)
+            return 6
+    }
+    return 0
+}
+
+CategoriaNombre(cat) {
+    switch cat {
+        case 1: return "Partida"
+        case 2: return "Inicio"
+        case 3: return "Navegación"
+        case 4: return "In-game"
+        case 5: return "Salida"
+        case 6: return "Anomalía"
+    }
+    return "Sistema"
+}
+
+HistProRegistrar(texto, colorHex, ch) {
+    global histProBuffer, HISTPRO_MAX
+    cat := CategoriaDeColor(ch)
+    try {
+        histProBuffer.Push({ts: A_Now, texto: texto, color: colorHex, cat: cat})
+        if (histProBuffer.Length > HISTPRO_MAX)
+            histProBuffer.RemoveAt(1, histProBuffer.Length - HISTPRO_MAX)
+    }
+}
+
+AbrirHistorialPro(*) {
+    global histProGui, histProVisible, histProBox, histProFiltro, histProInfoLbl
+    global colorFondoPrincipal, colorTextoPrincipal, colorBarra, colorTextoBarra
+    global colorBotonNormal, colorBtnTexto, colorFondoHistorial
+    if (histProVisible && IsObject(histProGui)) {
+        try LimpiarHoverGui(histProGui)
+        try histProGui.Destroy()
+        histProVisible := false
+        return
+    }
+    histProGui := Gui("+AlwaysOnTop -Caption +ToolWindow")
+    histProGui.BackColor := colorFondoPrincipal
+    W := 470, H := 430
+    barr := histProGui.Add("Text", "x0 y0 w" W " h28 Background" colorBarra " Center +0x200", "  " Chr(0x1F4DC) "  Historial Pro")
+    barr.SetFont("s10 c" colorTextoBarra " Bold", "Segoe UI Semibold")
+    barr.OnEvent("Click", (*) => PostMessage(0xA1, 2,,, "ahk_id " histProGui.Hwnd))
+    barr.OnEvent("DoubleClick", (*) => CerrarHistorialPro())
+    bx := histProGui.Add("Text", "x" (W-26) " y4 w20 h20 +0x201 Background" colorBotonNormal " c" colorBtnTexto " Center", Chr(215))
+    bx.SetFont("s10 Bold", "Segoe UI")
+    bx.OnEvent("Click", (*) => CerrarHistorialPro())
+    RegistrarHover(bx, () => colorBotonNormal, () => "C42B1C")
+
+    ; Filtros por categoría (99 = todas)
+    filtros := [{c:99,l:"Todas"}, {c:2,l:"Inicio"}, {c:3,l:"Naveg."}, {c:4,l:"In-game"}, {c:1,l:"Partida"}, {c:5,l:"Salida"}, {c:6,l:"Anom."}, {c:0,l:"Sistema"}]
+    xf := 8.0, yf := 34
+    for it in filtros {
+        bg := (histProFiltro = it.c) ? colorBarra : colorBotonNormal
+        b := histProGui.Add("Text", "x" Round(xf) " y" yf " w54 h22 +0x201 Background" bg " c" colorBtnTexto " Center", it.l)
+        b.SetFont("s8 Bold", "Segoe UI")
+        cc := it.c
+        b.OnEvent("Click", HistProSetFiltro.Bind(cc))
+        RegistrarHover(b, MakeColorFn(bg))
+        xf += 57
+    }
+
+    histProBox := histProGui.Add("ListView", "x8 y62 w" (W-16) " h" (H-104) " Background" colorFondoHistorial " c" colorTextoPrincipal " -Multi +Grid", ["Fecha / Hora", "Categoría", "Acción"])
+    histProBox.SetFont("s9", "Segoe UI")
+
+    histProInfoLbl := histProGui.Add("Text", "x8 y" (H-38) " w250 h20 c" colorTextoPrincipal " Background" colorFondoPrincipal, "")
+    histProInfoLbl.SetFont("s8", "Segoe UI")
+    bExp := histProGui.Add("Text", "x" (W-180) " y" (H-40) " w84 h24 +0x201 Background" colorBotonNormal " c" colorBtnTexto " Center", Chr(0x1F4E4) " Exportar")
+    bExp.SetFont("s8 Bold", "Segoe UI")
+    bExp.OnEvent("Click", (*) => HistProExportar())
+    RegistrarHover(bExp, () => colorBotonNormal)
+    bClr := histProGui.Add("Text", "x" (W-90) " y" (H-40) " w82 h24 +0x201 Background" colorBotonNormal " c" colorBtnTexto " Center", Chr(0x1F5D1) " Limpiar")
+    bClr.SetFont("s8 Bold", "Segoe UI")
+    bClr.OnEvent("Click", (*) => HistProLimpiar())
+    RegistrarHover(bClr, () => colorBotonNormal)
+
+    HistProRellenar()
+    histProGui.Show("w" W " h" H " Center")
+    RedondearVentana(histProGui.Hwnd, 12)
+    histProVisible := true
+    RegistrarAutoCierre(histProGui, CerrarHistorialPro, 30)
+}
+
+HistProRellenar() {
+    global histProBox, histProBuffer, histProFiltro, histProInfoLbl
+    if (!IsObject(histProBox))
+        return
+    histProBox.Opt("-Redraw")
+    histProBox.Delete()
+    n := 0
+    i := histProBuffer.Length
+    while (i >= 1) {
+        e := histProBuffer[i]
+        i -= 1
+        if (histProFiltro != 99 && e.cat != histProFiltro)
+            continue
+        hora := FormatTime(e.ts, "MM-dd HH:mm:ss")
+        histProBox.Add(, hora, CategoriaNombre(e.cat), e.texto)
+        n += 1
+        if (n >= 1500)
+            break
+    }
+    histProBox.Opt("+Redraw")
+    try histProBox.ModifyCol(1, 115)
+    try histProBox.ModifyCol(2, 88)
+    try histProBox.ModifyCol(3, 230)
+    if (IsObject(histProInfoLbl))
+        histProInfoLbl.Value := n " mostradas  ·  " histProBuffer.Length " en total"
+}
+
+HistProSetFiltro(c, *) {
+    global histProFiltro
+    histProFiltro := c
+    SetTimer(RefrescarHistorialPro, -1)
+}
+
+RefrescarHistorialPro() {
+    global histProVisible
+    if (histProVisible) {
+        AbrirHistorialPro()
+        AbrirHistorialPro()
+    }
+}
+
+CerrarHistorialPro(*) {
+    global histProGui, histProVisible, histProBox, histProInfoLbl
+    if (IsObject(histProGui)) {
+        try LimpiarHoverGui(histProGui)
+        try histProGui.Destroy()
+    }
+    histProGui := "", histProBox := "", histProInfoLbl := ""
+    histProVisible := false
+}
+
+HistProExportar() {
+    global histProBuffer, histProFiltro
+    try {
+        ruta := A_ScriptDir "\brawlmacro_historial_export.txt"
+        contenido := "═══ Historial Pro — exportado " FormatTime(A_Now, "yyyy-MM-dd HH:mm:ss") " ═══`r`n`r`n"
+        for e in histProBuffer {
+            if (histProFiltro != 99 && e.cat != histProFiltro)
+                continue
+            contenido .= "[" FormatTime(e.ts, "yyyy-MM-dd HH:mm:ss") "] (" CategoriaNombre(e.cat) ") " e.texto "`r`n"
+        }
+        try FileDelete(ruta)
+        FileAppend(contenido, ruta, "UTF-8")
+        Run('notepad.exe "' ruta '"')
+        AgregarHistorial(Chr(0x1F4E4) " Historial exportado a brawlmacro_historial_export.txt", "")
+    }
+}
+
+HistProLimpiar() {
+    global histProBuffer
+    histProBuffer := []
+    HistProRellenar()
+    AgregarHistorial(Chr(0x1F5D1) " Buffer del Historial Pro limpiado", "FF8800")
+}
+
+; Atajos de teclado: ahora TOTALMENTE personalizables (v31.2). Por defecto F1=Iniciar,
+; F2=Parar, pero el usuario puede reasignar cualquier tecla desde el editor de atajos
+; (botón ⌨ del Centro de Personalización). Se registran dinámicamente con Hotkey().
+RegistrarHotkeysUsuario()
 
 ; ═════ SCROLL DEL HISTORIAL POR TECLADO Y RUEDA ═════
 ; Activos cuando el ratón está sobre la ventana del historial.
