@@ -1661,6 +1661,13 @@ DibujarBarraGradiente(hdc, w, h, hexBase, hexTexto, texto, phase, brillo) {
                 ; Bandas de brillo (3 fases desplazadas) — gauss columna a columna.
                 ; El botón de degradados las apaga (degradadosActivos=false) o escala
                 ; su intensidad (degradadoIntensidad, 0-200%).
+                ; Color de la banda: el propio color de la barra aclarado hacia blanco
+                ; (antes blanco puro fijo — chocaba como un tajo ajeno en temas oscuros).
+                brilloHex := AclararHex(hexBase, 0.7)
+                rBr := Integer("0x" SubStr(brilloHex, 1, 2))
+                gBr := Integer("0x" SubStr(brilloHex, 3, 2))
+                bBr := Integer("0x" SubStr(brilloHex, 5, 2))
+                rgbBrillo := (rBr << 16) | (gBr << 8) | bBr
                 bandaW := w * 0.40
                 cols := 26
                 colW := bandaW / cols
@@ -1678,7 +1685,7 @@ DibujarBarraGradiente(hdc, w, h, hexBase, hexTexto, texto, phase, brillo) {
                             alpha := 255
                         if (alpha < 4)
                             continue
-                        argbHi := (alpha << 24) | 0x00FFFFFF
+                        argbHi := (alpha << 24) | rgbBrillo
                         brushHi := 0
                         DllCall("gdiplus\GdipCreateSolidFill", "UInt", argbHi, "Ptr*", &brushHi)
                         xRect := cx + j * colW
@@ -8493,9 +8500,11 @@ TransicionPaso() {
     ; Controles que antes NO transicionaban (saltaban de golpe al final)
     if (IsObject(btnTutorial)) {
         btnTutorial.Opt("Background" cBarra " c" cBtnTexto)
+        AplicarRegion(btnTutorial)
     }
     if (IsObject(btnParches)) {
         btnParches.Opt("Background" cBarra " c" cBtnTexto)
+        AplicarRegion(btnParches)
     }
     if (IsObject(cicloLabel)) {
         cicloLabel.Opt("Background" cFondo " c" cTexto)
@@ -8522,8 +8531,10 @@ TransicionPaso() {
         DllCall("SendMessageW", "Ptr", miniGui.Hwnd, "UInt", WM_SETREDRAW, "Ptr", 0, "Ptr", 0)
         try miniGui.BackColor := cFondo
         for b in [btnMiniIniciar, btnMiniParar, btnMiniCerrar] {
-            if (IsObject(b))
+            if (IsObject(b)) {
                 b.Opt("Background" cBoton " c" cBtnTexto)
+                AplicarRegion(b)
+            }
         }
         if (IsObject(logoMacroMini))
             logoMacroMini.Opt("c" colorLogoEnTransicion)
@@ -8629,10 +8640,12 @@ AplicarTema(tema, guardar := true, fromTrans := false) {
     barraHistorial.Opt("Background" colorBarra " c" colorTextoBarra)
     if (IsObject(btnTutorial)) {
         btnTutorial.Opt("Background" colorBarra " c" colorBtnTexto)
+        AplicarRegion(btnTutorial)
         DllCall("InvalidateRect", "Ptr", btnTutorial.Hwnd, "Ptr", 0, "Int", 1)
     }
     if (IsObject(btnParches)) {
         btnParches.Opt("Background" colorBarra " c" colorBtnTexto)
+        AplicarRegion(btnParches)
         DllCall("InvalidateRect", "Ptr", btnParches.Hwnd, "Ptr", 0, "Int", 1)
     }
     if (IsObject(separadorHistorial))
