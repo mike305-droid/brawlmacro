@@ -5361,6 +5361,15 @@ if (_savedMainX != "" && _savedMainY != "")
     miGui.Move(Integer(_savedMainX), Integer(_savedMainY))
 AplicarTema(temas[temaActual], false)
 AplicarTransparenciaGuardada()   ; transparencia del tema personalizado (si se configuró)
+; Red de seguridad: los botones interactivos se "autocorrigen" en cuanto el
+; mouse pasa por encima (HoverPoll vuelve a aplicar su región). Los controles
+; que nunca reciben hover/click (las luces de estado) no tienen ese mecanismo —
+; si el primer pintado del arranque (o cualquier otro repintado) queda
+; cuadrado, se quedan así para siempre. Operación barata (solo SetWindowRgn,
+; sin dibujar nada) así que la repetimos cada 2s indefinidamente en vez de
+; una sola vez, para que cualquier control se autocorrija solo sin depender
+; de encontrar la causa exacta de cada posible carrera de repintado.
+SetTimer(ReaplicarTodasLasRegiones, 2000)
 global hoverActual := ""
 AplicarPreset(presetRendimiento)
 InstalarSubclassBarras()
@@ -9284,6 +9293,16 @@ AplicarRegion(ctrl) {
                        "Int", _ri.rw + 1, "Int", _ri.rh + 1,
                        "Int", _ri.radio, "Int", _ri.radio, "Ptr")
         DllCall("SetWindowRgn", "Ptr", ctrl.Hwnd, "Ptr", rgn, "Int", true)
+    }
+}
+
+; Re-aplica la región a TODOS los controles redondeados conocidos. Ver el
+; comentario en la llamada de arranque (SetTimer ReaplicarTodasLasRegiones)
+; para el porqué: los controles sin hover/click nunca se autocorrigen solos.
+ReaplicarTodasLasRegiones() {
+    global _ctrlRadios
+    for ctrl, info in _ctrlRadios {
+        try AplicarRegion(ctrl)
     }
 }
 
