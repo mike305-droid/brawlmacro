@@ -9264,20 +9264,21 @@ AplicarRegion(ctrl) {
     }
 }
 
-RedondearControl(ctrl, radio := 8) {
+RedondearControl(ctrl, *) {
     global _ctrlRadios
     ; Usamos GetClientRect (píxeles FÍSICOS reales del control) en vez de
     ; ctrl.GetPos (que devuelve coords lógicas escaladas por +DPIScale). Así la
     ; región redondeada coincide EXACTAMENTE con el control en cualquier escala
-    ; de Windows → esquinas curvas limpias, sin borde cuadrado y sin recortar de
-    ; más. El radio sí se escala por DPI para que la curva sea proporcional.
+    ; de Windows. El diámetro de curva = lado menor del control → círculo
+    ; perfecto en botones cuadrados y píldora (extremos 100% redondos) en
+    ; botones rectangulares.
     rc := Buffer(16, 0)
     DllCall("GetClientRect", "Ptr", ctrl.Hwnd, "Ptr", rc)
     w := NumGet(rc, 8, "Int"), h := NumGet(rc, 12, "Int")
     if (w <= 0 || h <= 0) {   ; fallback si el control aún no tiene tamaño
         ctrl.GetPos(,, &w, &h)
     }
-    rr := Round(radio * (A_ScreenDPI / 96.0))
+    rr := Min(w, h)
     rgn := DllCall("CreateRoundRectRgn", "Int", 0, "Int", 0, "Int", w + 1, "Int", h + 1, "Int", rr, "Int", rr, "Ptr")
     DllCall("SetWindowRgn", "Ptr", ctrl.Hwnd, "Ptr", rgn, "Int", true)
     _ctrlRadios[ctrl] := {radio: rr, rw: w, rh: h}
