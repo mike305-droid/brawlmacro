@@ -8934,7 +8934,7 @@ ActualizarRGB(*) {
 
         for btn in [btnIniciar, btnParar, btnCodigo, btnReset, btnHistorial, btnTema, btnMin, btnClose, btnUpdate, btnOverlay, btnStatsBtn, btnWebhook, btnLogros, btnPerfil, btnMini, btnPersonalizar] {
             btn.Opt("Background" cBoton " c000000")
-            AplicarRegion(btn)
+            AplicarRegion(btn, false)   ; ciclo RGB rápido: solo re-set región, no repintar padre (evita flicker)
         }
 
         ; Actualizar preview RGB si está abierto
@@ -9019,7 +9019,7 @@ ActualizarRGB(*) {
     if (rgbBotones) {
         for btn in [btnIniciar, btnParar, btnCodigo, btnReset, btnHistorial, btnTema, btnMin, btnClose, btnUpdate, btnOverlay, btnStatsBtn, btnWebhook, btnLogros, btnPerfil, btnMini, btnPersonalizar] {
             btn.Opt("Background" colorRGBActual " c000000")
-            AplicarRegion(btn)
+            AplicarRegion(btn, false)   ; ciclo RGB rápido: solo re-set región, no repintar padre (evita flicker)
         }
     }
 
@@ -9252,10 +9252,35 @@ RedondearVentana(hwnd, curva := 14) {
     }
 }
 
+; ── LA CLAVE del redondeo real ──
+; SetWindowRgn solo cambia la FORMA de recorte de la ventana; NO borra los
+; píxeles que ya estaban pintados. Al recortar un control cuadrado a una región
+; redondeada, las 4 esquinas quedan "fuera" del hijo (el hijo ya no las pinta),
+; pero siguen mostrando el relleno cuadrado que el control pintó al crearse.
+; Normalmente el PADRE repintaría esas esquinas con su fondo — pero miGui tiene
+; WS_CLIPCHILDREN (para el overlay de partículas), que excluye el rectángulo del
+; hijo del repintado del padre. Resultado: nadie repinta las esquinas y se quedan
+; cuadradas para siempre. La cura: invalidar el rect del PADRE bajo el control con
+; erase=TRUE, así el padre rellena esas esquinas con su brocha de fondo.
+; (Misma técnica que ya se usa en ToggleHistorial para el mismo problema.)
+InvalidarEsquinasEnPadre(ctrl) {
+    hParent := DllCall("GetParent", "Ptr", ctrl.Hwnd, "Ptr")
+    if (!hParent)
+        return
+    rc := Buffer(16, 0)
+    DllCall("GetWindowRect", "Ptr", ctrl.Hwnd, "Ptr", rc)            ; rc = pantalla (L,T,R,B)
+    ; Mapear las 2 esquinas (L,T)/(R,B) de pantalla a cliente del padre (DPI-agnóstico).
+    DllCall("MapWindowPoints", "Ptr", 0, "Ptr", hParent, "Ptr", rc, "UInt", 2)
+    DllCall("InvalidateRect", "Ptr", hParent, "Ptr", rc, "Int", 1)   ; erase=TRUE → brocha de fondo
+    DllCall("UpdateWindow",   "Ptr", hParent)
+}
+
 ; Re-aplica el SetWindowRgn redondeado almacenado en _ctrlRadios.
 ; DEBE llamarse después de cualquier ctrl.Opt("Background...") para que
 ; Windows no descarte la región al cambiar el color/estilo de fondo.
-AplicarRegion(ctrl) {
+; invalidarPadre=true borra las esquinas expuestas (necesario en cambios de
+; color/estado y al arranque); false solo re-asienta la región (barrido de 2s).
+AplicarRegion(ctrl, invalidarPadre := true) {
     global _ctrlRadios
     if (_ctrlRadios.Has(ctrl)) {
         _ri := _ctrlRadios[ctrl]
@@ -9263,16 +9288,20 @@ AplicarRegion(ctrl) {
                        "Int", _ri.rw + 1, "Int", _ri.rh + 1,
                        "Int", _ri.radio, "Int", _ri.radio, "Ptr")
         DllCall("SetWindowRgn", "Ptr", ctrl.Hwnd, "Ptr", rgn, "Int", true)
+        if (invalidarPadre)
+            InvalidarEsquinasEnPadre(ctrl)
     }
 }
 
 ; Re-aplica la región a TODOS los controles redondeados conocidos. Ver el
 ; comentario en la llamada de arranque (SetTimer ReaplicarTodasLasRegiones)
 ; para el porqué: los controles sin hover/click nunca se autocorrigen solos.
+; Pasa invalidarPadre=false: solo re-asienta la región sin repintar el padre
+; cada 2s (las esquinas ya quedaron limpias al arranque / cambio de color).
 ReaplicarTodasLasRegiones() {
     global _ctrlRadios
     for ctrl, info in _ctrlRadios {
-        try AplicarRegion(ctrl)
+        try AplicarRegion(ctrl, false)
     }
 }
 
@@ -9294,6 +9323,7 @@ RedondearControl(ctrl, radio := 10) {
     rgn := DllCall("CreateRoundRectRgn", "Int", 0, "Int", 0, "Int", w + 1, "Int", h + 1, "Int", rr, "Int", rr, "Ptr")
     DllCall("SetWindowRgn", "Ptr", ctrl.Hwnd, "Ptr", rgn, "Int", true)
     _ctrlRadios[ctrl] := {radio: rr, rw: w, rh: h}
+    InvalidarEsquinasEnPadre(ctrl)   ; borra las esquinas cuadradas YA, sin esperar al timer de 2s
 }
 
 MostrarAviso(*) {
@@ -13013,10 +13043,17 @@ DibujarEllipseGdip(g, cx, cy, r, argb) {
 ; en CUALQUIER tema. No bloquea: solo arranca un timer que invalida el overlay.
 EfectoAccion(catColor := "") {
     global efectosAccionActivos, efAccionFrame, efAccionMaxFrame, efAccionColor, colorLuzAccion, modoMini, efAccionEstilo
+    global temas, temaActual
     if (!efectosAccionActivos)
         return
     try OndaBarra()   ; onda + brillo en la barra (glow/slide)
     if (modoMini)
+        return
+    ; Gojo y Sukuna tienen sus PROPIAS animaciones de acción (anillo Hollow Purple
+    ; / cortes 解) — no lanzar la ráfaga elemental genérica de partículas para ellos.
+    ; OndaBarra (arriba) y sus auras/cortes/partículas de fondo siguen funcionando.
+    tmaAct := temas[temaActual]
+    if (tmaAct.HasProp("unlock") && (tmaAct.unlock = "gojo" || tmaAct.unlock = "sukuna"))
         return
     efAccionColor := (catColor != "" && StrLen(catColor) = 6) ? catColor : colorLuzAccion
     ; "lluvia"/"matrix"/"abejas" necesitan más frames para que la ráfaga se note
