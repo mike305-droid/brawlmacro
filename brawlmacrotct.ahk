@@ -5580,16 +5580,22 @@ HoverPoll() {
     ; ORDEN CRÍTICO: Opt() puede resetear la región; hay que restaurarla (SetWindowRgn)
     ; ANTES de cualquier repintado (InvalidateRect/UpdateWindow). Si se hace al revés,
     ; UpdateWindow fuerza un pintado cuadrado antes de que la región quede redonda.
+    ; Además, Opt() puede disparar su propio repintado interno (vía SWP_FRAMECHANGED)
+    ; ANTES de que nuestro código llegue al SetWindowRgn — eso se ve como un flash
+    ; cuadrado de un frame. WM_SETREDRAW bloquea cualquier pintado (el nuestro o el
+    ; interno de Opt()) hasta que la región ya está restaurada.
     if (hoverActual != "") {
         try {
             info := hoverBotones[hoverActual.Hwnd]
             base := info.baseFn.Call()
+            DllCall("SendMessageW", "Ptr", hoverActual.Hwnd, "UInt", 0x000B, "Ptr", 0, "Ptr", 0)
             hoverActual.Opt("Background" base)
             if (_ctrlRadios.Has(hoverActual)) {
                 _ri := _ctrlRadios[hoverActual]
                 _rrgn := DllCall("CreateRoundRectRgn", "Int", 0, "Int", 0, "Int", _ri.rw+1, "Int", _ri.rh+1, "Int", _ri.radio, "Int", _ri.radio, "Ptr")
                 DllCall("SetWindowRgn", "Ptr", hoverActual.Hwnd, "Ptr", _rrgn, "Int", 0)
             }
+            DllCall("SendMessageW", "Ptr", hoverActual.Hwnd, "UInt", 0x000B, "Ptr", 1, "Ptr", 0)
             DllCall("InvalidateRect", "Ptr", hoverActual.Hwnd, "Ptr", 0, "Int", 1)
             DllCall("UpdateWindow",   "Ptr", hoverActual.Hwnd)
         }
@@ -5604,12 +5610,14 @@ HoverPoll() {
             hoverBg := info.hoverFn.Call()
         else
             hoverBg := (rgbBotones ? colorRGBActual : colorBotonHover)
+        DllCall("SendMessageW", "Ptr", encontrado.Hwnd, "UInt", 0x000B, "Ptr", 0, "Ptr", 0)
         encontrado.Opt("Background" hoverBg)
         if (_ctrlRadios.Has(encontrado)) {
             _ri := _ctrlRadios[encontrado]
             _ergn := DllCall("CreateRoundRectRgn", "Int", 0, "Int", 0, "Int", _ri.rw+1, "Int", _ri.rh+1, "Int", _ri.radio, "Int", _ri.radio, "Ptr")
             DllCall("SetWindowRgn", "Ptr", encontrado.Hwnd, "Ptr", _ergn, "Int", 0)
         }
+        DllCall("SendMessageW", "Ptr", encontrado.Hwnd, "UInt", 0x000B, "Ptr", 1, "Ptr", 0)
         DllCall("InvalidateRect", "Ptr", encontrado.Hwnd, "Ptr", 0, "Int", 1)
         DllCall("UpdateWindow",   "Ptr", encontrado.Hwnd)
         hoverBreathT    := 0.0
@@ -5649,12 +5657,14 @@ HoverBreath() {
     c := Format("{:02X}{:02X}{:02X}", rN, gN, bN)
 
     try {
+        DllCall("SendMessageW", "Ptr", hoverActual.Hwnd, "UInt", 0x000B, "Ptr", 0, "Ptr", 0)
         hoverActual.Opt("Background" c)
         if (_ctrlRadios.Has(hoverActual)) {
             _ri := _ctrlRadios[hoverActual]
             _brgn := DllCall("CreateRoundRectRgn", "Int", 0, "Int", 0, "Int", _ri.rw+1, "Int", _ri.rh+1, "Int", _ri.radio, "Int", _ri.radio, "Ptr")
             DllCall("SetWindowRgn", "Ptr", hoverActual.Hwnd, "Ptr", _brgn, "Int", 0)
         }
+        DllCall("SendMessageW", "Ptr", hoverActual.Hwnd, "UInt", 0x000B, "Ptr", 1, "Ptr", 0)
         DllCall("InvalidateRect", "Ptr", hoverActual.Hwnd, "Ptr", 0, "Int", 1)
     }
 }
@@ -9277,21 +9287,21 @@ AplicarRegion(ctrl) {
     }
 }
 
-RedondearControl(ctrl, *) {
+RedondearControl(ctrl, radio := 10) {
     global _ctrlRadios
     ; Usamos GetClientRect (píxeles FÍSICOS reales del control) en vez de
     ; ctrl.GetPos (que devuelve coords lógicas escaladas por +DPIScale). Así la
     ; región redondeada coincide EXACTAMENTE con el control en cualquier escala
-    ; de Windows. El diámetro de curva = lado menor del control → círculo
-    ; perfecto en botones cuadrados y píldora (extremos 100% redondos) en
-    ; botones rectangulares.
+    ; de Windows. El radio es una esquina curva moderada (cuadrado redondeado),
+    ; NO un círculo/píldora completo — el diámetro de curva se limita a la
+    ; mitad del lado menor como tope para que nunca llegue a verse circular.
     rc := Buffer(16, 0)
     DllCall("GetClientRect", "Ptr", ctrl.Hwnd, "Ptr", rc)
     w := NumGet(rc, 8, "Int"), h := NumGet(rc, 12, "Int")
     if (w <= 0 || h <= 0) {   ; fallback si el control aún no tiene tamaño
         ctrl.GetPos(,, &w, &h)
     }
-    rr := Min(w, h)
+    rr := Min(Round(radio * (A_ScreenDPI / 96.0)), Round(Min(w, h) / 2))
     rgn := DllCall("CreateRoundRectRgn", "Int", 0, "Int", 0, "Int", w + 1, "Int", h + 1, "Int", rr, "Int", rr, "Ptr")
     DllCall("SetWindowRgn", "Ptr", ctrl.Hwnd, "Ptr", rgn, "Int", true)
     _ctrlRadios[ctrl] := {radio: rr, rw: w, rh: h}
