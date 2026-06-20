@@ -424,11 +424,7 @@ global optGui := "", optGuiVisible := false
 global tutGui := "", tutGuiVisible := false, tutPagina := 1  ; tutorial tipo libro
 global parchesGui := "", parchesGuiVisible := false, parchesPagina := 1  ; libro de parches (📋)
 
-; ===== MEJORAS v31.2: DEGRADADOS / HOTKEYS / TEMA CUSTOM / HISTORIAL PRO / EFECTOS =====
-; ── Botón de control de degradados (shimmer/gradiente de las barras) ──
-global degradadosActivos  := true   ; ON = barras con bandas de brillo en movimiento
-global degradadoIntensidad := 100    ; 0-200%, escala el alpha de las bandas de brillo
-global degradGui := "", degradGuiVisible := false
+; ===== MEJORAS v31.2: HOTKEYS / TEMA CUSTOM / EFECTOS =====
 global btnPersonalizar := ""
 
 ; ── Efectos de acción dinámicos (fade/glow/zoom/slide cuando se detecta una acción) ──
@@ -437,8 +433,7 @@ global efAccionFrame := 0, efAccionColor := "", efAccionTipo := 1   ; tipo: 1=gl
 global efAccionEstilo := "estrellas"   ; categoría elemental del tema: la misma que EfectoDeTema()
 global efAccionMaxFrame := 14
 global efAccionParticulas := []   ; ráfaga temporal del efecto de acción (lluvia/viento/abejas/etc)
-; ── Historial Pro: vista de detección extendida (opción en Optimización) ──
-global historialProActivo := false
+global EFACCION_W := 400, EFACCION_H := 215   ; tamaño fijo del overlay principal (sin BAR_H=25)
 global efAccionOverlay := "", efAccionSubCb := 0, efAccionCx := 0, efAccionCy := 0
 
 ; ── Hotkeys personalizables (cualquier tecla reasignable; se guardan solas) ──
@@ -451,13 +446,7 @@ global temaCustomActivo := false
 global editorTemaGui := "", editorTemaVisible := false, editorTemaCampos := Map()
 global temaCustomData := Map()
 
-; ── Historial Pro avanzado (registro completo categorizado + filtros) ──
-global histProGui := "", histProVisible := false, histProBox := "", histProFiltro := 99
-global histProBuffer := []   ; registro en memoria: [{ts, texto, cat, color}]
-global histProInfoLbl := ""
-global HISTPRO_MAX := 4000   ; máximo de entradas guardadas en memoria
-
-; ── Centro de personalización (hub que abre degradados/tema/atajos/historial pro) ──
+; ── Centro de personalización (hub que abre tema/RGB/partículas/atajos/optimización) ──
 global centroPersGui := "", centroPersVisible := false
 
 ; ===== PRESETS DE RENDIMIENTO =====
@@ -1595,7 +1584,7 @@ ActualizarLogoAnimacion() {
 
 ; ===== BARRAS CON GRADIENTE Y ONDA (GDI+) =====
 DibujarBarraGradiente(hdc, w, h, hexBase, hexTexto, texto, phase, brillo) {
-    global gdipInited, temaPremiumActivo, rgbBarraHue, degradadosActivos, degradadoIntensidad
+    global gdipInited, temaPremiumActivo, rgbBarraHue
     memDC := DllCall("CreateCompatibleDC", "Ptr", hdc, "Ptr")
     hbm   := DllCall("CreateCompatibleBitmap", "Ptr", hdc, "Int", w, "Int", h, "Ptr")
     oldBmp := DllCall("SelectObject", "Ptr", memDC, "Ptr", hbm, "Ptr")
@@ -1661,8 +1650,6 @@ DibujarBarraGradiente(hdc, w, h, hexBase, hexTexto, texto, phase, brillo) {
                 DllCall("gdiplus\GdipDeleteBrush", "Ptr", brushBase)
 
                 ; Bandas de brillo (3 fases desplazadas) — gauss columna a columna.
-                ; El botón de degradados las apaga (degradadosActivos=false) o escala
-                ; su intensidad (degradadoIntensidad, 0-200%).
                 ; Color de la banda: el propio color de la barra aclarado hacia blanco
                 ; (antes blanco puro fijo — chocaba como un tajo ajeno en temas oscuros).
                 brilloHex := AclararHex(hexBase, 0.7)
@@ -1673,7 +1660,7 @@ DibujarBarraGradiente(hdc, w, h, hexBase, hexTexto, texto, phase, brillo) {
                 bandaW := w * 0.40
                 cols := 26
                 colW := bandaW / cols
-                Loop (degradadosActivos ? 3 : 0) {
+                Loop 3 {
                     i := A_Index - 1
                     offset := Mod(phase + i * 0.33, 1.0)
                     cx := (offset * (w + bandaW)) - bandaW / 2
@@ -1682,7 +1669,7 @@ DibujarBarraGradiente(hdc, w, h, hexBase, hexTexto, texto, phase, brillo) {
                         tCol := j / cols
                         d := (tCol - 0.5) * 2
                         gauss := Exp(-d * d * 4)
-                        alpha := Round(gauss * 50 * degradadoIntensidad / 100)
+                        alpha := Round(gauss * 50)
                         if (alpha > 255)
                             alpha := 255
                         if (alpha < 4)
@@ -5183,10 +5170,8 @@ optDecoraciones  := Integer(IniRead(configPath, "Optimizacion", "Decoraciones", 
 optConfeti       := Integer(IniRead(configPath, "Optimizacion", "Confeti",       "1")) = 1
 optTypeReveal    := Integer(IniRead(configPath, "Optimizacion", "TypeReveal",    "1")) = 1
 optEscena        := Integer(IniRead(configPath, "Optimizacion", "Escena",        "1")) = 1
-historialProActivo := Integer(IniRead(configPath, "Historial", "ProActivo", "0")) = 1
 
-; Cargar configuración de degradados (botón 🌈) y efectos de acción
-CargarDegradados()
+; Cargar configuración de efectos de acción
 efectosAccionActivos := Integer(IniRead(configPath, "Efectos", "Accion", "1")) = 1
 
 ; Ciclo automático de descanso (jugar X h → Alt+F4 + descanso Y min → repetir)
@@ -6845,7 +6830,6 @@ AbrirPanelOptimizacion(*) {
         {var: "optConfeti",       label: "Confeti",              desc: "Confeti en milestones"},
         {var: "optTypeReveal",    label: "Type Reveal",          desc: "Revelado progresivo de texto"},
         {var: "optEscena",        label: "Decoración del tema",   desc: "Decorado del borde por tema. Se mantiene aunque las partículas/Eco estén apagadas"},
-        {var: "historialProActivo", label: "Pasos en vivo",       desc: "Muestra el estado de cada paso en el cooldownText mientras el macro está activo"},
     ]
 
     for t in toggles {
@@ -6879,7 +6863,7 @@ AbrirPanelOptimizacion(*) {
     RegistrarHover(btnTodoOff, () => colorBotonNormal)
     y += 38
 
-    ; ── Extra: efectos de acción + degradados (movidos desde Personalización) ──
+    ; ── Extra: efectos de acción (movido desde Personalización) ──
     optGui.Add("Text", "x16 y" y " w" (W - 32) " h1 Background" colorBarra, "")
     y += 8
     btnEfOpt := optGui.Add("Text", "x16 y" y " w" (W-32) " h30 +0x201 Background" (efectosAccionActivos ? colorBarra : colorBotonNormal) " c" colorBtnTexto " Center",
@@ -6887,12 +6871,6 @@ AbrirPanelOptimizacion(*) {
     btnEfOpt.SetFont("s9 Bold", "Segoe UI Semibold")
     btnEfOpt.OnEvent("Click", (*) => (ToggleEfectosAccion(), SetTimer(() => (CerrarPanelOptimizacion(), AbrirPanelOptimizacion()), -1)))
     RegistrarHover(btnEfOpt, () => (efectosAccionActivos ? colorBarra : colorBotonNormal))
-    y += 36
-    btnDegradOpt := optGui.Add("Text", "x16 y" y " w" (W-32) " h30 +0x201 Background" colorBotonNormal " c" colorBtnTexto " Center",
-        Chr(0x1F308) " Degradados  " Chr(0x25B6))
-    btnDegradOpt.SetFont("s9 Bold", "Segoe UI Semibold")
-    btnDegradOpt.OnEvent("Click", (*) => (CerrarPanelOptimizacion(), AbrirPanelDegradados()))
-    RegistrarHover(btnDegradOpt, () => colorBotonNormal)
 
     y += 38
     optGui.Show("w" W " h" y " Center")
@@ -6904,7 +6882,6 @@ AbrirPanelOptimizacion(*) {
 OptGetValor(varName) {
     global optHoverAccent, optHoverBreath, optShimmerBarra, optPulsoBarra
     global optPulsoLogo, optLogoGiratorio, optDecoraciones, optConfeti, optTypeReveal, optEscena
-    global historialProActivo
     switch varName {
         case "optHoverAccent":      return optHoverAccent
         case "optHoverBreath":      return optHoverBreath
@@ -6916,7 +6893,6 @@ OptGetValor(varName) {
         case "optConfeti":          return optConfeti
         case "optTypeReveal":       return optTypeReveal
         case "optEscena":           return optEscena
-        case "historialProActivo":  return historialProActivo
     }
     return false
 }
@@ -6926,7 +6902,6 @@ OptToggleCallback(varName, ctrl, *) {
     global configPath
     global optHoverAccent, optHoverBreath, optShimmerBarra, optPulsoBarra
     global optPulsoLogo, optLogoGiratorio, optDecoraciones, optConfeti, optTypeReveal
-    global historialProActivo
     val := ctrl.Value = 1
     switch varName {
         case "optHoverAccent":      optHoverAccent      := val
@@ -6939,14 +6914,9 @@ OptToggleCallback(varName, ctrl, *) {
         case "optConfeti":          optConfeti          := val
         case "optTypeReveal":       optTypeReveal       := val
         case "optEscena":           optEscena           := val
-        case "historialProActivo":  historialProActivo  := val
     }
-    if (varName = "historialProActivo") {
-        IniWrite(val ? 1 : 0, configPath, "Historial", "ProActivo")
-    } else {
-        iniKey := StrReplace(varName, "opt", "")
-        IniWrite(val ? 1 : 0, configPath, "Optimizacion", iniKey)
-    }
+    iniKey := StrReplace(varName, "opt", "")
+    IniWrite(val ? 1 : 0, configPath, "Optimizacion", iniKey)
     if (varName = "optEscena")
         RefrescarTimersVisuales()   ; encender/apagar la escena al instante (incluso en Eco)
 }
@@ -7231,12 +7201,9 @@ ParchesPaginas() {
          . "· Botón 'Abrir macro en bloc de notas' eliminado`n"
          . "· 5 botones superiores recentrados en la ventana`n"
          . "· Personalización: incluye RGB y Partículas directamente`n"
-         . "· Degradados y Efectos de acción movidos a Optimización`n"
-         . "· Historial Pro 🔍 (toggle): vista detallada de qué escanea el macro`n"
-         . "· Efecto de acción distinto por tema (ring/multi/cross/scan/nova/pulse)`n"
-         . "· Gojo → pulse · Sukuna → cross · Void → cross · Matrix → scan`n"
-         . "· Cyberpunk/Neon/Cyber/Glitch/Electrico → multi (ráfaga de anillos)`n"
-         . "· Eclipse/Retrowave → nova · Cosmos/Gojo → pulse · Naruto → multi`n" },
+         . "· Efectos de acción movidos a Optimización`n"
+         . "· Efecto de acción representa al tema (agua→lluvia, verde→viento,`n"
+         . "  miel→abejas, fuego→brasas, eléctrico→chispas, matrix→código...)`n" },
 
     { ico: Chr(0x1F3A8), tit: "Parche 31.1 — Mejoras UI",
       txt: "· Notificación en historial cuando el macro arranca ya cerrando Brawlhalla`n"
@@ -9544,7 +9511,7 @@ PintarDecoracionesEnHDC(hdc, w, h, esMini := false) {
 
     ; ── EFECTO DE ACCIÓN UNIVERSAL (todos los temas): onda glow/zoom al detectar ──
     if (efAccionFrame > 0)
-        PintarEfectoAccion(hdc, lcx, lcy, efAccionFrame, efAccionMaxFrame)
+        try PintarEfectoAccion(hdc, lcx, lcy, efAccionFrame, efAccionMaxFrame)
 
     if (!unlock && !decoTema)
         return
@@ -10600,17 +10567,10 @@ HexToBGR(hex) {
     return (b << 16) | (g << 8) | r
 }
 
-ToggleHistorialPro(*) {
-    global historialProActivo, configPath
-    historialProActivo := !historialProActivo
-    IniWrite(historialProActivo ? 1 : 0, configPath, "Historial", "ProActivo")
-}
-
 ; ===== COOLDOWNS =====
 ; Visor de detección EN VIVO: muestra qué pasos busca y cuáles están en cooldown.
-; Modo Pro (historialProActivo): muestra CADA paso con su estado individualmente.
 ActualizarCooldowns(*) {
-    global pasosPrioridad, pasosNormales, cooldownText, activo, historialProActivo
+    global pasosPrioridad, pasosNormales, cooldownText, activo
     marca := (Mod(A_TickCount // 350, 2) = 0) ? Chr(0x25CF) : Chr(0x25CB)
 
     if (!activo) {
@@ -10620,70 +10580,39 @@ ActualizarCooldowns(*) {
         return
     }
 
-    if (historialProActivo) {
-        ; ── Modo Pro: cada paso con su estado ──
-        out := marca " HISTORIAL PRO — EN VIVO`n"
-        restanteGlobal := BloqueoGlobalRestante()
-        if (restanteGlobal > 0)
-            out .= "  " Chr(0x1F512) " GLOBAL  " Round(restanteGlobal / 1000, 1) "s`n"
-        for paso in pasosPrioridad {
-            if !paso.HasProp("lastUsed")
-                paso.lastUsed := 0
-            if (!PasoActivoEnPerfil(paso) || !paso.HasProp("cooldown"))
-                continue
-            restante := paso.cooldown - (A_TickCount - paso.lastUsed)
-            if (restante > 0)
-                out .= "  " Chr(0x23F3) " " paso.nombre "  " Round(restante / 1000, 1) "s`n"
-            else
-                out .= "  " marca " " paso.nombre "`n"
-        }
-        for paso in pasosNormales {
-            if !paso.HasProp("lastUsed")
-                paso.lastUsed := 0
-            if (!PasoActivoEnPerfil(paso) || !paso.HasProp("cooldown"))
-                continue
-            restante := paso.cooldown - (A_TickCount - paso.lastUsed)
-            if (restante > 0)
-                out .= "  " Chr(0x23F3) " " paso.nombre "  " Round(restante / 1000, 1) "s`n"
-            else
-                out .= "  " marca " " paso.nombre "`n"
-        }
-    } else {
-        ; ── Modo estándar: resumen agrupado ──
-        enEspera := ""
-        buscando := ""
-        nBuscando := 0
-        restanteGlobal := BloqueoGlobalRestante()
-        if (restanteGlobal > 0)
-            enEspera .= "  " Chr(0x1F512) " GLOBAL  " Round(restanteGlobal / 1000, 1) "s`n"
-        for paso in pasosPrioridad {
-            if !paso.HasProp("lastUsed")
-                paso.lastUsed := 0
-            if (!PasoActivoEnPerfil(paso) || !paso.HasProp("cooldown"))
-                continue
-            restante := paso.cooldown - (A_TickCount - paso.lastUsed)
-            if (restante > 0)
-                enEspera .= "  " paso.nombre "  " Round(restante / 1000, 1) "s`n"
-            else
-                buscando .= (nBuscando++ ? ", " : "") paso.nombre
-        }
-        for paso in pasosNormales {
-            if !paso.HasProp("lastUsed")
-                paso.lastUsed := 0
-            if (!PasoActivoEnPerfil(paso) || !paso.HasProp("cooldown"))
-                continue
-            restante := paso.cooldown - (A_TickCount - paso.lastUsed)
-            if (restante > 0)
-                enEspera .= "  " paso.nombre "  " Round(restante / 1000, 1) "s`n"
-            else
-                buscando .= (nBuscando++ ? ", " : "") paso.nombre
-        }
-        out := marca " Detectando (" nBuscando ")`n"
-        if (buscando != "")
-            out .= marca " " buscando "`n"
-        if (enEspera != "")
-            out .= Chr(0x23F3) " En cooldown:`n" enEspera
+    enEspera := ""
+    buscando := ""
+    nBuscando := 0
+    restanteGlobal := BloqueoGlobalRestante()
+    if (restanteGlobal > 0)
+        enEspera .= "  " Chr(0x1F512) " GLOBAL  " Round(restanteGlobal / 1000, 1) "s`n"
+    for paso in pasosPrioridad {
+        if !paso.HasProp("lastUsed")
+            paso.lastUsed := 0
+        if (!PasoActivoEnPerfil(paso) || !paso.HasProp("cooldown"))
+            continue
+        restante := paso.cooldown - (A_TickCount - paso.lastUsed)
+        if (restante > 0)
+            enEspera .= "  " paso.nombre "  " Round(restante / 1000, 1) "s`n"
+        else
+            buscando .= (nBuscando++ ? ", " : "") paso.nombre
     }
+    for paso in pasosNormales {
+        if !paso.HasProp("lastUsed")
+            paso.lastUsed := 0
+        if (!PasoActivoEnPerfil(paso) || !paso.HasProp("cooldown"))
+            continue
+        restante := paso.cooldown - (A_TickCount - paso.lastUsed)
+        if (restante > 0)
+            enEspera .= "  " paso.nombre "  " Round(restante / 1000, 1) "s`n"
+        else
+            buscando .= (nBuscando++ ? ", " : "") paso.nombre
+    }
+    out := marca " Detectando (" nBuscando ")`n"
+    if (buscando != "")
+        out .= marca " " buscando "`n"
+    if (enEspera != "")
+        out .= Chr(0x23F3) " En cooldown:`n" enEspera
     if (cooldownText.Value != out)
         cooldownText.Value := out
 }
@@ -13064,9 +12993,8 @@ OverlayHoverCheck(*) {
 
 ; ════════════════════════════════════════════════════════════════════════
 ;  MEJORAS v31.2 — funciones nuevas
-;    (1) Efectos de acción dinámicos   (4) Historial Pro avanzado
-;    (2) Tema totalmente personalizable (5) Degradados + Centro de Personalización
-;    (7) Hotkeys reasignables
+;    (1) Efectos de acción dinámicos   (2) Tema totalmente personalizable
+;    (7) Hotkeys reasignables          Centro de Personalización
 ; ════════════════════════════════════════════════════════════════════════
 
 ; Helper GDI+: círculo relleno ARGB en (cx,cy) radio r.
@@ -13094,7 +13022,7 @@ EfectoAccion(catColor := "") {
     ; "lluvia"/"matrix"/"abejas" necesitan más frames para que la ráfaga se note
     efAccionMaxFrame := (efAccionEstilo = "lluvia" || efAccionEstilo = "matrix" || efAccionEstilo = "abejas") ? 20 : 14
     efAccionFrame := efAccionMaxFrame
-    GenerarBurstAccion(efAccionEstilo)
+    try GenerarBurstAccion(efAccionEstilo)
     try ReposicionarOverlayDeco()
     SetTimer(AnimarEfectoAccion, 22)
 }
@@ -13106,15 +13034,10 @@ AnimarEfectoAccion() {
         try InvalidarOverlayDeco()
         return
     }
-    ActualizarBurstAccion()
+    try ActualizarBurstAccion()
     efAccionFrame -= 1
     try InvalidarOverlayDeco()
 }
-
-; Tamaño fijo del overlay principal (miGui sin la barra de título, BAR_H=25).
-; EfectoAccion() sale temprano si modoMini, así que el burst SIEMPRE corre
-; sobre estas dimensiones — no hace falta consultarlas en cada ráfaga.
-global EFACCION_W := 400, EFACCION_H := 215
 
 ; Crea la ráfaga de partículas para el estilo dado (categoría elemental del
 ; tema activo — la misma que EfectoDeTema). Se llama una vez al arrancar el
@@ -13283,112 +13206,6 @@ ToggleEfectosAccion() {
     global efectosAccionActivos, configPath
     efectosAccionActivos := !efectosAccionActivos
     IniWrite(efectosAccionActivos ? 1 : 0, configPath, "Efectos", "Accion")
-}
-
-; ─────────────────────── (5) DEGRADADOS ───────────────────────
-CargarDegradados() {
-    global configPath, degradadosActivos, degradadoIntensidad
-    degradadosActivos := Integer(IniRead(configPath, "Degradados", "Activos", "1")) = 1
-    degradadoIntensidad := Integer(IniRead(configPath, "Degradados", "Intensidad", "100"))
-    if (degradadoIntensidad < 0)
-        degradadoIntensidad := 0
-    else if (degradadoIntensidad > 200)
-        degradadoIntensidad := 200
-}
-
-GuardarDegradados() {
-    global configPath, degradadosActivos, degradadoIntensidad
-    IniWrite(degradadosActivos ? 1 : 0, configPath, "Degradados", "Activos")
-    IniWrite(degradadoIntensidad, configPath, "Degradados", "Intensidad")
-}
-
-; Repinta las barras al instante para reflejar el cambio de degradado.
-AplicarDegradados() {
-    global barra, barraHistorial, barraMini, modoMini
-    if (IsObject(barra))
-        DllCall("InvalidateRect", "Ptr", barra.Hwnd, "Ptr", 0, "Int", 0)
-    if (IsObject(barraHistorial))
-        DllCall("InvalidateRect", "Ptr", barraHistorial.Hwnd, "Ptr", 0, "Int", 0)
-    if (modoMini && IsObject(barraMini))
-        DllCall("InvalidateRect", "Ptr", barraMini.Hwnd, "Ptr", 0, "Int", 0)
-}
-
-AbrirPanelDegradados(*) {
-    global degradGui, degradGuiVisible, degradadosActivos, degradadoIntensidad
-    global colorFondoPrincipal, colorTextoPrincipal, colorBarra, colorTextoBarra, colorBotonNormal, colorBtnTexto
-    if (degradGuiVisible && IsObject(degradGui)) {
-        try LimpiarHoverGui(degradGui)
-        try degradGui.Destroy()
-        degradGuiVisible := false
-        return
-    }
-    degradGui := Gui("+AlwaysOnTop -Caption +ToolWindow")
-    degradGui.BackColor := colorFondoPrincipal
-    W := 252
-    barr := degradGui.Add("Text", "x0 y0 w" W " h28 Background" colorBarra " Center +0x200", "  " Chr(0x1F308) "  Degradados")
-    barr.SetFont("s10 c" colorTextoBarra " Bold", "Segoe UI Semibold")
-    barr.OnEvent("Click", (*) => PostMessage(0xA1, 2,,, "ahk_id " degradGui.Hwnd))
-    barr.OnEvent("DoubleClick", (*) => CerrarPanelDegradados())
-
-    degradGui.Add("Text", "x16 y40 w" (W-32) " h16 c" colorTextoPrincipal " Background" colorFondoPrincipal, "Estado:").SetFont("s9 Bold", "Segoe UI")
-    btnTog := degradGui.Add("Text", "x16 y60 w" (W-32) " h30 +0x201 Background" (degradadosActivos ? colorBarra : colorBotonNormal) " c" colorBtnTexto " Center",
-        degradadosActivos ? Chr(0x2714) " Activados" : Chr(0x2716) " Desactivados")
-    btnTog.SetFont("s10 Bold", "Segoe UI Semibold")
-    btnTog.OnEvent("Click", (*) => ToggleDegradados())
-    RegistrarHover(btnTog, () => (degradadosActivos ? colorBarra : colorBotonNormal))
-
-    degradGui.Add("Text", "x16 y100 w" (W-32) " h16 c" colorTextoPrincipal " Background" colorFondoPrincipal, "Intensidad del brillo:").SetFont("s9 Bold", "Segoe UI")
-    niveles := [{lbl:"Sutil", v:50}, {lbl:"Normal", v:100}, {lbl:"Intenso", v:150}, {lbl:"Máx", v:200}]
-    wB := (W - 32 - 18) / 4
-    xb := 16.0
-    for item in niveles {
-        bg := (degradadoIntensidad = item.v) ? colorBarra : colorBotonNormal
-        b := degradGui.Add("Text", "x" Round(xb) " y120 w" Round(wB) " h28 +0x201 Background" bg " c" colorBtnTexto " Center", item.lbl)
-        b.SetFont("s8 Bold", "Segoe UI")
-        vv := item.v
-        b.OnEvent("Click", SetDegradadoIntensidad.Bind(vv))
-        RegistrarHover(b, MakeColorFn(bg))
-        xb += wB + 6
-    }
-    degradGui.Add("Text", "x16 y156 w" (W-32) " h34 c" MezclarHex(colorTextoPrincipal, colorFondoPrincipal, 0.4) " Background" colorFondoPrincipal,
-        "Los degradados son las bandas de brillo en movimiento de las barras de título.").SetFont("s7", "Segoe UI")
-    degradGui.Show("w" W " h198 Center")
-    RedondearVentana(degradGui.Hwnd, 12)
-    degradGuiVisible := true
-    RegistrarAutoCierre(degradGui, CerrarPanelDegradados)
-}
-
-CerrarPanelDegradados(*) {
-    global degradGui, degradGuiVisible
-    if (IsObject(degradGui)) {
-        try LimpiarHoverGui(degradGui)
-        try degradGui.Destroy()
-    }
-    degradGuiVisible := false
-}
-
-ToggleDegradados() {
-    global degradadosActivos
-    degradadosActivos := !degradadosActivos
-    GuardarDegradados()
-    AplicarDegradados()
-    SetTimer(RefrescarPanelDegradados, -1)
-}
-
-SetDegradadoIntensidad(v, *) {
-    global degradadoIntensidad
-    degradadoIntensidad := v
-    GuardarDegradados()
-    AplicarDegradados()
-    SetTimer(RefrescarPanelDegradados, -1)
-}
-
-RefrescarPanelDegradados() {
-    global degradGuiVisible
-    if (degradGuiVisible) {
-        AbrirPanelDegradados()
-        AbrirPanelDegradados()
-    }
 }
 
 ; ──────────────── CENTRO DE PERSONALIZACIÓN (hub) ────────────────
@@ -13866,183 +13683,6 @@ RefrescarEditorTema() {
     }
 }
 
-; ─────────────────────── (4) HISTORIAL PRO ───────────────────────
-; Deduce la categoría (1-6) a partir del color con el que se registró la acción,
-; comparándolo con los colores de categoría del tema actual. 0 = sistema/otros.
-CategoriaDeColor(ch) {
-    global temas, temaActual
-    if (ch = "")
-        return 0
-    try {
-        t := temas[temaActual]
-        if (ch = t.histColor1)
-            return 1
-        if (ch = t.histColor2)
-            return 2
-        if (ch = t.histColor3)
-            return 3
-        if (ch = t.texto)
-            return 4
-        if (ch = t.luzAccion)
-            return 5
-        if (ch = t.afk)
-            return 6
-    }
-    return 0
-}
-
-CategoriaNombre(cat) {
-    switch cat {
-        case 1: return "Partida"
-        case 2: return "Inicio"
-        case 3: return "Navegación"
-        case 4: return "In-game"
-        case 5: return "Salida"
-        case 6: return "Anomalía"
-    }
-    return "Sistema"
-}
-
-HistProRegistrar(texto, colorHex, ch) {
-    global histProBuffer, HISTPRO_MAX
-    cat := CategoriaDeColor(ch)
-    try {
-        histProBuffer.Push({ts: A_Now, texto: texto, color: colorHex, cat: cat})
-        if (histProBuffer.Length > HISTPRO_MAX)
-            histProBuffer.RemoveAt(1, histProBuffer.Length - HISTPRO_MAX)
-    }
-}
-
-AbrirHistorialPro(*) {
-    global histProGui, histProVisible, histProBox, histProFiltro, histProInfoLbl
-    global colorFondoPrincipal, colorTextoPrincipal, colorBarra, colorTextoBarra
-    global colorBotonNormal, colorBtnTexto, colorFondoHistorial
-    if (histProVisible && IsObject(histProGui)) {
-        try LimpiarHoverGui(histProGui)
-        try histProGui.Destroy()
-        histProVisible := false
-        return
-    }
-    histProGui := Gui("+AlwaysOnTop -Caption +ToolWindow")
-    histProGui.BackColor := colorFondoPrincipal
-    W := 470, H := 430
-    barr := histProGui.Add("Text", "x0 y0 w" W " h28 Background" colorBarra " Center +0x200", "  " Chr(0x1F4DC) "  Historial Pro")
-    barr.SetFont("s10 c" colorTextoBarra " Bold", "Segoe UI Semibold")
-    barr.OnEvent("Click", (*) => PostMessage(0xA1, 2,,, "ahk_id " histProGui.Hwnd))
-    barr.OnEvent("DoubleClick", (*) => CerrarHistorialPro())
-    bx := histProGui.Add("Text", "x" (W-26) " y4 w20 h20 +0x201 Background" colorBotonNormal " c" colorBtnTexto " Center", Chr(215))
-    bx.SetFont("s10 Bold", "Segoe UI")
-    bx.OnEvent("Click", (*) => CerrarHistorialPro())
-    RegistrarHover(bx, () => colorBotonNormal, () => "C42B1C")
-
-    ; Filtros por categoría (99 = todas)
-    filtros := [{c:99,l:"Todas"}, {c:2,l:"Inicio"}, {c:3,l:"Naveg."}, {c:4,l:"In-game"}, {c:1,l:"Partida"}, {c:5,l:"Salida"}, {c:6,l:"Anom."}, {c:0,l:"Sistema"}]
-    xf := 8.0, yf := 34
-    for it in filtros {
-        bg := (histProFiltro = it.c) ? colorBarra : colorBotonNormal
-        b := histProGui.Add("Text", "x" Round(xf) " y" yf " w54 h22 +0x201 Background" bg " c" colorBtnTexto " Center", it.l)
-        b.SetFont("s8 Bold", "Segoe UI")
-        cc := it.c
-        b.OnEvent("Click", HistProSetFiltro.Bind(cc))
-        RegistrarHover(b, MakeColorFn(bg))
-        xf += 57
-    }
-
-    histProBox := histProGui.Add("ListView", "x8 y62 w" (W-16) " h" (H-104) " Background" colorFondoHistorial " c" colorTextoPrincipal " -Multi +Grid", ["Fecha / Hora", "Categoría", "Acción"])
-    histProBox.SetFont("s9", "Segoe UI")
-
-    histProInfoLbl := histProGui.Add("Text", "x8 y" (H-38) " w250 h20 c" colorTextoPrincipal " Background" colorFondoPrincipal, "")
-    histProInfoLbl.SetFont("s8", "Segoe UI")
-    bExp := histProGui.Add("Text", "x" (W-180) " y" (H-40) " w84 h24 +0x201 Background" colorBotonNormal " c" colorBtnTexto " Center", Chr(0x1F4E4) " Exportar")
-    bExp.SetFont("s8 Bold", "Segoe UI")
-    bExp.OnEvent("Click", (*) => HistProExportar())
-    RegistrarHover(bExp, () => colorBotonNormal)
-    bClr := histProGui.Add("Text", "x" (W-90) " y" (H-40) " w82 h24 +0x201 Background" colorBotonNormal " c" colorBtnTexto " Center", Chr(0x1F5D1) " Limpiar")
-    bClr.SetFont("s8 Bold", "Segoe UI")
-    bClr.OnEvent("Click", (*) => HistProLimpiar())
-    RegistrarHover(bClr, () => colorBotonNormal)
-
-    HistProRellenar()
-    histProGui.Show("w" W " h" H " Center")
-    RedondearVentana(histProGui.Hwnd, 12)
-    histProVisible := true
-    RegistrarAutoCierre(histProGui, CerrarHistorialPro, 30)
-}
-
-HistProRellenar() {
-    global histProBox, histProBuffer, histProFiltro, histProInfoLbl
-    if (!IsObject(histProBox))
-        return
-    histProBox.Opt("-Redraw")
-    histProBox.Delete()
-    n := 0
-    i := histProBuffer.Length
-    while (i >= 1) {
-        e := histProBuffer[i]
-        i -= 1
-        if (histProFiltro != 99 && e.cat != histProFiltro)
-            continue
-        hora := FormatTime(e.ts, "MM-dd HH:mm:ss")
-        histProBox.Add(, hora, CategoriaNombre(e.cat), e.texto)
-        n += 1
-        if (n >= 1500)
-            break
-    }
-    histProBox.Opt("+Redraw")
-    try histProBox.ModifyCol(1, 115)
-    try histProBox.ModifyCol(2, 88)
-    try histProBox.ModifyCol(3, 230)
-    if (IsObject(histProInfoLbl))
-        histProInfoLbl.Value := n " mostradas  ·  " histProBuffer.Length " en total"
-}
-
-HistProSetFiltro(c, *) {
-    global histProFiltro
-    histProFiltro := c
-    SetTimer(RefrescarHistorialPro, -1)
-}
-
-RefrescarHistorialPro() {
-    global histProVisible
-    if (histProVisible) {
-        AbrirHistorialPro()
-        AbrirHistorialPro()
-    }
-}
-
-CerrarHistorialPro(*) {
-    global histProGui, histProVisible, histProBox, histProInfoLbl
-    if (IsObject(histProGui)) {
-        try LimpiarHoverGui(histProGui)
-        try histProGui.Destroy()
-    }
-    histProGui := "", histProBox := "", histProInfoLbl := ""
-    histProVisible := false
-}
-
-HistProExportar() {
-    global histProBuffer, histProFiltro
-    try {
-        ruta := A_ScriptDir "\brawlmacro_historial_export.txt"
-        contenido := "═══ Historial Pro — exportado " FormatTime(A_Now, "yyyy-MM-dd HH:mm:ss") " ═══`r`n`r`n"
-        for e in histProBuffer {
-            if (histProFiltro != 99 && e.cat != histProFiltro)
-                continue
-            contenido .= "[" FormatTime(e.ts, "yyyy-MM-dd HH:mm:ss") "] (" CategoriaNombre(e.cat) ") " e.texto "`r`n"
-        }
-        try FileDelete(ruta)
-        FileAppend(contenido, ruta, "UTF-8")
-        Run('notepad.exe "' ruta '"')
-        AgregarHistorial(Chr(0x1F4E4) " Historial exportado a brawlmacro_historial_export.txt", "")
-    }
-}
-
-HistProLimpiar() {
-    global histProBuffer
-    histProBuffer := []
-    HistProRellenar()
-    AgregarHistorial(Chr(0x1F5D1) " Buffer del Historial Pro limpiado", "FF8800")
-}
 
 ; Atajos de teclado: ahora TOTALMENTE personalizables (v31.2). Por defecto F1=Iniciar,
 ; F2=Parar, pero el usuario puede reasignar cualquier tecla desde el editor de atajos
