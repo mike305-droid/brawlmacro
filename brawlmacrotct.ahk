@@ -5276,11 +5276,11 @@ cicloLabel.SetFont("s8", "Segoe UI")
 ; Los separadores van mezclados ~55% hacia el fondo: se notan sin gritar
 ; en temas de barra saturada (Glitch magenta, Chicle, etc.)
 ; Líneas decorativas dimensionadas para coincidir con los elementos del UI:
-;   glowTitulo: de logo (x19) a botón cerrar (x388)  — debajo de la barra de título
+;   glowTitulo: ancho completo (x0-x400)              — debajo de la barra de título
 ;   sepEstado:  de logo (x19) a btnMini (x366)        — debajo del área AFK/timer
 ;   sepAccion:  de btnIniciar (x40) a fin de btnParar (x360) — encima de Iniciar/Parar
 glowTituloL := miGui.Add("Text", "x0 y25 w0 h0", "")   ; placeholders (AplicarTema los recolorea)
-glowTitulo  := miGui.Add("Text", "x19  y25 w369 h2 Background" AclararHex(colorBarra, 0.35), "")
+glowTitulo  := miGui.Add("Text", "x0  y25 w400 h2 Background" AclararHex(colorBarra, 0.35), "")
 glowTituloR := miGui.Add("Text", "x0 y25 w0 h0", "")
 sepEstadoL  := miGui.Add("Text", "x0 y98 w0 h0", "")
 sepEstado   := miGui.Add("Text", "x19  y98 w347 h1 Background" MezclarHex(colorBarra, colorFondoPrincipal, 0.55), "")
