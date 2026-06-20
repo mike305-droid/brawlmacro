@@ -197,8 +197,8 @@ pasosNormales.Push({ tipo:"pimg", nombre:"dragonyellow",		   color:0xFFFF28, cat
 ; ─── FASE 2: NAVEGACION ENTRE PANTALLAS (cat 3) ────────────────────
 pasosNormales.Push({ tipo:"pimg", nombre:"enteringsp1",   color:0x15171A, categoria:3, hold:200, tolerancia:1, delayClick:500, delayTecla:500, cooldown:500, sp:true, lastUsed:0, x1:465, y1:471, x2:466, y2:476 })
 pasosNormales.Push({ tipo:"pimg", nombre:"enteringsp2",   color:0x9EA9BB, categoria:3, hold:200, tolerancia:1, delayClick:500, delayTecla:500, cooldown:500, sp:true, lastUsed:0, x1:734, y1:427, x2:738, y2:429 })
-pasosNormales.Push({ tipo:"pimg", nombre:"enteringroom1", color:0xFF89D0, categoria:3, hold:400, tolerancia:1, delayClick:30,  delayTecla:80,  cooldown:500, tct:true, lastUsed:0, x1:389, y1:566, x2:393, y2:567 })
-pasosNormales.Push({ tipo:"pimg", nombre:"enteringroom2", color:0x3F7F96, categoria:3, hold:400, tolerancia:1, delayClick:30,  delayTecla:80,  cooldown:500, tct:true, lastUsed:0, x1:366, y1:549, x2:366, y2:549 })
+pasosNormales.Push({ tipo:"pimg", nombre:"enteringroom1", color:0xFF89D0, categoria:3, hold:400, tolerancia:1, delayClick:30,  delayTecla:80,  cooldown:500, tct:true, lastUsed:0, x1:262, y1:565, x2:262, y2:565 })
+pasosNormales.Push({ tipo:"pimg", nombre:"enteringroom2", color:0x3F7F96, categoria:3, hold:400, tolerancia:1, delayClick:30,  delayTecla:80,  cooldown:500, tct:true, lastUsed:0, x1:292,  y1:562, x2:292, y2:562 })
 
 ; ─── FASE 3: SETUP DEL LOBBY / BOTS (cat 3) ────────────────────────
 pasosNormales.Push({ tipo:"pimg", nombre:"addrobot",      color:0x70C9D3, categoria:3, hold:200, tolerancia:1, delayClick:500, delayTecla:500, cooldown:500, sp:true, lastUsed:0, x1:31,  y1:256, x2:34,  y2:256 })
@@ -5083,7 +5083,7 @@ global btnParches
 btnParches := historialGui.Add("Text", "x242 y3 w22 h19 +0x201 Background" colorBarra " c" colorTextoBarra, Chr(0x1F4CB))
 btnParches.SetFont("s9 c" colorTextoBarra, "Segoe UI Emoji")
 btnParches.OnEvent("Click", AbrirParches)
-DllCall("SetWindowPos", "Ptr", btnParches.Hwnd, "Ptr", 0, "Int", 0, "Int", 0, "Int", 0, "UInt", 0x13)
+DllCall("SetWindowPos", "Ptr", btnParches.Hwnd, "Ptr", 0, "Int", 0, "Int", 0, "Int", 0, "Int", 0, "UInt", 0x13)
 ; WS_CLIPSIBLINGS en barraHistorial: sin esto, su repintado (shimmer/hover breath)
 ; invade el área de btnTutorial (hermano superpuesto) y lo tapa visualmente.
 estiloBarraHist := DllCall("GetWindowLong", "Ptr", barraHistorial.Hwnd, "Int", -16, "Int")
@@ -8798,6 +8798,15 @@ AplicarTemaAlMini(tema) {
         miniBarraSubclassCb := CallbackCreate(BarraSubclassProc, "F", 6)
     DllCall("Comctl32.dll\SetWindowSubclass", "Ptr", barraMini.Hwnd, "Ptr", miniBarraSubclassCb, "Ptr", 10, "Ptr", 0)
 
+    ; barraMini se acaba de recrear → queda ARRIBA de logoMacroMini en el z-order
+    ; (los controles nuevos siempre nacen al frente). El logo solapa 3px con la
+    ; barra (y = BAR_H-3) a propósito; si la barra queda encima, su repintado
+    ; (shimmer de ondas) pinta sobre esa franja del logo y compiten por ella en
+    ; cada frame → parpadeo. Subir el logo de vuelta al frente restaura el orden
+    ; original (logo encima, barra con WS_CLIPSIBLINGS se recorta sola).
+    if (IsObject(logoMacroMini))
+        DllCall("SetWindowPos", "Ptr", logoMacroMini.Hwnd, "Ptr", 0, "Int", 0, "Int", 0, "Int", 0, "Int", 0, "UInt", 0x13)
+
     ; Actualizar botones (también necesitan recrearse)
     try btnMiniIniciar.Destroy()
     try btnMiniParar.Destroy()
@@ -8858,6 +8867,10 @@ AplicarTemaAlMini(tema) {
 
     ; Redibujar y actualizar GUI
     miniGui.Show("NoActivate")
+    ; Reaplicar el redondeo de la VENTANA (no solo de los controles): recrear
+    ; barraMini/botones arriba puede dejar la región de la ventana sin tocar,
+    ; pero por seguridad se reasienta aquí también (igual que al crearla).
+    RedondearVentana(miniGui.Hwnd, 14)
 
     static WM_SETREDRAW := 0x000B
     static RDW_FLAGS    := 0x0001 | 0x0004 | 0x0080 | 0x0100
@@ -9308,10 +9321,21 @@ AplicarRegion(ctrl, invalidarPadre := true) {
 ; Pasa invalidarPadre=false: solo re-asienta la región sin repintar el padre
 ; cada 2s (las esquinas ya quedaron limpias al arranque / cambio de color).
 ReaplicarTodasLasRegiones() {
-    global _ctrlRadios
+    global _ctrlRadios, miGui, historialGui, historialVisible, miniGui, modoMini
     for ctrl, info in _ctrlRadios {
         try AplicarRegion(ctrl, false)
     }
+    ; Lo mismo, pero para la VENTANA completa (no solo sus controles). Minimizar
+    ; y restaurar (o cualquier SWP_FRAMECHANGED implícito de Windows) puede
+    ; resetear el SetWindowRgn de la ventana misma sin tocar el de sus hijos —
+    ; sin esto las esquinas exteriores se quedan cuadradas hasta el próximo
+    ; cambio de tema. Barato (solo SetWindowRgn), igual que el resto del barrido.
+    try if (IsObject(miGui))
+        RedondearVentana(miGui.Hwnd, 20)
+    try if (IsObject(historialGui) && historialVisible)
+        RedondearVentana(historialGui.Hwnd, 14)
+    try if (modoMini && IsObject(miniGui))
+        RedondearVentana(miniGui.Hwnd, 14)
 }
 
 RedondearControl(ctrl, radio := 10) {
