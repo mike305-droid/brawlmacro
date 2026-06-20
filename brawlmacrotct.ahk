@@ -434,7 +434,9 @@ global btnPersonalizar := ""
 ; ── Efectos de acción dinámicos (fade/glow/zoom/slide cuando se detecta una acción) ──
 global efectosAccionActivos := true
 global efAccionFrame := 0, efAccionColor := "", efAccionTipo := 1   ; tipo: 1=glow 2=zoom 3=slide
-global efAccionEstilo := "ring"   ; estilo del efecto por tema: ring/multi/cross/scan/nova/pulse
+global efAccionEstilo := "estrellas"   ; categoría elemental del tema: la misma que EfectoDeTema()
+global efAccionMaxFrame := 14
+global efAccionParticulas := []   ; ráfaga temporal del efecto de acción (lluvia/viento/abejas/etc)
 ; ── Historial Pro: vista de detección extendida (opción en Optimización) ──
 global historialProActivo := false
 global efAccionOverlay := "", efAccionSubCb := 0, efAccionCx := 0, efAccionCy := 0
@@ -1839,8 +1841,6 @@ global overlayPartMain := "", overlayPartHist := ""
 ; EFECTOS DE PARTÍCULA POR TEMA — cada tema tiene su propio "detalle"
 ; ═══════════════════════════════════════════════════════════════
 EfectoDeTema(t) {
-    if (t.HasProp("efecto"))
-        return t.efecto
     ; Secretos identificables por su unlock (nombres con espacios entre letras)
     if (t.HasProp("unlock")) {
         switch t.unlock {
@@ -8608,9 +8608,12 @@ AplicarTema(tema, guardar := true, fromTrans := false) {
     global glowTitulo, glowTituloL, glowTituloR, sepEstado, sepEstadoL, sepEstadoR, sepAccion, sepAccionL, sepAccionR
     global temaPremiumActivo, rgbActivo, rgbBarra, rgbBotones, rgbLogo, rgbTexto
 
-    ; ── Estilo de efecto de acción según el tema ──
+    ; ── Estilo de efecto de acción según el tema: misma categoría elemental
+    ; que las partículas de fondo (EfectoDeTema), para que la ráfaga al
+    ; detectar "represente" al tema (agua→lluvia, verde→viento de hojas...)
+    ; en vez de una forma geométrica genérica sin relación con el tema.
     global efAccionEstilo
-    efAccionEstilo := tema.HasProp("efecto") ? tema.efecto : "ring"
+    efAccionEstilo := InStr(tema.nombre, "Miel") ? "abejas" : EfectoDeTema(tema)
 
     ; ── Detección del tema PREMIUM (multi-hue RGB en todo) ──
     temaPremiumActivo := InStr(tema.nombre, "P R E M I U M") > 0
@@ -9519,7 +9522,7 @@ DecoOverlaySubclassProc(hWnd, uMsg, wParam, lParam, idSubclass, refData) {
 }
 
 PintarDecoracionesEnHDC(hdc, w, h, esMini := false) {
-    global temas, temaActual, sukunaSlashFrame, gojoAuraFrame, efAccionFrame, gojoDominioFrame
+    global temas, temaActual, sukunaSlashFrame, gojoAuraFrame, efAccionFrame, efAccionMaxFrame, gojoDominioFrame
 
     unlock := ""
     decoTema := ""
@@ -9541,7 +9544,7 @@ PintarDecoracionesEnHDC(hdc, w, h, esMini := false) {
 
     ; ── EFECTO DE ACCIÓN UNIVERSAL (todos los temas): onda glow/zoom al detectar ──
     if (efAccionFrame > 0)
-        PintarEfectoAccion(hdc, lcx, lcy, efAccionFrame, 14)
+        PintarEfectoAccion(hdc, lcx, lcy, efAccionFrame, efAccionMaxFrame)
 
     if (!unlock && !decoTema)
         return
@@ -13081,15 +13084,17 @@ DibujarEllipseGdip(g, cx, cy, r, argb) {
 ; Se pinta sobre el overlay de decoraciones (topmost, click-through), así funciona
 ; en CUALQUIER tema. No bloquea: solo arranca un timer que invalida el overlay.
 EfectoAccion(catColor := "") {
-    global efectosAccionActivos, efAccionFrame, efAccionColor, colorLuzAccion, modoMini, efAccionEstilo
+    global efectosAccionActivos, efAccionFrame, efAccionMaxFrame, efAccionColor, colorLuzAccion, modoMini, efAccionEstilo
     if (!efectosAccionActivos)
         return
     try OndaBarra()   ; onda + brillo en la barra (glow/slide)
     if (modoMini)
         return
     efAccionColor := (catColor != "" && StrLen(catColor) = 6) ? catColor : colorLuzAccion
-    ; "scan" y "nova" necesitan más frames para que la animación sea visible
-    efAccionFrame := (efAccionEstilo = "scan" || efAccionEstilo = "nova") ? 20 : 14
+    ; "lluvia"/"matrix"/"abejas" necesitan más frames para que la ráfaga se note
+    efAccionMaxFrame := (efAccionEstilo = "lluvia" || efAccionEstilo = "matrix" || efAccionEstilo = "abejas") ? 20 : 14
+    efAccionFrame := efAccionMaxFrame
+    GenerarBurstAccion(efAccionEstilo)
     try ReposicionarOverlayDeco()
     SetTimer(AnimarEfectoAccion, 22)
 }
@@ -13101,112 +13106,176 @@ AnimarEfectoAccion() {
         try InvalidarOverlayDeco()
         return
     }
+    ActualizarBurstAccion()
     efAccionFrame -= 1
     try InvalidarOverlayDeco()
 }
 
-; Dibuja la onda de acción en el HDC del overlay — despacha según efAccionEstilo.
+; Tamaño fijo del overlay principal (miGui sin la barra de título, BAR_H=25).
+; EfectoAccion() sale temprano si modoMini, así que el burst SIEMPRE corre
+; sobre estas dimensiones — no hace falta consultarlas en cada ráfaga.
+global EFACCION_W := 400, EFACCION_H := 215
+
+; Crea la ráfaga de partículas para el estilo dado (categoría elemental del
+; tema activo — la misma que EfectoDeTema). Se llama una vez al arrancar el
+; efecto. Cada partícula representa el elemento del tema: gotas para agua,
+; hojas para viento, abejas para miel, etc.
+GenerarBurstAccion(estilo) {
+    global efAccionParticulas, EFACCION_W, EFACCION_H
+    efAccionParticulas := []
+    w := EFACCION_W, h := EFACCION_H
+    switch estilo {
+        case "lluvia", "burbujas":
+            ; Agua: lluvia rápida cayendo por toda la ventana
+            loop 18
+                efAccionParticulas.Push({ tipo: "gota", x: Random(0.0, w*1.0), y: Random(-h*0.4, h*0.3),
+                    vx: Random(-3, 3) / 10.0, vy: Random(7.0, 12.0), len: Random(10, 18) })
+        case "hojas", "petalos":
+            ; Viento: hojas/pétalos cruzando rápido de un lado a otro
+            loop 12 {
+                dir := (Mod(A_Index, 2) = 0) ? 1 : -1
+                efAccionParticulas.Push({ tipo: "hoja", x: (dir = 1) ? -Random(0,40)*1.0 : w + Random(0,40),
+                    y: Random(0.0, h*1.0), vx: Random(6.0, 10.0) * dir, vy: Random(-15, 15) / 10.0,
+                    rot: Random(0.0, 6.28), vrot: Random(-25, 25) / 10.0, r: Random(4, 7) })
+            }
+        case "nieve":
+            ; Nevada repentina
+            loop 16
+                efAccionParticulas.Push({ tipo: "nieve", x: Random(0.0, w*1.0), y: Random(-h*0.3, h*0.2),
+                    vx: Random(-15, 15) / 10.0, vy: Random(3.5, 6.0), r: Random(2, 4) })
+        case "brasas":
+            ; Chispas de fuego saliendo disparadas hacia arriba
+            loop 14
+                efAccionParticulas.Push({ tipo: "brasa", x: w/2 + Random(-60, 60), y: h*0.7 + Random(-20, 20),
+                    vx: Random(-15, 15) / 10.0, vy: -Random(4.0, 7.5), r: Random(2, 4) })
+        case "estrellas":
+            ; Estallido de estrellas radiando desde el centro
+            n := 10
+            loop n {
+                ang := (A_Index / n) * 6.2831853 + Random(0, 50) / 100.0
+                spd := Random(3.0, 5.5)
+                efAccionParticulas.Push({ tipo: "estrella", x: w/2, y: h*0.42, vx: Cos(ang)*spd, vy: Sin(ang)*spd, r: Random(2, 4) })
+            }
+        case "chispas":
+            ; Chispazo eléctrico: rayos cortos radiando rápido
+            n := 9
+            loop n {
+                ang := (A_Index / n) * 6.2831853 + Random(0, 50) / 100.0
+                spd := Random(5.0, 8.5)
+                efAccionParticulas.Push({ tipo: "chispa", x: w/2, y: h*0.42, vx: Cos(ang)*spd, vy: Sin(ang)*spd, len: Random(6, 12) })
+            }
+        case "matrix":
+            ; Lluvia de código cayendo en columnas
+            loop 9
+                efAccionParticulas.Push({ tipo: "matrix", x: Random(0.0, w*1.0), y: Random(-h*0.4, 0.0),
+                    vy: Random(6.0, 10.0), len: Random(20, 45) })
+        case "abejas":
+            ; Más abejas, más rápido, zumbando alrededor del logo (centro del
+            ; logo = lcx,lcy en PintarDecoracionesEnHDC: 66,53 en la ventana principal)
+            loop 6
+                efAccionParticulas.Push({ tipo: "abeja", x: 66.0 + Random(-15, 15), y: 53.0 + Random(-15, 15),
+                    ang: Random(0.0, 6.28), spd: Random(4.0, 7.0), wob: Random(0.0, 6.28) })
+        default:
+            ; Categoría desconocida: estallido de estrellas (fallback seguro)
+            n := 8
+            loop n {
+                ang := (A_Index / n) * 6.2831853
+                efAccionParticulas.Push({ tipo: "estrella", x: w/2, y: h*0.42, vx: Cos(ang)*4.0, vy: Sin(ang)*4.0, r: 3 })
+            }
+    }
+}
+
+; Avanza la simulación de la ráfaga un frame (posiciones/rotación).
+ActualizarBurstAccion() {
+    global efAccionParticulas
+    for p in efAccionParticulas {
+        switch p.tipo {
+            case "abeja":
+                p.wob += 0.7
+                p.x += Cos(p.ang) * p.spd + Sin(p.wob) * 2.2
+                p.y += Sin(p.ang) * p.spd + Cos(p.wob * 1.3) * 2.2
+            case "hoja":
+                p.x += p.vx, p.y += p.vy, p.rot += p.vrot
+            case "matrix":
+                p.y += p.vy
+            default:
+                p.x += p.vx, p.y += p.vy
+        }
+    }
+}
+
+; Dibuja la ráfaga actual en el HDC del overlay — cada categoría dibuja su
+; propio elemento (gota/hoja/copo/brasa/estrella/chispa/matrix/abeja).
 PintarEfectoAccion(hdc, cx, cy, frame, maxFrame) {
-    global efAccionColor, efAccionEstilo
+    global efAccionColor, efAccionEstilo, efAccionParticulas
     bgr := HexToBGR(efAccionColor)
     avance := (maxFrame - frame) / (maxFrame * 1.0)
+    fade := 1.0 - avance   ; 1.0 al arrancar -> 0.0 al final
     nullBrush := DllCall("GetStockObject", "Int", 5, "Ptr")
+    if (fade <= 0.02)
+        return
 
-    switch efAccionEstilo {
-        case "multi":
-            ; 3 anillos concéntricos escalonados — energético
-            offsets := [0, 0.25, 0.5]
-            for off in offsets {
-                av2 := Min(1.0, avance + off)
-                r2 := Round(8 + av2 * 55)
-                g2 := Max(1, Round(5 * (1 - av2)))
-                hP := DllCall("CreatePen", "Int", 0, "Int", g2, "UInt", bgr, "Ptr")
-                DllCall("SelectObject", "Ptr", hdc, "Ptr", hP)
-                DllCall("SelectObject", "Ptr", hdc, "Ptr", nullBrush)
-                DllCall("Ellipse", "Ptr", hdc, "Int", Round(cx-r2), "Int", Round(cy-r2), "Int", Round(cx+r2), "Int", Round(cy+r2))
-                DllCall("DeleteObject", "Ptr", hP)
-            }
-            if (frame >= maxFrame - 2)
-                DibujarBolaSolida(hdc, cx, cy, 6, bgr, nullBrush)
+    for p in efAccionParticulas {
+        switch p.tipo {
+            case "gota":
+                grosorG := Max(1, Round(2 * fade))
+                hPg := DllCall("CreatePen", "Int", 0, "Int", grosorG, "UInt", bgr, "Ptr")
+                DllCall("SelectObject", "Ptr", hdc, "Ptr", hPg)
+                DllCall("MoveToEx", "Ptr", hdc, "Int", Round(p.x), "Int", Round(p.y), "Ptr", 0)
+                DllCall("LineTo", "Ptr", hdc, "Int", Round(p.x + p.vx * 1.5), "Int", Round(p.y + p.len))
+                DllCall("DeleteObject", "Ptr", hPg)
 
-        case "cross":
-            ; Cruz/plus expandiéndose desde el centro — agresivo
-            longitud := Round(20 + avance * 50)
-            grosorC := Max(1, Round(5 * (1 - avance)))
-            hPc := DllCall("CreatePen", "Int", 0, "Int", grosorC, "UInt", bgr, "Ptr")
-            oldPc := DllCall("SelectObject", "Ptr", hdc, "Ptr", hPc)
-            DllCall("MoveToEx", "Ptr", hdc, "Int", cx - longitud, "Int", cy, "Ptr", 0)
-            DllCall("LineTo", "Ptr", hdc, "Int", cx + longitud, "Int", cy)
-            DllCall("MoveToEx", "Ptr", hdc, "Int", cx, "Int", cy - longitud, "Ptr", 0)
-            DllCall("LineTo", "Ptr", hdc, "Int", cx, "Int", cy + longitud)
-            DllCall("SelectObject", "Ptr", hdc, "Ptr", oldPc)
-            DllCall("DeleteObject", "Ptr", hPc)
-            if (frame >= maxFrame - 3)
-                DibujarBolaSolida(hdc, cx, cy, 5 + (frame - (maxFrame-3)) * 2, bgr, nullBrush)
+            case "hoja":
+                dx := Cos(p.rot) * p.r, dy := Sin(p.rot) * p.r
+                dx2 := Cos(p.rot + 1.5708) * (p.r * 0.5), dy2 := Sin(p.rot + 1.5708) * (p.r * 0.5)
+                pts := Buffer(16, 0)
+                NumPut("Int", Round(p.x + dx),  "Int", Round(p.y + dy),  pts, 0)
+                NumPut("Int", Round(p.x + dx2), "Int", Round(p.y + dy2), pts, 8)
+                NumPut("Int", Round(p.x - dx),  "Int", Round(p.y - dy),  pts, 16)
+                NumPut("Int", Round(p.x - dx2), "Int", Round(p.y - dy2), pts, 24)
+                brushH := DllCall("CreateSolidBrush", "UInt", bgr, "Ptr")
+                oldBh := DllCall("SelectObject", "Ptr", hdc, "Ptr", brushH)
+                hPenNulH := DllCall("CreatePen", "Int", 5, "Int", 1, "UInt", bgr, "Ptr")   ; PS_NULL: sin borde
+                oldPenH := DllCall("SelectObject", "Ptr", hdc, "Ptr", hPenNulH)
+                DllCall("Polygon", "Ptr", hdc, "Ptr", pts, "Int", 4)
+                DllCall("SelectObject", "Ptr", hdc, "Ptr", oldBh)
+                DllCall("SelectObject", "Ptr", hdc, "Ptr", oldPenH)
+                DllCall("DeleteObject", "Ptr", brushH)
+                DllCall("DeleteObject", "Ptr", hPenNulH)
 
-        case "scan":
-            ; Línea horizontal que barre desde el centro hacia los bordes
-            y1 := Round(cy - avance * 60)
-            y2 := Round(cy + avance * 60)
-            grosorS := Max(1, Round(4 * (1 - avance)))
-            hPs := DllCall("CreatePen", "Int", 0, "Int", grosorS, "UInt", bgr, "Ptr")
-            DllCall("SelectObject", "Ptr", hdc, "Ptr", hPs)
-            ancho := Round(40 + avance * 80)
-            DllCall("MoveToEx", "Ptr", hdc, "Int", cx - ancho, "Int", y1, "Ptr", 0)
-            DllCall("LineTo", "Ptr", hdc, "Int", cx + ancho, "Int", y1)
-            if (y2 != y1) {
-                DllCall("MoveToEx", "Ptr", hdc, "Int", cx - ancho, "Int", y2, "Ptr", 0)
-                DllCall("LineTo", "Ptr", hdc, "Int", cx + ancho, "Int", y2)
-            }
-            DllCall("DeleteObject", "Ptr", hPs)
+            case "nieve":
+                DibujarBolaSolida(hdc, p.x, p.y, p.r * fade, bgr, nullBrush)
 
-        case "nova":
-            ; Anillo grande que aparece rápido y desvanece — explosión suave
-            radio := Round(60 - avance * 50)
-            grosorN := Max(1, Round(8 * (1 - avance * 0.7)))
-            hPn := DllCall("CreatePen", "Int", 0, "Int", grosorN, "UInt", bgr, "Ptr")
-            DllCall("SelectObject", "Ptr", hdc, "Ptr", hPn)
-            DllCall("SelectObject", "Ptr", hdc, "Ptr", nullBrush)
-            DllCall("Ellipse", "Ptr", hdc, "Int", cx-radio, "Int", cy-radio, "Int", cx+radio, "Int", cy+radio)
-            DllCall("DeleteObject", "Ptr", hPn)
-            if (frame >= maxFrame - 4)
-                DibujarBolaSolida(hdc, cx, cy, 10, bgr, nullBrush)
+            case "brasa":
+                DibujarBolaSolida(hdc, p.x, p.y, p.r * (0.5 + fade * 0.5), bgr, nullBrush)
 
-        case "pulse":
-            ; Glow central suave que se expande lentamente — místico
-            radio := Round(6 + avance * 40)
-            for i in [1, 2, 3] {
-                ri := radio * i // 2
-                gi := Max(1, Round((4 - i) * (1 - avance * 0.6)))
-                hPp := DllCall("CreatePen", "Int", 0, "Int", gi, "UInt", bgr, "Ptr")
-                DllCall("SelectObject", "Ptr", hdc, "Ptr", hPp)
-                DllCall("SelectObject", "Ptr", hdc, "Ptr", nullBrush)
-                DllCall("Ellipse", "Ptr", hdc, "Int", cx-ri, "Int", cy-ri, "Int", cx+ri, "Int", cy+ri)
-                DllCall("DeleteObject", "Ptr", hPp)
-            }
-            if (frame >= maxFrame - 4)
-                DibujarBolaSolida(hdc, cx, cy, 8, bgr, nullBrush)
+            case "estrella":
+                DibujarBolaSolida(hdc, p.x, p.y, p.r * fade, bgr, nullBrush)
 
-        default:
-            ; "ring" — anillo clásico expandiéndose (comportamiento original)
-            radio := Round(12 + avance * 50)
-            grosor := Max(1, Round(6 * (1 - avance)))
-            hPen := DllCall("CreatePen", "Int", 0, "Int", grosor, "UInt", bgr, "Ptr")
-            oldPen := DllCall("SelectObject", "Ptr", hdc, "Ptr", hPen)
-            DllCall("SelectObject", "Ptr", hdc, "Ptr", nullBrush)
-            DllCall("Ellipse", "Ptr", hdc, "Int", Round(cx-radio), "Int", Round(cy-radio), "Int", Round(cx+radio), "Int", Round(cy+radio))
-            if (avance < 0.72) {
-                radio2 := Round(8 + avance * 26)
-                hPen2 := DllCall("CreatePen", "Int", 0, "Int", Max(1, grosor-1), "UInt", bgr, "Ptr")
-                DllCall("SelectObject", "Ptr", hdc, "Ptr", hPen2)
-                DllCall("Ellipse", "Ptr", hdc, "Int", Round(cx-radio2), "Int", Round(cy-radio2), "Int", Round(cx+radio2), "Int", Round(cy+radio2))
-                DllCall("SelectObject", "Ptr", hdc, "Ptr", hPen)
-                DllCall("DeleteObject", "Ptr", hPen2)
-            }
-            if (frame >= maxFrame - 3)
-                DibujarBolaSolida(hdc, cx, cy, 4 + (frame - (maxFrame-3)) * 2, bgr, nullBrush)
-            DllCall("SelectObject", "Ptr", hdc, "Ptr", oldPen)
-            DllCall("DeleteObject", "Ptr", hPen)
+            case "chispa":
+                grosorCh := Max(1, Round(2 * fade))
+                hPch := DllCall("CreatePen", "Int", 0, "Int", grosorCh, "UInt", bgr, "Ptr")
+                DllCall("SelectObject", "Ptr", hdc, "Ptr", hPch)
+                DllCall("MoveToEx", "Ptr", hdc, "Int", Round(p.x), "Int", Round(p.y), "Ptr", 0)
+                DllCall("LineTo", "Ptr", hdc, "Int", Round(p.x + (p.vx >= 0 ? 1 : -1)*p.len*0.4 + p.vx), "Int", Round(p.y + p.vy))
+                DllCall("DeleteObject", "Ptr", hPch)
+
+            case "matrix":
+                grosorM := 3
+                hPm := DllCall("CreatePen", "Int", 0, "Int", grosorM, "UInt", bgr, "Ptr")
+                DllCall("SelectObject", "Ptr", hdc, "Ptr", hPm)
+                DllCall("MoveToEx", "Ptr", hdc, "Int", Round(p.x), "Int", Round(p.y), "Ptr", 0)
+                DllCall("LineTo", "Ptr", hdc, "Int", Round(p.x), "Int", Round(p.y + p.len))
+                DllCall("DeleteObject", "Ptr", hPm)
+
+            case "abeja":
+                DibujarBolaSolida(hdc, p.x, p.y, 3.0 * fade, bgr, nullBrush)
+                hPa := DllCall("CreatePen", "Int", 0, "Int", 1, "UInt", 0x000000, "Ptr")
+                DllCall("SelectObject", "Ptr", hdc, "Ptr", hPa)
+                DllCall("MoveToEx", "Ptr", hdc, "Int", Round(p.x - 2), "Int", Round(p.y), "Ptr", 0)
+                DllCall("LineTo", "Ptr", hdc, "Int", Round(p.x + 2), "Int", Round(p.y))
+                DllCall("DeleteObject", "Ptr", hPa)
+        }
     }
 }
 
