@@ -5592,6 +5592,7 @@ HoverPoll() {
             DllCall("SendMessageW", "Ptr", hoverActual.Hwnd, "UInt", 0x000B, "Ptr", 1, "Ptr", 0)
             DllCall("InvalidateRect", "Ptr", hoverActual.Hwnd, "Ptr", 0, "Int", 1)
             DllCall("UpdateWindow",   "Ptr", hoverActual.Hwnd)
+            InvalidarEsquinasEnPadre(hoverActual)   ; el padre rellena las esquinas que el SetWindowRgn de arriba volvió a exponer
         }
     }
 
@@ -5614,6 +5615,7 @@ HoverPoll() {
         DllCall("SendMessageW", "Ptr", encontrado.Hwnd, "UInt", 0x000B, "Ptr", 1, "Ptr", 0)
         DllCall("InvalidateRect", "Ptr", encontrado.Hwnd, "Ptr", 0, "Int", 1)
         DllCall("UpdateWindow",   "Ptr", encontrado.Hwnd)
+        InvalidarEsquinasEnPadre(encontrado)   ; el padre rellena las esquinas que el SetWindowRgn de arriba volvió a exponer
         hoverBreathT    := 0.0
         hoverBreathDir  := 1
         hoverBreathBase := hoverBg
@@ -5660,6 +5662,7 @@ HoverBreath() {
         }
         DllCall("SendMessageW", "Ptr", hoverActual.Hwnd, "UInt", 0x000B, "Ptr", 1, "Ptr", 0)
         DllCall("InvalidateRect", "Ptr", hoverActual.Hwnd, "Ptr", 0, "Int", 1)
+        InvalidarEsquinasEnPadre(hoverActual, false)   ; encola (sin forzar) — corre muy seguido mientras respira
     }
 }
 
@@ -9263,7 +9266,12 @@ RedondearVentana(hwnd, curva := 14) {
 ; cuadradas para siempre. La cura: invalidar el rect del PADRE bajo el control con
 ; erase=TRUE, así el padre rellena esas esquinas con su brocha de fondo.
 ; (Misma técnica que ya se usa en ToggleHistorial para el mismo problema.)
-InvalidarEsquinasEnPadre(ctrl) {
+; forzarYa=true fuerza el repintado AHORA (UpdateWindow, síncrono) — usar en
+; transiciones discretas (arranque, entrar/salir de hover). forzarYa=false solo
+; encola el invalidate (deja que el próximo ciclo del mensaje lo pinte) — usar
+; en rutas de ALTA frecuencia (HoverBreath, ciclo RGB) para no forzar un
+; repintado síncrono del padre cada pocos ms (eso sí causaría parpadeo visible).
+InvalidarEsquinasEnPadre(ctrl, forzarYa := true) {
     hParent := DllCall("GetParent", "Ptr", ctrl.Hwnd, "Ptr")
     if (!hParent)
         return
@@ -9272,7 +9280,8 @@ InvalidarEsquinasEnPadre(ctrl) {
     ; Mapear las 2 esquinas (L,T)/(R,B) de pantalla a cliente del padre (DPI-agnóstico).
     DllCall("MapWindowPoints", "Ptr", 0, "Ptr", hParent, "Ptr", rc, "UInt", 2)
     DllCall("InvalidateRect", "Ptr", hParent, "Ptr", rc, "Int", 1)   ; erase=TRUE → brocha de fondo
-    DllCall("UpdateWindow",   "Ptr", hParent)
+    if (forzarYa)
+        DllCall("UpdateWindow", "Ptr", hParent)
 }
 
 ; Re-aplica el SetWindowRgn redondeado almacenado en _ctrlRadios.
