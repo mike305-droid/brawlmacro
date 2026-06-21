@@ -20,7 +20,7 @@ configPath := A_ScriptDir "\brawlmacro_config.ini"
 global eggsBackupPath := A_ScriptDir "\brawlmacro_eggs.txt"
 global heartbeatPath := A_ScriptDir "\brawlmacro_heartbeat.txt"
 global historialLogPath := A_ScriptDir "\brawlmacro_historial.log"
-global VERSION_ACTUAL := "31.5.6"
+global VERSION_ACTUAL := "31.5.7"
 
 ; ===== TEMAS =====
 temas := [
@@ -8563,8 +8563,13 @@ TransicionPaso() {
         SetTimer(TransicionPaso, 0)
         temaEnTransicion := false
         ; Tras el cambio de tema, re-redondear TODO con la secuencia probada
-        ; (los Opt() de la transición dejan los controles cuadrados).
+        ; (los Opt() de la transición dejan los controles cuadrados). Dos pasadas
+        ; escalonadas: la de -40ms a veces corre antes de que el RedrawWindow final
+        ; de AplicarTema/partículas termine de asentarse y vuelve a exponer esquinas
+        ; cuadradas. La segunda pasada (-220ms) gana esa carrera. NO es un bucle
+        ; periódico (eso parpadea/cuadra, ver memoria): son 2 eventos puntuales.
         SetTimer(RedondearFuerteTodos, -40)
+        SetTimer(RedondearFuerteTodos, -220)
     }
 
     } catch as e {
@@ -11474,7 +11479,10 @@ EjecutarMacro(*) {
                 modoDestruccion := false
                 AgregarHistorial(Chr(0x2705) " Detección recuperada - saliendo de modo destrucción", "00CC44")
             }
-            AgregarHistorial(paso.nombre, paso.HasProp("categoria") ? ObtenerColorCategoria(paso.categoria) : "")
+            ; NO registrar cada paso suelto en el historial (play/ingame/enteringroom...
+            ; inundaban el panel). El historial muestra SOLO los cooldowns y eventos
+            ; relevantes (-> COOLDOWN Xs, secuencias, sleep, etc.). La luz/onda siguen
+            ; dando feedback visual en vivo de cada acción detectada.
             LuzAccionFlash(paso.HasProp("categoria") ? ObtenerColorCategoria(paso.categoria) : "")
             OndaBarra()
             DespuesDeAccion(false)
@@ -12675,6 +12683,10 @@ Parar(*) {
     PararTimer()
     EscribirHeartbeat()   ; capturar activo=0 al instante (el watchdog no debe re-arrancar)
     EnviarWebhookEvento("parado")
+    ; Al parar cambian las luces (SetLuz) y el shimmer de la barra repinta encima:
+    ; re-redondear TODO con la secuencia probada para que botones/luces no se cuadren.
+    ; Igual que hace Iniciar(). Puntual (evento), nunca en bucle.
+    SetTimer(RedondearFuerteTodos, -120)
 }
 
 ; ===== ACTUALIZADOR =====
