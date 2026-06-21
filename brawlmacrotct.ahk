@@ -20,7 +20,7 @@ configPath := A_ScriptDir "\brawlmacro_config.ini"
 global eggsBackupPath := A_ScriptDir "\brawlmacro_eggs.txt"
 global heartbeatPath := A_ScriptDir "\brawlmacro_heartbeat.txt"
 global historialLogPath := A_ScriptDir "\brawlmacro_historial.log"
-global VERSION_ACTUAL := "31.5.5"
+global VERSION_ACTUAL := "31.5.6"
 
 ; ===== TEMAS =====
 temas := [
@@ -426,6 +426,9 @@ global parchesGui := "", parchesGuiVisible := false, parchesPagina := 1  ; libro
 
 ; ===== MEJORAS v31.2: HOTKEYS / TEMA CUSTOM / EFECTOS =====
 global btnPersonalizar := ""
+
+; ── Abrir Brawlhalla automáticamente al pulsar Iniciar (toggle en Personalizar) ──
+global abrirBrawlAlIniciar := true
 
 ; ── Efectos de acción dinámicos (fade/glow/zoom/slide cuando se detecta una acción) ──
 global efectosAccionActivos := true
@@ -5186,6 +5189,9 @@ optEscena        := Integer(IniRead(configPath, "Optimizacion", "Escena",       
 ; Cargar configuración de efectos de acción
 efectosAccionActivos := Integer(IniRead(configPath, "Efectos", "Accion", "1")) = 1
 
+; Abrir Brawlhalla al pulsar Iniciar (por defecto sí, = comportamiento de siempre)
+abrirBrawlAlIniciar := Integer(IniRead(configPath, "UI", "AbrirBrawlAlIniciar", "1")) = 1
+
 ; Ciclo automático de descanso (jugar X h → Alt+F4 + descanso Y min → repetir)
 cicloActivo  := Integer(IniRead(configPath, "Ciclo", "Activo",  "1")) = 1
 CICLO_SEG    := Integer(IniRead(configPath, "Ciclo", "Horas",   "8"))  * 3600
@@ -7211,11 +7217,11 @@ CerrarTutorial(*) {
 ParchesPaginas() {
     return [
     { ico: Chr(0x1F4CB), tit: "Parche 31.5 (actual)",
-      txt: "· Botones y luces SIEMPRE redondos (iniciar/minimizar/tema/mini)`n"
+      txt: "· Personalizar: opción para NO abrir Brawlhalla al iniciar`n"
+         . "· Botones y luces SIEMPRE redondos (iniciar/minimizar/tema/mini)`n"
          . "· Logo del modo mini: sombra alineada y bajado a su sitio`n"
          . "· Botón 📋 Parches reaparece (estaba invisible)`n"
-         . "· Efectos de acción más vistosos y notorios`n"
-         . "· Actualizador arreglado: ya detecta nuevas versiones`n" },
+         . "· Efectos de acción más vistosos + actualizador arreglado`n" },
 
     { ico: Chr(0x1F4CB), tit: "Parche 31.2",
       txt: "· Botones y luces redondeados al cambiar de color`n"
@@ -12565,6 +12571,7 @@ Iniciar(*) {
     global logoVelObjetivo, logoVelMax
     global histUltimoTexto
     global enDescanso, cicloInicio, descansoInicio, brawlhallaLanzado
+    global abrirBrawlAlIniciar
     ; Si el usuario inicia DURANTE el descanso del ciclo (solo tct/sp), manda
     ; el usuario: se cancela el descanso y arranca un ciclo nuevo de 8h.
     if (enDescanso && (perfilActivo = 1 || perfilActivo = 2)) {
@@ -12603,8 +12610,11 @@ Iniciar(*) {
     }
 
     ; Lanzar Brawlhalla AHORA, antes de los timers que envían teclas (Esc/c)
-    ; — si EjecutarMacro corre durante el Win+brawlhalla puede mandar Esc y cerrar el menú
-    LanzarJuegoDelPerfil()
+    ; — si EjecutarMacro corre durante el Win+brawlhalla puede mandar Esc y cerrar el menú.
+    ; Solo si el usuario tiene activada la opción (Personalizar → "Abrir Brawlhalla
+    ; al iniciar"). Si está apagada, el macro arranca sin tocar Brawlhalla.
+    if (abrirBrawlAlIniciar)
+        LanzarJuegoDelPerfil()
     ultimoCambio := A_TickCount  ; resetea AFK contando desde DESPUÉS del lanzamiento
 
     SetTimer(EjecutarMacro, 50)
@@ -13361,9 +13371,15 @@ ToggleEfectosAccion() {
     IniWrite(efectosAccionActivos ? 1 : 0, configPath, "Efectos", "Accion")
 }
 
+ToggleAbrirBrawl() {
+    global abrirBrawlAlIniciar, configPath
+    abrirBrawlAlIniciar := !abrirBrawlAlIniciar
+    IniWrite(abrirBrawlAlIniciar ? 1 : 0, configPath, "UI", "AbrirBrawlAlIniciar")
+}
+
 ; ──────────────── CENTRO DE PERSONALIZACIÓN (hub) ────────────────
 AbrirCentroPersonalizacion(*) {
-    global centroPersGui, centroPersVisible, efectosAccionActivos
+    global centroPersGui, centroPersVisible, efectosAccionActivos, abrirBrawlAlIniciar
     global colorFondoPrincipal, colorTextoPrincipal, colorBarra, colorTextoBarra, colorBotonNormal, colorBtnTexto
     if (centroPersVisible && IsObject(centroPersGui)) {
         try LimpiarHoverGui(centroPersGui)
@@ -13396,6 +13412,15 @@ AbrirCentroPersonalizacion(*) {
         RegistrarHover(b, () => colorBotonNormal)
         y += 38
     }
+
+    ; Toggle ON/OFF: abrir Brawlhalla al pulsar Iniciar (icono + color según estado)
+    bBrawl := centroPersGui.Add("Text", "x16 y" y " w" (W-32) " h32 +0x201 Background" (abrirBrawlAlIniciar ? colorBarra : colorBotonNormal) " c" colorBtnTexto " Center",
+        (abrirBrawlAlIniciar ? Chr(0x2714) : Chr(0x2716)) " Abrir Brawlhalla al iniciar")
+    bBrawl.SetFont("s10 Bold", "Segoe UI Semibold")
+    bBrawl.OnEvent("Click", (*) => (ToggleAbrirBrawl(), SetTimer(() => (CerrarCentroPersonalizacion(), AbrirCentroPersonalizacion()), -1)))
+    RegistrarHover(bBrawl, () => (abrirBrawlAlIniciar ? colorBarra : colorBotonNormal))
+    y += 38
+
     centroPersGui.Show("w" W " h" y " Center")
     RedondearVentana(centroPersGui.Hwnd, 12)
     centroPersVisible := true
