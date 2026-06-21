@@ -20,7 +20,7 @@ configPath := A_ScriptDir "\brawlmacro_config.ini"
 global eggsBackupPath := A_ScriptDir "\brawlmacro_eggs.txt"
 global heartbeatPath := A_ScriptDir "\brawlmacro_heartbeat.txt"
 global historialLogPath := A_ScriptDir "\brawlmacro_historial.log"
-global VERSION_ACTUAL := "31.5.7"
+global VERSION_ACTUAL := "31.5.8"
 
 ; ===== TEMAS =====
 temas := [
@@ -8615,7 +8615,8 @@ AplicarTema(tema, guardar := true, fromTrans := false) {
     ; detectar "represente" al tema (agua→lluvia, verde→viento de hojas...)
     ; en vez de una forma geométrica genérica sin relación con el tema.
     global efAccionEstilo
-    efAccionEstilo := InStr(tema.nombre, "Miel") ? "abejas" : EfectoDeTema(tema)
+    efAccionEstilo := InStr(tema.nombre, "P R E M I U M") ? "premium"
+        : InStr(tema.nombre, "Miel") ? "abejas" : EfectoDeTema(tema)
 
     ; ── Detección del tema PREMIUM (multi-hue RGB en todo) ──
     temaPremiumActivo := InStr(tema.nombre, "P R E M I U M") > 0
@@ -13193,9 +13194,9 @@ EfectoAccion(catColor := "") {
     if (tmaAct.HasProp("unlock") && (tmaAct.unlock = "gojo" || tmaAct.unlock = "sukuna"))
         return
     efAccionColor := (catColor != "" && StrLen(catColor) = 6) ? catColor : colorLuzAccion
-    ; "lluvia"/"matrix"/"abejas" necesitan más frames para que la ráfaga se note.
-    ; Duración subida (más vistoso, estilo Sukuna que cruza toda la ventana).
-    efAccionMaxFrame := (efAccionEstilo = "lluvia" || efAccionEstilo = "matrix" || efAccionEstilo = "abejas") ? 26 : 18
+    ; Cada estilo tiene su propia duración (los que cruzan/caen necesitan más
+    ; frames; los estallidos cortos menos). Ver FramesDeEstilo().
+    efAccionMaxFrame := FramesDeEstilo(efAccionEstilo)
     efAccionFrame := efAccionMaxFrame
     try GenerarBurstAccion(efAccionEstilo)
     try ReposicionarOverlayDeco()
@@ -13218,74 +13219,171 @@ AnimarEfectoAccion() {
 ; tema activo — la misma que EfectoDeTema). Se llama una vez al arrancar el
 ; efecto. Cada partícula representa el elemento del tema: gotas para agua,
 ; hojas para viento, abejas para miel, etc.
+; Duración (frames) de la ráfaga según el estilo. Los que cruzan/caen o tienen
+; ciclo de vida (subir+estallar, caer+salpicar) necesitan más frames.
+FramesDeEstilo(estilo) {
+    switch estilo {
+        case "burbujas", "petalos": return 48
+        case "nieve", "premium":    return 46
+        case "lluvia", "matrix", "abejas": return 44
+        case "hojas":    return 42
+        case "estrellas", "brasas": return 40
+        case "chispas":  return 34
+        default:         return 32
+    }
+}
+
+; ── Helpers de dibujo GDI para las ráfagas (color en BGR) ──
+EscalarBGR(bgr, f) {   ; oscurece (f<1) hacia negro
+    r := bgr & 0xFF, g := (bgr >> 8) & 0xFF, b := (bgr >> 16) & 0xFF
+    f := Max(0.0, f)
+    return (Round(b*f) << 16) | (Round(g*f) << 8) | Round(r*f)
+}
+AclararBGR(bgr, f) {   ; aclara (f en 0..1) hacia blanco
+    r := bgr & 0xFF, g := (bgr >> 8) & 0xFF, b := (bgr >> 16) & 0xFF
+    return (Round(b+(255-b)*f) << 16) | (Round(g+(255-g)*f) << 8) | Round(r+(255-r)*f)
+}
+LineaGDI(hdc, x1, y1, x2, y2, ancho, bgr) {
+    p  := DllCall("CreatePen", "Int", 0, "Int", Max(1, Round(ancho)), "UInt", bgr, "Ptr")
+    op := DllCall("SelectObject", "Ptr", hdc, "Ptr", p)
+    DllCall("MoveToEx", "Ptr", hdc, "Int", Round(x1), "Int", Round(y1), "Ptr", 0)
+    DllCall("LineTo",   "Ptr", hdc, "Int", Round(x2), "Int", Round(y2))
+    DllCall("SelectObject", "Ptr", hdc, "Ptr", op)
+    DllCall("DeleteObject", "Ptr", p)
+}
+AnilloGDI(hdc, cx, cy, r, ancho, bgr) {   ; círculo hueco
+    nb := DllCall("GetStockObject", "Int", 5, "Ptr")   ; NULL_BRUSH
+    p  := DllCall("CreatePen", "Int", 0, "Int", Max(1, Round(ancho)), "UInt", bgr, "Ptr")
+    ob := DllCall("SelectObject", "Ptr", hdc, "Ptr", nb)
+    op := DllCall("SelectObject", "Ptr", hdc, "Ptr", p)
+    DllCall("Ellipse", "Ptr", hdc, "Int", Round(cx-r), "Int", Round(cy-r), "Int", Round(cx+r), "Int", Round(cy+r))
+    DllCall("SelectObject", "Ptr", hdc, "Ptr", ob)
+    DllCall("SelectObject", "Ptr", hdc, "Ptr", op)
+    DllCall("DeleteObject", "Ptr", p)
+}
+PoligonoGDI(hdc, pts, bgr) {   ; pts = array de [x,y]
+    n := pts.Length
+    if (n < 2)
+        return
+    buf := Buffer(n*8, 0)
+    for i, pt in pts {
+        NumPut("Int", Round(pt[1]), buf, (i-1)*8)
+        NumPut("Int", Round(pt[2]), buf, (i-1)*8 + 4)
+    }
+    br  := DllCall("CreateSolidBrush", "UInt", bgr, "Ptr")
+    ob  := DllCall("SelectObject", "Ptr", hdc, "Ptr", br)
+    np  := DllCall("CreatePen", "Int", 5, "Int", 1, "UInt", bgr, "Ptr")   ; PS_NULL
+    opn := DllCall("SelectObject", "Ptr", hdc, "Ptr", np)
+    DllCall("Polygon", "Ptr", hdc, "Ptr", buf, "Int", n)
+    DllCall("SelectObject", "Ptr", hdc, "Ptr", ob)
+    DllCall("SelectObject", "Ptr", hdc, "Ptr", opn)
+    DllCall("DeleteObject", "Ptr", br)
+    DllCall("DeleteObject", "Ptr", np)
+}
+
+; Crea la ráfaga de partículas para el estilo dado. Cada estilo tiene su PROPIA
+; coreografía (no un estallido genérico): estrellas fugaces con estela, rayos
+; eléctricos quebrados, brasas que ascienden ondulando, copos de 6 brazos,
+; lluvia con salpicadura, burbujas que suben y estallan, pétalos en espiral,
+; código matrix con estela degradada, confeti arcoíris (premium)...
 GenerarBurstAccion(estilo) {
     global efAccionParticulas, EFACCION_W, EFACCION_H
     efAccionParticulas := []
     w := EFACCION_W, h := EFACCION_H
+    cx0 := w/2, cy0 := h*0.42
     switch estilo {
-        case "lluvia", "burbujas":
-            ; Agua: lluvia densa y rápida cayendo por toda la ventana
-            loop 28
-                efAccionParticulas.Push({ tipo: "gota", x: Random(0.0, w*1.0), y: Random(-h*0.5, h*0.3),
-                    vx: Random(-3, 3) / 10.0, vy: Random(8.0, 14.0), len: Random(12, 22) })
-        case "hojas", "petalos":
-            ; Viento: hojas/pétalos cruzando rápido de un lado a otro
-            loop 18 {
-                dir := (Mod(A_Index, 2) = 0) ? 1 : -1
-                efAccionParticulas.Push({ tipo: "hoja", x: (dir = 1) ? -Random(0,40)*1.0 : w + Random(0,40),
-                    y: Random(0.0, h*1.0), vx: Random(7.0, 12.0) * dir, vy: Random(-15, 15) / 10.0,
-                    rot: Random(0.0, 6.28), vrot: Random(-25, 25) / 10.0, r: Random(5, 9) })
-            }
-        case "nieve":
-            ; Nevada repentina más densa
-            loop 26
-                efAccionParticulas.Push({ tipo: "nieve", x: Random(0.0, w*1.0), y: Random(-h*0.4, h*0.2),
-                    vx: Random(-15, 15) / 10.0, vy: Random(3.5, 6.5), r: Random(2, 5) })
-        case "brasas":
-            ; Chispas de fuego saliendo disparadas hacia arriba, más anchas y altas
+        case "lluvia":
+            ; Lluvia que cae en diagonal y SALPICA al tocar el suelo
             loop 22
-                efAccionParticulas.Push({ tipo: "brasa", x: w/2 + Random(-100, 100), y: h*0.75 + Random(-20, 20),
-                    vx: Random(-22, 22) / 10.0, vy: -Random(5.0, 9.5), r: Random(2, 5) })
-        case "estrellas":
-            ; Estallido de estrellas radiando desde el centro hasta los bordes
-            n := 16
-            loop n {
-                ang := (A_Index / n) * 6.2831853 + Random(0, 50) / 100.0
-                spd := Random(4.5, 8.5)
-                efAccionParticulas.Push({ tipo: "estrella", x: w/2, y: h*0.42, vx: Cos(ang)*spd, vy: Sin(ang)*spd, r: Random(2, 5) })
+                efAccionParticulas.Push({ tipo:"gotalluvia", x:Random(0.0, w*1.0), y:Random(-h*0.5, h*0.4),
+                    vx:Random(-2, 2)/10.0, vy:Random(11.0, 16.0), len:Random(10, 18), age:-1 })
+        case "burbujas":
+            ; Burbujas que SUBEN ondulando y ESTALLAN (anillo + esquirlas)
+            loop 16
+                efAccionParticulas.Push({ tipo:"burbuja", x:Random(0.0, w*1.0), y:Random(h*0.55, h*1.05),
+                    vy:-Random(2.5, 5.0), amp:Random(5, 14)/10.0, ph:Random(0.0, 6.28),
+                    r:Random(3, 8), popAt:Random(5, 60)*1.0, popped:false, popAge:0 })
+        case "hojas":
+            ; Hojas que cruzan REVOLOTEANDO (aleteo sinusoidal + giro)
+            loop 16 {
+                dir := (Mod(A_Index, 2) = 0) ? 1 : -1
+                efAccionParticulas.Push({ tipo:"hoja", x:(dir = 1) ? -Random(0,40)*1.0 : w + Random(0,40),
+                    y:Random(0.0, h*0.9), vx:Random(6.0, 11.0)*dir, drift:Random(2, 8)/10.0,
+                    fph:Random(0.0, 6.28), rot:Random(0.0, 6.28), vrot:Random(-20, 20)/10.0, r:Random(5, 9) })
             }
+        case "petalos":
+            ; Pétalos que caen en ESPIRAL (sakura), giro suave
+            loop 16
+                efAccionParticulas.Push({ tipo:"petalo", bx:Random(0.0, w*1.0), x:0.0, y:Random(-h*0.3, h*0.2),
+                    vy:Random(2.0, 3.8), amp:Random(14, 30)*1.0, sph:Random(0.0, 6.28), vsp:Random(15, 30)/100.0,
+                    rot:Random(0.0, 6.28), vrot:Random(-15, 15)/100.0, r:Random(5, 8) })
+        case "nieve":
+            ; Copos de 6 brazos que derivan con vaivén y giran lento
+            loop 22
+                efAccionParticulas.Push({ tipo:"copo", x:Random(0.0, w*1.0), y:Random(-h*0.4, h*0.2),
+                    vy:Random(2.5, 4.5), amp:Random(6, 16)/10.0, ph:Random(0.0, 6.28),
+                    r:Random(3, 6), rot:Random(0.0, 6.28), vrot:Random(-15, 15)/100.0 })
+        case "brasas":
+            ; Brasas de fogata: ascienden ONDULANDO, encogen y se apagan
+            loop 20
+                efAccionParticulas.Push({ tipo:"ember", x:cx0 + Random(-70, 70), y:h*0.8 + Random(-15, 15),
+                    vy:-Random(3.5, 7.5), amp:Random(4, 12)/10.0, ph:Random(0.0, 6.28), r:Random(3, 6)*1.0 })
+        case "estrellas":
+            ; Estrellas FUGACES con estela + destellos de 4 puntas que titilan
+            loop 4
+                efAccionParticulas.Push({ tipo:"fugaz", x:Random(0.0, w*0.6), y:Random(-10.0, h*0.3),
+                    vx:Random(9.0, 15.0), vy:Random(5.0, 9.0), r:Random(2, 4)*1.0 })
+            loop 12
+                efAccionParticulas.Push({ tipo:"destello", x:Random(0.0, w*1.0), y:Random(0.0, h*0.85),
+                    r:Random(3, 7)*1.0, ph:Random(0.0, 6.28), sp:Random(8, 16)/10.0 })
         case "chispas":
-            ; Chispazo eléctrico: rayos radiando rápido por toda la ventana
-            n := 14
-            loop n {
-                ang := (A_Index / n) * 6.2831853 + Random(0, 50) / 100.0
-                spd := Random(7.0, 12.0)
-                efAccionParticulas.Push({ tipo: "chispa", x: w/2, y: h*0.42, vx: Cos(ang)*spd, vy: Sin(ang)*spd, len: Random(8, 16) })
+            ; RAYOS eléctricos quebrados saliendo del centro (parpadean) + chispas
+            loop 5 {
+                ang := Random(0.0, 6.28)
+                seg := Random(4, 6)
+                step := Random(16, 26)*1.0
+                pts := []
+                px := cx0, py := cy0
+                loop seg {
+                    px += Cos(ang)*step + Random(-8, 8)
+                    py += Sin(ang)*step + Random(-8, 8)
+                    pts.Push([px, py])
+                }
+                efAccionParticulas.Push({ tipo:"rayo", pts:pts, ox:cx0, oy:cy0, seed:A_Index })
+            }
+            loop 10 {
+                a2 := Random(0.0, 6.28), s2 := Random(7.0, 12.0)
+                efAccionParticulas.Push({ tipo:"chispa", x:cx0, y:cy0, vx:Cos(a2)*s2, vy:Sin(a2)*s2, len:Random(6, 12) })
             }
         case "matrix":
-            ; Lluvia de código cayendo en columnas, más densa
+            ; Columnas de código con cabeza brillante y estela degradada
             loop 14
-                efAccionParticulas.Push({ tipo: "matrix", x: Random(0.0, w*1.0), y: Random(-h*0.5, 0.0),
-                    vy: Random(6.0, 11.0), len: Random(24, 55) })
+                efAccionParticulas.Push({ tipo:"matrix", x:Random(0, Round(w/12))*12.0, y:Random(-h*0.5, 0.0),
+                    vy:Random(7.0, 12.0), len:Random(30, 60), segs:Random(5, 8) })
         case "abejas":
-            ; Más abejas, más rápido, zumbando alrededor del logo (centro del
-            ; logo = lcx,lcy en PintarDecoracionesEnHDC: 66,53 en la ventana principal)
+            ; Abejas zumbando alrededor del logo (centro 66,53 en la ventana)
             loop 9
-                efAccionParticulas.Push({ tipo: "abeja", x: 66.0 + Random(-18, 18), y: 53.0 + Random(-18, 18),
-                    ang: Random(0.0, 6.28), spd: Random(4.5, 8.0), wob: Random(0.0, 6.28) })
-        default:
-            ; Categoría desconocida: estallido de estrellas (fallback seguro)
-            n := 12
-            loop n {
-                ang := (A_Index / n) * 6.2831853
-                efAccionParticulas.Push({ tipo: "estrella", x: w/2, y: h*0.42, vx: Cos(ang)*5.5, vy: Sin(ang)*5.5, r: 3 })
+                efAccionParticulas.Push({ tipo:"abeja", x:66.0 + Random(-18, 18), y:53.0 + Random(-18, 18),
+                    ang:Random(0.0, 6.28), spd:Random(4.5, 8.0), wob:Random(0.0, 6.28) })
+        case "premium":
+            ; Confeti ARCOÍRIS: salen hacia arriba, giran y caen por gravedad
+            loop 22 {
+                hue := Mod(A_Index*16, 360)
+                efAccionParticulas.Push({ tipo:"confeti", x:cx0 + Random(-40, 40), y:cy0 + Random(-20, 20),
+                    vx:Random(-30, 30)/10.0, vy:Random(-40, 0)/10.0, rot:Random(0.0, 6.28), vrot:Random(-30, 30)/10.0,
+                    w:Random(4, 8)*1.0, h:Random(6, 12)*1.0, bgr:HexToBGR(HSVaHex(hue, 1.0, 1.0)) })
             }
+        default:
+            ; Fallback: destellos titilantes (suave, no estallido)
+            loop 12
+                efAccionParticulas.Push({ tipo:"destello", x:Random(0.0, w*1.0), y:Random(0.0, h*0.85),
+                    r:Random(3, 7)*1.0, ph:Random(0.0, 6.28), sp:Random(8, 16)/10.0 })
     }
 }
 
 ; Avanza la simulación de la ráfaga un frame (posiciones/rotación).
 ActualizarBurstAccion() {
-    global efAccionParticulas
+    global efAccionParticulas, EFACCION_H
     for p in efAccionParticulas {
         switch p.tipo {
             case "abeja":
@@ -13293,11 +13391,67 @@ ActualizarBurstAccion() {
                 p.x += Cos(p.ang) * p.spd + Sin(p.wob) * 2.2
                 p.y += Sin(p.ang) * p.spd + Cos(p.wob * 1.3) * 2.2
             case "hoja":
-                p.x += p.vx, p.y += p.vy, p.rot += p.vrot
+                p.fph += 0.5
+                p.x += p.vx
+                p.y += Sin(p.fph) * 2.0 + p.drift
+                p.rot += p.vrot
+            case "petalo":
+                p.sph += p.vsp
+                p.x := p.bx + Sin(p.sph) * p.amp
+                p.y += p.vy
+                p.rot += p.vrot
+            case "copo":
+                p.ph += 0.3
+                p.x += Sin(p.ph) * p.amp
+                p.y += p.vy
+                p.rot += p.vrot
+            case "ember":
+                p.ph += 0.4
+                p.x += Sin(p.ph) * p.amp
+                p.y += p.vy
+                p.vy *= 0.97
+                p.r  *= 0.96
+            case "burbuja":
+                if (!p.popped) {
+                    p.ph += 0.3
+                    p.x += Sin(p.ph) * p.amp
+                    p.y += p.vy
+                    if (p.y <= p.popAt)
+                        p.popped := true
+                } else {
+                    p.popAge += 1
+                }
+            case "gotalluvia":
+                if (p.age < 0) {
+                    p.x += p.vx
+                    p.y += p.vy
+                    if (p.y >= 185)   ; suelo ~ h*0.86 → empieza la salpicadura
+                        p.age := 0
+                } else {
+                    p.age += 1
+                }
+            case "confeti":
+                if (p.y < EFACCION_H*0.92) {
+                    p.vy += 0.4
+                    p.x += p.vx
+                    p.y += p.vy
+                    p.rot += p.vrot
+                } else {
+                    ; aterriza: se asienta en el "suelo" y deja de moverse
+                    p.y := EFACCION_H*0.92
+                    p.vx *= 0.85
+                    p.vrot *= 0.85
+                    p.x += p.vx
+                    p.rot += p.vrot
+                }
             case "matrix":
                 p.y += p.vy
+            case "rayo":
+                ; estáticos: parpadean en el dibujo
             default:
-                p.x += p.vx, p.y += p.vy
+                ; fugaz / chispa / destello (destello no tiene vx → queda fijo)
+                if (p.HasProp("vx"))
+                    p.x += p.vx, p.y += p.vy
         }
     }
 }
@@ -13306,73 +13460,122 @@ ActualizarBurstAccion() {
 ; propio elemento (gota/hoja/copo/brasa/estrella/chispa/matrix/abeja).
 PintarEfectoAccion(hdc, cx, cy, frame, maxFrame) {
     global efAccionColor, efAccionEstilo, efAccionParticulas
-    bgr := HexToBGR(efAccionColor)
+    baseBgr := HexToBGR(efAccionColor)
     avance := (maxFrame - frame) / (maxFrame * 1.0)
     fade := 1.0 - avance   ; 1.0 al arrancar -> 0.0 al final
     nullBrush := DllCall("GetStockObject", "Int", 5, "Ptr")
     if (fade <= 0.02)
         return
+    bright := AclararBGR(baseBgr, 0.55)
+    dim    := EscalarBGR(baseBgr, 0.45)
 
     for p in efAccionParticulas {
+        bgr := p.HasProp("bgr") ? p.bgr : baseBgr
+
         switch p.tipo {
-            case "gota":
-                grosorG := Max(1, Round(2 * fade))
-                hPg := DllCall("CreatePen", "Int", 0, "Int", grosorG, "UInt", bgr, "Ptr")
-                DllCall("SelectObject", "Ptr", hdc, "Ptr", hPg)
-                DllCall("MoveToEx", "Ptr", hdc, "Int", Round(p.x), "Int", Round(p.y), "Ptr", 0)
-                DllCall("LineTo", "Ptr", hdc, "Int", Round(p.x + p.vx * 1.5), "Int", Round(p.y + p.len))
-                DllCall("DeleteObject", "Ptr", hPg)
+            case "fugaz":
+                ; estrella fugaz: estela degradada (larga tenue + corta viva) + cabeza
+                LineaGDI(hdc, p.x - p.vx*1.6, p.y - p.vy*1.6, p.x, p.y, Max(1, Round(2*fade)), dim)
+                LineaGDI(hdc, p.x - p.vx*0.8, p.y - p.vy*0.8, p.x, p.y, Max(1, Round(2*fade)), bgr)
+                DibujarBolaSolida(hdc, p.x, p.y, Max(1.2, p.r*fade), bright, nullBrush)
 
-            case "hoja":
-                dx := Cos(p.rot) * p.r, dy := Sin(p.rot) * p.r
-                dx2 := Cos(p.rot + 1.5708) * (p.r * 0.5), dy2 := Sin(p.rot + 1.5708) * (p.r * 0.5)
-                pts := Buffer(16, 0)
-                NumPut("Int", Round(p.x + dx),  "Int", Round(p.y + dy),  pts, 0)
-                NumPut("Int", Round(p.x + dx2), "Int", Round(p.y + dy2), pts, 8)
-                NumPut("Int", Round(p.x - dx),  "Int", Round(p.y - dy),  pts, 16)
-                NumPut("Int", Round(p.x - dx2), "Int", Round(p.y - dy2), pts, 24)
-                brushH := DllCall("CreateSolidBrush", "UInt", bgr, "Ptr")
-                oldBh := DllCall("SelectObject", "Ptr", hdc, "Ptr", brushH)
-                hPenNulH := DllCall("CreatePen", "Int", 5, "Int", 1, "UInt", bgr, "Ptr")   ; PS_NULL: sin borde
-                oldPenH := DllCall("SelectObject", "Ptr", hdc, "Ptr", hPenNulH)
-                DllCall("Polygon", "Ptr", hdc, "Ptr", pts, "Int", 4)
-                DllCall("SelectObject", "Ptr", hdc, "Ptr", oldBh)
-                DllCall("SelectObject", "Ptr", hdc, "Ptr", oldPenH)
-                DllCall("DeleteObject", "Ptr", brushH)
-                DllCall("DeleteObject", "Ptr", hPenNulH)
+            case "destello":
+                s := p.r * fade * (0.35 + 0.65*(0.5 + 0.5*Sin(frame*p.sp + p.ph)))
+                if (s < 0.6)
+                    continue
+                d := s*0.6
+                LineaGDI(hdc, p.x - s, p.y, p.x + s, p.y, 1, bgr)
+                LineaGDI(hdc, p.x, p.y - s, p.x, p.y + s, 1, bgr)
+                LineaGDI(hdc, p.x - d, p.y - d, p.x + d, p.y + d, 1, dim)
+                LineaGDI(hdc, p.x - d, p.y + d, p.x + d, p.y - d, 1, dim)
+                DibujarBolaSolida(hdc, p.x, p.y, Max(0.8, s*0.28), bright, nullBrush)
 
-            case "nieve":
-                DibujarBolaSolida(hdc, p.x, p.y, p.r * fade, bgr, nullBrush)
-
-            case "brasa":
-                DibujarBolaSolida(hdc, p.x, p.y, p.r * (0.5 + fade * 0.5), bgr, nullBrush)
-
-            case "estrella":
-                DibujarBolaSolida(hdc, p.x, p.y, p.r * fade, bgr, nullBrush)
+            case "rayo":
+                ; parpadeo eléctrico: saltar algunos frames
+                if (Mod(frame + p.seed, 3) = 0)
+                    continue
+                px := p.ox, py := p.oy           ; halo ancho tenue
+                for pt in p.pts {
+                    LineaGDI(hdc, px, py, pt[1], pt[2], Max(2, Round(4*fade)), dim)
+                    px := pt[1], py := pt[2]
+                }
+                px := p.ox, py := p.oy           ; núcleo fino brillante
+                for pt in p.pts {
+                    LineaGDI(hdc, px, py, pt[1], pt[2], Max(1, Round(2*fade)), bright)
+                    px := pt[1], py := pt[2]
+                }
 
             case "chispa":
-                grosorCh := Max(1, Round(2 * fade))
-                hPch := DllCall("CreatePen", "Int", 0, "Int", grosorCh, "UInt", bgr, "Ptr")
-                DllCall("SelectObject", "Ptr", hdc, "Ptr", hPch)
-                DllCall("MoveToEx", "Ptr", hdc, "Int", Round(p.x), "Int", Round(p.y), "Ptr", 0)
-                DllCall("LineTo", "Ptr", hdc, "Int", Round(p.x + (p.vx >= 0 ? 1 : -1)*p.len*0.4 + p.vx), "Int", Round(p.y + p.vy))
-                DllCall("DeleteObject", "Ptr", hPch)
+                LineaGDI(hdc, p.x, p.y, p.x + (p.vx >= 0 ? 1 : -1)*p.len*0.4 + p.vx, p.y + p.vy, Max(1, Round(2*fade)), bgr)
+
+            case "ember":
+                DibujarBolaSolida(hdc, p.x, p.y, Max(0.8, p.r*(0.5 + fade*0.5)), dim, nullBrush)
+                DibujarBolaSolida(hdc, p.x, p.y, Max(0.6, p.r*0.55*fade), bright, nullBrush)
+
+            case "copo":
+                rr := p.r * fade
+                loop 3 {
+                    a := p.rot + (A_Index-1) * 1.0472   ; 3 ejes a 60° → 6 brazos
+                    LineaGDI(hdc, p.x - Cos(a)*rr, p.y - Sin(a)*rr, p.x + Cos(a)*rr, p.y + Sin(a)*rr, 1, bgr)
+                }
+                DibujarBolaSolida(hdc, p.x, p.y, Max(0.6, rr*0.2), bright, nullBrush)
+
+            case "gotalluvia":
+                if (p.age < 0) {
+                    LineaGDI(hdc, p.x, p.y, p.x + p.vx*0.4, p.y + p.len, Max(1, Round(2*fade)), bgr)
+                } else if (p.age <= 5) {
+                    sr := 2 + p.age*1.6   ; salpicadura: dos brazos que se abren + gotita
+                    LineaGDI(hdc, p.x - sr, 185 - sr*0.3, p.x - sr*0.4, 185 - sr*0.9, 1, bgr)
+                    LineaGDI(hdc, p.x + sr, 185 - sr*0.3, p.x + sr*0.4, 185 - sr*0.9, 1, bgr)
+                    DibujarBolaSolida(hdc, p.x, 185, Max(0.6, (5-p.age)*0.4), bright, nullBrush)
+                }
+
+            case "burbuja":
+                if (!p.popped) {
+                    AnilloGDI(hdc, p.x, p.y, Max(1, p.r*fade), 1, bgr)
+                    DibujarBolaSolida(hdc, p.x - p.r*0.3, p.y - p.r*0.3, Max(0.5, p.r*0.18*fade), bright, nullBrush)
+                } else if (p.popAge <= 5) {
+                    er := p.r + p.popAge*2.2     ; anillo que estalla + 4 esquirlas
+                    AnilloGDI(hdc, p.x, p.y, er, 1, dim)
+                    loop 4 {
+                        a := (A_Index/4) * 6.2831853
+                        DibujarBolaSolida(hdc, p.x + Cos(a)*er*0.8, p.y + Sin(a)*er*0.8, Max(0.5, (5-p.popAge)*0.4), bgr, nullBrush)
+                    }
+                }
+
+            case "hoja", "petalo":
+                ratio := (p.tipo = "petalo") ? 0.7 : 0.45
+                dx  := Cos(p.rot)*p.r,            dy  := Sin(p.rot)*p.r
+                dx2 := Cos(p.rot + 1.5708)*(p.r*ratio), dy2 := Sin(p.rot + 1.5708)*(p.r*ratio)
+                PoligonoGDI(hdc, [[p.x+dx, p.y+dy], [p.x+dx2, p.y+dy2], [p.x-dx, p.y-dy], [p.x-dx2, p.y-dy2]], bgr)
+                if (p.tipo = "hoja")
+                    LineaGDI(hdc, p.x-dx, p.y-dy, p.x+dx, p.y+dy, 1, dim)   ; vena central
 
             case "matrix":
-                grosorM := 3
-                hPm := DllCall("CreatePen", "Int", 0, "Int", grosorM, "UInt", bgr, "Ptr")
-                DllCall("SelectObject", "Ptr", hdc, "Ptr", hPm)
-                DllCall("MoveToEx", "Ptr", hdc, "Int", Round(p.x), "Int", Round(p.y), "Ptr", 0)
-                DllCall("LineTo", "Ptr", hdc, "Int", Round(p.x), "Int", Round(p.y + p.len))
-                DllCall("DeleteObject", "Ptr", hPm)
+                segLen := p.len / p.segs
+                loop p.segs {
+                    sy  := p.y - (A_Index-1)*segLen
+                    col := (A_Index = 1) ? bright : EscalarBGR(baseBgr, 0.7 - (A_Index/p.segs)*0.55)
+                    LineaGDI(hdc, p.x, sy, p.x, sy - segLen*0.6, (A_Index = 1) ? 3 : 2, col)
+                }
 
             case "abeja":
                 DibujarBolaSolida(hdc, p.x, p.y, 3.0 * fade, bgr, nullBrush)
-                hPa := DllCall("CreatePen", "Int", 0, "Int", 1, "UInt", 0x000000, "Ptr")
-                DllCall("SelectObject", "Ptr", hdc, "Ptr", hPa)
-                DllCall("MoveToEx", "Ptr", hdc, "Int", Round(p.x - 2), "Int", Round(p.y), "Ptr", 0)
-                DllCall("LineTo", "Ptr", hdc, "Int", Round(p.x + 2), "Int", Round(p.y))
-                DllCall("DeleteObject", "Ptr", hPa)
+                LineaGDI(hdc, p.x - 2, p.y, p.x + 2, p.y, 1, 0x000000)   ; raya
+                LineaGDI(hdc, p.x - 1, p.y - 1, p.x - 3, p.y - 3, 1, bright)   ; alas
+                LineaGDI(hdc, p.x + 1, p.y - 1, p.x + 3, p.y - 3, 1, bright)
+
+            case "confeti":
+                hw := p.w/2, hh := p.h/2
+                ca := Cos(p.rot), sa := Sin(p.rot)
+                PoligonoGDI(hdc, [
+                    [p.x + (-hw*ca + hh*sa), p.y + (-hw*sa - hh*ca)],
+                    [p.x + ( hw*ca + hh*sa), p.y + ( hw*sa - hh*ca)],
+                    [p.x + ( hw*ca - hh*sa), p.y + ( hw*sa + hh*ca)],
+                    [p.x + (-hw*ca - hh*sa), p.y + (-hw*sa + hh*ca)]], bgr)
+
+            default:
+                DibujarBolaSolida(hdc, p.x, p.y, Max(0.8, (p.HasProp("r") ? p.r : 3)*fade), bgr, nullBrush)
         }
     }
 }
