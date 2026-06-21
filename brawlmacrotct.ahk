@@ -20,7 +20,7 @@ configPath := A_ScriptDir "\brawlmacro_config.ini"
 global eggsBackupPath := A_ScriptDir "\brawlmacro_eggs.txt"
 global heartbeatPath := A_ScriptDir "\brawlmacro_heartbeat.txt"
 global historialLogPath := A_ScriptDir "\brawlmacro_historial.log"
-global VERSION_ACTUAL := "31.5.2"
+global VERSION_ACTUAL := "31.5.3"
 
 ; ===== TEMAS =====
 temas := [
@@ -7197,16 +7197,21 @@ CerrarTutorial(*) {
 ; ═══════════════════════════════════════════════════════════════
 ParchesPaginas() {
     return [
-    { ico: Chr(0x1F4CB), tit: "Parche 31.2 (actual)",
-      txt: "· BOTONES Y LUCES REDONDEADOS: la región se re-aplica tras cada cambio de color`n"
-         . "· Luces siempre curvas: al iniciar, parar y cambiar tema ya no se cuadran`n"
-         . "· Líneas decorativas a ancho completo (barra título, estado, acciones)`n"
-         . "· Botón 'Abrir macro en bloc de notas' eliminado`n"
-         . "· 5 botones superiores recentrados en la ventana`n"
-         . "· Personalización: incluye RGB y Partículas directamente`n"
+    { ico: Chr(0x1F4CB), tit: "Parche 31.5 (actual)",
+      txt: "· Botones y luces SIEMPRE redondos (al iniciar y minimizar)`n"
+         . "· Logo del modo mini ya no parpadea con la barra`n"
+         . "· Botón 📋 Parches reaparece (estaba invisible)`n"
+         . "· Efectos de acción más vistosos y notorios`n"
+         . "· Actualizador arreglado: ya detecta nuevas versiones`n" },
+
+    { ico: Chr(0x1F4CB), tit: "Parche 31.2",
+      txt: "· Botones y luces redondeados al cambiar de color`n"
+         . "· Líneas decorativas a ancho completo`n"
+         . "· Botón 'Abrir en bloc de notas' eliminado`n"
+         . "· 5 botones superiores recentrados`n"
+         . "· Personalización: incluye RGB y Partículas`n"
          . "· Efectos de acción movidos a Optimización`n"
-         . "· Efecto de acción representa al tema (agua→lluvia, verde→viento,`n"
-         . "  miel→abejas, fuego→brasas, eléctrico→chispas, matrix→código...)`n" },
+         . "· Efecto de acción según el tema (lluvia, viento...)`n" },
 
     { ico: Chr(0x1F3A8), tit: "Parche 31.1 — Mejoras UI",
       txt: "· Notificación en historial cuando el macro arranca ya cerrando Brawlhalla`n"
@@ -9323,7 +9328,15 @@ AplicarRegion(ctrl, invalidarPadre := true) {
 ReaplicarTodasLasRegiones() {
     global _ctrlRadios, miGui, historialGui, historialVisible, miniGui, modoMini
     for ctrl, info in _ctrlRadios {
-        try AplicarRegion(ctrl, false)
+        try {
+            AplicarRegion(ctrl, false)
+            ; Reasentar la región redonda NO basta: si el control se cuadró
+            ; antes, las esquinas del padre conservan el color viejo (se ven
+            ; cuadradas aunque el recorte ya sea redondo). Hay que limpiarlas.
+            ; forzarYa=false → solo encola el InvalidateRect (lo pinta el próximo
+            ; ciclo de mensajes), sin UpdateWindow síncrono → cero flicker.
+            InvalidarEsquinasEnPadre(ctrl, false)
+        }
     }
     ; Lo mismo, pero para la VENTANA completa (no solo sus controles). Minimizar
     ; y restaurar (o cualquier SWP_FRAMECHANGED implícito de Windows) puede
@@ -13089,8 +13102,9 @@ EfectoAccion(catColor := "") {
     if (tmaAct.HasProp("unlock") && (tmaAct.unlock = "gojo" || tmaAct.unlock = "sukuna"))
         return
     efAccionColor := (catColor != "" && StrLen(catColor) = 6) ? catColor : colorLuzAccion
-    ; "lluvia"/"matrix"/"abejas" necesitan más frames para que la ráfaga se note
-    efAccionMaxFrame := (efAccionEstilo = "lluvia" || efAccionEstilo = "matrix" || efAccionEstilo = "abejas") ? 20 : 14
+    ; "lluvia"/"matrix"/"abejas" necesitan más frames para que la ráfaga se note.
+    ; Duración subida (más vistoso, estilo Sukuna que cruza toda la ventana).
+    efAccionMaxFrame := (efAccionEstilo = "lluvia" || efAccionEstilo = "matrix" || efAccionEstilo = "abejas") ? 26 : 18
     efAccionFrame := efAccionMaxFrame
     try GenerarBurstAccion(efAccionEstilo)
     try ReposicionarOverlayDeco()
@@ -13119,61 +13133,61 @@ GenerarBurstAccion(estilo) {
     w := EFACCION_W, h := EFACCION_H
     switch estilo {
         case "lluvia", "burbujas":
-            ; Agua: lluvia rápida cayendo por toda la ventana
-            loop 18
-                efAccionParticulas.Push({ tipo: "gota", x: Random(0.0, w*1.0), y: Random(-h*0.4, h*0.3),
-                    vx: Random(-3, 3) / 10.0, vy: Random(7.0, 12.0), len: Random(10, 18) })
+            ; Agua: lluvia densa y rápida cayendo por toda la ventana
+            loop 28
+                efAccionParticulas.Push({ tipo: "gota", x: Random(0.0, w*1.0), y: Random(-h*0.5, h*0.3),
+                    vx: Random(-3, 3) / 10.0, vy: Random(8.0, 14.0), len: Random(12, 22) })
         case "hojas", "petalos":
             ; Viento: hojas/pétalos cruzando rápido de un lado a otro
-            loop 12 {
+            loop 18 {
                 dir := (Mod(A_Index, 2) = 0) ? 1 : -1
                 efAccionParticulas.Push({ tipo: "hoja", x: (dir = 1) ? -Random(0,40)*1.0 : w + Random(0,40),
-                    y: Random(0.0, h*1.0), vx: Random(6.0, 10.0) * dir, vy: Random(-15, 15) / 10.0,
-                    rot: Random(0.0, 6.28), vrot: Random(-25, 25) / 10.0, r: Random(4, 7) })
+                    y: Random(0.0, h*1.0), vx: Random(7.0, 12.0) * dir, vy: Random(-15, 15) / 10.0,
+                    rot: Random(0.0, 6.28), vrot: Random(-25, 25) / 10.0, r: Random(5, 9) })
             }
         case "nieve":
-            ; Nevada repentina
-            loop 16
-                efAccionParticulas.Push({ tipo: "nieve", x: Random(0.0, w*1.0), y: Random(-h*0.3, h*0.2),
-                    vx: Random(-15, 15) / 10.0, vy: Random(3.5, 6.0), r: Random(2, 4) })
+            ; Nevada repentina más densa
+            loop 26
+                efAccionParticulas.Push({ tipo: "nieve", x: Random(0.0, w*1.0), y: Random(-h*0.4, h*0.2),
+                    vx: Random(-15, 15) / 10.0, vy: Random(3.5, 6.5), r: Random(2, 5) })
         case "brasas":
-            ; Chispas de fuego saliendo disparadas hacia arriba
-            loop 14
-                efAccionParticulas.Push({ tipo: "brasa", x: w/2 + Random(-60, 60), y: h*0.7 + Random(-20, 20),
-                    vx: Random(-15, 15) / 10.0, vy: -Random(4.0, 7.5), r: Random(2, 4) })
+            ; Chispas de fuego saliendo disparadas hacia arriba, más anchas y altas
+            loop 22
+                efAccionParticulas.Push({ tipo: "brasa", x: w/2 + Random(-100, 100), y: h*0.75 + Random(-20, 20),
+                    vx: Random(-22, 22) / 10.0, vy: -Random(5.0, 9.5), r: Random(2, 5) })
         case "estrellas":
-            ; Estallido de estrellas radiando desde el centro
-            n := 10
+            ; Estallido de estrellas radiando desde el centro hasta los bordes
+            n := 16
             loop n {
                 ang := (A_Index / n) * 6.2831853 + Random(0, 50) / 100.0
-                spd := Random(3.0, 5.5)
-                efAccionParticulas.Push({ tipo: "estrella", x: w/2, y: h*0.42, vx: Cos(ang)*spd, vy: Sin(ang)*spd, r: Random(2, 4) })
+                spd := Random(4.5, 8.5)
+                efAccionParticulas.Push({ tipo: "estrella", x: w/2, y: h*0.42, vx: Cos(ang)*spd, vy: Sin(ang)*spd, r: Random(2, 5) })
             }
         case "chispas":
-            ; Chispazo eléctrico: rayos cortos radiando rápido
-            n := 9
+            ; Chispazo eléctrico: rayos radiando rápido por toda la ventana
+            n := 14
             loop n {
                 ang := (A_Index / n) * 6.2831853 + Random(0, 50) / 100.0
-                spd := Random(5.0, 8.5)
-                efAccionParticulas.Push({ tipo: "chispa", x: w/2, y: h*0.42, vx: Cos(ang)*spd, vy: Sin(ang)*spd, len: Random(6, 12) })
+                spd := Random(7.0, 12.0)
+                efAccionParticulas.Push({ tipo: "chispa", x: w/2, y: h*0.42, vx: Cos(ang)*spd, vy: Sin(ang)*spd, len: Random(8, 16) })
             }
         case "matrix":
-            ; Lluvia de código cayendo en columnas
-            loop 9
-                efAccionParticulas.Push({ tipo: "matrix", x: Random(0.0, w*1.0), y: Random(-h*0.4, 0.0),
-                    vy: Random(6.0, 10.0), len: Random(20, 45) })
+            ; Lluvia de código cayendo en columnas, más densa
+            loop 14
+                efAccionParticulas.Push({ tipo: "matrix", x: Random(0.0, w*1.0), y: Random(-h*0.5, 0.0),
+                    vy: Random(6.0, 11.0), len: Random(24, 55) })
         case "abejas":
             ; Más abejas, más rápido, zumbando alrededor del logo (centro del
             ; logo = lcx,lcy en PintarDecoracionesEnHDC: 66,53 en la ventana principal)
-            loop 6
-                efAccionParticulas.Push({ tipo: "abeja", x: 66.0 + Random(-15, 15), y: 53.0 + Random(-15, 15),
-                    ang: Random(0.0, 6.28), spd: Random(4.0, 7.0), wob: Random(0.0, 6.28) })
+            loop 9
+                efAccionParticulas.Push({ tipo: "abeja", x: 66.0 + Random(-18, 18), y: 53.0 + Random(-18, 18),
+                    ang: Random(0.0, 6.28), spd: Random(4.5, 8.0), wob: Random(0.0, 6.28) })
         default:
             ; Categoría desconocida: estallido de estrellas (fallback seguro)
-            n := 8
+            n := 12
             loop n {
                 ang := (A_Index / n) * 6.2831853
-                efAccionParticulas.Push({ tipo: "estrella", x: w/2, y: h*0.42, vx: Cos(ang)*4.0, vy: Sin(ang)*4.0, r: 3 })
+                efAccionParticulas.Push({ tipo: "estrella", x: w/2, y: h*0.42, vx: Cos(ang)*5.5, vy: Sin(ang)*5.5, r: 3 })
             }
     }
 }
