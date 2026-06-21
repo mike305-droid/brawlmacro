@@ -20,7 +20,7 @@ configPath := A_ScriptDir "\brawlmacro_config.ini"
 global eggsBackupPath := A_ScriptDir "\brawlmacro_eggs.txt"
 global heartbeatPath := A_ScriptDir "\brawlmacro_heartbeat.txt"
 global historialLogPath := A_ScriptDir "\brawlmacro_historial.log"
-global VERSION_ACTUAL := "31.5.3"
+global VERSION_ACTUAL := "31.5.4"
 
 ; ===== TEMAS =====
 temas := [
@@ -5242,6 +5242,7 @@ luzActiva.OnEvent("Click", (*) => ClickLuzSecuencia(1))
 luzAccion.OnEvent("Click", (*) => ClickLuzSecuencia(2))
 luzApagado.OnEvent("Click", (*) => ClickLuzSecuencia(3))
 OnMessage(0x0003, OnMiGuiMove)   ; WM_MOVE → reposicionar overlays EN VIVO al mover la ventana
+miGui.OnEvent("Size", GuiPrincipalSize)   ; restaurar redondeo tras minimizar→restaurar
 
 ; Barra principal: Apariencia (Temas, RGB, Partículas) · Toggle Historial
 ; Posiciones originales: tema(240), RGB y part ocupan los huecos de hist y notas, hist va al hueco que dejó reset
@@ -9326,29 +9327,42 @@ AplicarRegion(ctrl, invalidarPadre := true) {
 ; Pasa invalidarPadre=false: solo re-asienta la región sin repintar el padre
 ; cada 2s (las esquinas ya quedaron limpias al arranque / cambio de color).
 ReaplicarTodasLasRegiones() {
-    global _ctrlRadios, miGui, historialGui, historialVisible, miniGui, modoMini
+    global _ctrlRadios
+    ; SOLO re-asentar la región redonda (SetWindowRgn). NO se invalida el padre
+    ; aquí: hacerlo cada 2s repintaba el rect completo de cada control con la
+    ; brocha de fondo y los dejaba cuadrados. La limpieza de esquinas se hace de
+    ; forma puntual (cambio de tema, hover, restaurar) con forzarYa=TRUE.
     for ctrl, info in _ctrlRadios {
-        try {
-            AplicarRegion(ctrl, false)
-            ; Reasentar la región redonda NO basta: si el control se cuadró
-            ; antes, las esquinas del padre conservan el color viejo (se ven
-            ; cuadradas aunque el recorte ya sea redondo). Hay que limpiarlas.
-            ; forzarYa=false → solo encola el InvalidateRect (lo pinta el próximo
-            ; ciclo de mensajes), sin UpdateWindow síncrono → cero flicker.
-            InvalidarEsquinasEnPadre(ctrl, false)
-        }
+        try AplicarRegion(ctrl, false)
     }
-    ; Lo mismo, pero para la VENTANA completa (no solo sus controles). Minimizar
-    ; y restaurar (o cualquier SWP_FRAMECHANGED implícito de Windows) puede
-    ; resetear el SetWindowRgn de la ventana misma sin tocar el de sus hijos —
-    ; sin esto las esquinas exteriores se quedan cuadradas hasta el próximo
-    ; cambio de tema. Barato (solo SetWindowRgn), igual que el resto del barrido.
+}
+
+; Evento Size de miGui. MinMax: -1=minimizado, 1=maximizado, 0=restaurado/normal.
+; Al RESTAURAR desde minimizado, Windows resetea las regiones redondeadas (ventana
+; y controles vuelven a cuadrados). Reaplicar TODO una sola vez, no en bucle.
+GuiPrincipalSize(guiObj, minMax, w, h) {
+    if (minMax != 0)
+        return
+    ; Pequeño delay para que el restore termine de asentarse antes de redondear.
+    SetTimer(RestaurarRedondeoCompleto, -80)
+}
+
+RestaurarRedondeoCompleto() {
+    global _ctrlRadios, miGui, historialGui, historialVisible
+    ; Mismo método probado que AplicarTema: reasentar regiones y luego UN solo
+    ; RedrawWindow con RDW_ALLCHILDREN (repinta ventana + hijos de una vez, sin
+    ; dejar esquinas sucias). Es puntual (solo al restaurar), no en bucle.
+    static RDW_FLAGS := 0x0001 | 0x0004 | 0x0080 | 0x0100
     try if (IsObject(miGui))
         RedondearVentana(miGui.Hwnd, 20)
     try if (IsObject(historialGui) && historialVisible)
         RedondearVentana(historialGui.Hwnd, 14)
-    try if (modoMini && IsObject(miniGui))
-        RedondearVentana(miniGui.Hwnd, 14)
+    for ctrl, info in _ctrlRadios {
+        try AplicarRegion(ctrl, false)
+    }
+    try DllCall("RedrawWindow", "Ptr", miGui.Hwnd, "Ptr", 0, "Ptr", 0, "UInt", RDW_FLAGS)
+    if (IsObject(historialGui) && historialVisible)
+        try DllCall("RedrawWindow", "Ptr", historialGui.Hwnd, "Ptr", 0, "Ptr", 0, "UInt", RDW_FLAGS)
 }
 
 RedondearControl(ctrl, radio := 10) {
