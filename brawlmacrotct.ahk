@@ -20,7 +20,7 @@ configPath := A_ScriptDir "\brawlmacro_config.ini"
 global eggsBackupPath := A_ScriptDir "\brawlmacro_eggs.txt"
 global heartbeatPath := A_ScriptDir "\brawlmacro_heartbeat.txt"
 global historialLogPath := A_ScriptDir "\brawlmacro_historial.log"
-global VERSION_ACTUAL := "31.5.4"
+global VERSION_ACTUAL := "31.5.5"
 
 ; ===== TEMAS =====
 temas := [
@@ -1078,6 +1078,7 @@ DibujarGearEnDC(hdc, w, h, angulo, colorHex, fondoHex) {
             ; necesita pulsar de color, solo girar suavemente.
             global logoGearCache, logoGearCacheColor, logoGearCacheChar, LOGO_GEAR_CACHE_FRAMES, temaPremiumActivo
             global activo, rgbLogo, temaEnTransicion, colorLogoMacro
+            global logoGearCacheW, logoGearCacheH
 
             ; Solo bloqueamos el cache en modos VISUALMENTE incompatibles (color por
             ; pixel distinto cada frame que no se puede pre-renderizar):
@@ -1093,7 +1094,10 @@ DibujarGearEnDC(hdc, w, h, angulo, colorHex, fondoHex) {
             ; Cuando activo, ignorar el pulso de color y cachear con el color base estable.
             colorParaCache := activo ? colorLogoMacro : colorHex
             global logoGearCacheFramesReales
-            canUseCache := puedeCachear && (logoGearCache.Length > 0) && (logoGearCache.Length = logoGearCacheFramesReales) && (logoGearCacheColor = colorParaCache) && (logoGearCacheChar = charLogo)
+            ; OJO con w/h: el logo principal pide 95x95 y el mini 80x80. Si NO se
+            ; comprueba el tamaño, el mini reusa el cache de 95 recortado a 80 →
+            ; el engranaje sale desplazado (lo que se veía como "sombra" arriba-izq).
+            canUseCache := puedeCachear && (logoGearCache.Length > 0) && (logoGearCache.Length = logoGearCacheFramesReales) && (logoGearCacheColor = colorParaCache) && (logoGearCacheChar = charLogo) && (logoGearCacheW = w) && (logoGearCacheH = h)
 
             ; Si podemos cachear pero el color cambió (o no hay cache), construirlo ahora
             if (!canUseCache && puedeCachear) {
@@ -1260,6 +1264,19 @@ PintarLogoEnDC(hdcDest) {
 ; Pinta vía GetDC (usado por el timer durante animación).
 PintarLogo() {
     global logoMacro, modoMini, logoMacroMini
+    ; En mini mode el logo principal está OCULTO. Pintarlo igual (a 95x95)
+    ; reconstruiría el cache de engranaje a 95 cada frame, y el mini (80) lo
+    ; reconstruiría a 80 el frame siguiente → thrash + desfase. Solo pintar el mini.
+    if (modoMini) {
+        if (IsObject(logoMacroMini)) {
+            hdcMini := DllCall("GetDC", "Ptr", logoMacroMini.Hwnd, "Ptr")
+            if (hdcMini) {
+                PintarLogoMiniEnDC(hdcMini)
+                DllCall("ReleaseDC", "Ptr", logoMacroMini.Hwnd, "Ptr", hdcMini)
+            }
+        }
+        return
+    }
     if (!IsObject(logoMacro))
         return
     hdc := DllCall("GetDC", "Ptr", logoMacro.Hwnd, "Ptr")
@@ -1267,14 +1284,6 @@ PintarLogo() {
         return
     PintarLogoEnDC(hdc)
     DllCall("ReleaseDC", "Ptr", logoMacro.Hwnd, "Ptr", hdc)
-    ; Pintar también el logo mini si está visible
-    if (modoMini && IsObject(logoMacroMini)) {
-        hdcMini := DllCall("GetDC", "Ptr", logoMacroMini.Hwnd, "Ptr")
-        if (hdcMini) {
-            PintarLogoMiniEnDC(hdcMini)
-            DllCall("ReleaseDC", "Ptr", logoMacroMini.Hwnd, "Ptr", hdcMini)
-        }
-    }
 }
 
 ; ── Subclass del control: intercepta WM_PAINT y WM_ERASEBKGND para que cuando Windows
@@ -1380,6 +1389,8 @@ ToggleMiniMode(*) {
             try overlayDecoraciones.Show("NoActivate")
             ReposicionarOverlayDeco()
         }
+        ; Al re-mostrar miGui los controles pueden quedar cuadrados → re-redondear.
+        SetTimer(RestaurarRedondeoCompleto, -80)
         return
     }
 
@@ -1434,7 +1445,8 @@ CrearMiniGui(posX, posY) {
     DllCall("SetWindowLong", "Ptr", barraMini.Hwnd, "Int", -16, "Int", estiloBarraMini | 0x04000000)
 
     ; Logo giratorio — siempre el mismo carácter para rotación consistente y centrado perfecto
-    logoMacroMini := miniGui.Add("Text", "x15 y" (BAR_H - 3) " w80 h80 Center BackgroundTrans c" colorLogoMacro " +0x1", Chr(9881))
+    ; y = BAR_H (antes BAR_H-3, que lo metía 3px dentro de la barra): bajado 3px.
+    logoMacroMini := miniGui.Add("Text", "x15 y" BAR_H " w80 h80 Center BackgroundTrans c" colorLogoMacro " +0x1", Chr(9881))
     logoMacroMini.SetFont("s48 c" colorLogoMacro " Bold", "Segoe UI Symbol")
     InstalarSubclassMiniLogo()
 
@@ -7199,8 +7211,8 @@ CerrarTutorial(*) {
 ParchesPaginas() {
     return [
     { ico: Chr(0x1F4CB), tit: "Parche 31.5 (actual)",
-      txt: "· Botones y luces SIEMPRE redondos (al iniciar y minimizar)`n"
-         . "· Logo del modo mini ya no parpadea con la barra`n"
+      txt: "· Botones y luces SIEMPRE redondos (iniciar/minimizar/tema/mini)`n"
+         . "· Logo del modo mini: sombra alineada y bajado a su sitio`n"
          . "· Botón 📋 Parches reaparece (estaba invisible)`n"
          . "· Efectos de acción más vistosos y notorios`n"
          . "· Actualizador arreglado: ya detecta nuevas versiones`n" },
@@ -8544,6 +8556,9 @@ TransicionPaso() {
         TestTrace("TPfin AT ok")
         SetTimer(TransicionPaso, 0)
         temaEnTransicion := false
+        ; Tras el cambio de tema, re-redondear TODO con la secuencia probada
+        ; (los Opt() de la transición dejan los controles cuadrados).
+        SetTimer(RedondearFuerteTodos, -40)
     }
 
     } catch as e {
@@ -9321,6 +9336,36 @@ AplicarRegion(ctrl, invalidarPadre := true) {
     }
 }
 
+; Redondeo "fuerte" — replica EXACTAMENTE la secuencia del hover (HoverPoll), que
+; es la única confirmada que deja los controles redondos de verdad: dance de
+; WM_SETREDRAW (bloquea el repintado cuadrado interno de Opt) + SetWindowRgn con
+; bRedraw=0 + repintar el control + limpiar las esquinas del padre de forma
+; SÍNCRONA (InvalidarEsquinasEnPadre con forzarYa=true → UpdateWindow inmediato).
+; Pensado para eventos PUNTUALES (iniciar, cambiar tema, restaurar, salir de mini),
+; NUNCA en bucles periódicos: la limpieza síncrona de esquinas en bucle parpadea.
+RedondearControlFuerte(ctrl) {
+    global _ctrlRadios
+    if (!_ctrlRadios.Has(ctrl))
+        return
+    _ri := _ctrlRadios[ctrl]
+    DllCall("SendMessageW", "Ptr", ctrl.Hwnd, "UInt", 0x000B, "Ptr", 0, "Ptr", 0)
+    rgn := DllCall("CreateRoundRectRgn", "Int", 0, "Int", 0,
+                   "Int", _ri.rw + 1, "Int", _ri.rh + 1,
+                   "Int", _ri.radio, "Int", _ri.radio, "Ptr")
+    DllCall("SetWindowRgn", "Ptr", ctrl.Hwnd, "Ptr", rgn, "Int", 0)
+    DllCall("SendMessageW", "Ptr", ctrl.Hwnd, "UInt", 0x000B, "Ptr", 1, "Ptr", 0)
+    DllCall("InvalidateRect", "Ptr", ctrl.Hwnd, "Ptr", 0, "Int", 1)
+    DllCall("UpdateWindow",   "Ptr", ctrl.Hwnd)
+    InvalidarEsquinasEnPadre(ctrl)
+}
+
+RedondearFuerteTodos() {
+    global _ctrlRadios
+    for ctrl, info in _ctrlRadios {
+        try RedondearControlFuerte(ctrl)
+    }
+}
+
 ; Re-aplica la región a TODOS los controles redondeados conocidos. Ver el
 ; comentario en la llamada de arranque (SetTimer ReaplicarTodasLasRegiones)
 ; para el porqué: los controles sin hover/click nunca se autocorrigen solos.
@@ -9348,21 +9393,13 @@ GuiPrincipalSize(guiObj, minMax, w, h) {
 }
 
 RestaurarRedondeoCompleto() {
-    global _ctrlRadios, miGui, historialGui, historialVisible
-    ; Mismo método probado que AplicarTema: reasentar regiones y luego UN solo
-    ; RedrawWindow con RDW_ALLCHILDREN (repinta ventana + hijos de una vez, sin
-    ; dejar esquinas sucias). Es puntual (solo al restaurar), no en bucle.
-    static RDW_FLAGS := 0x0001 | 0x0004 | 0x0080 | 0x0100
+    global miGui, historialGui, historialVisible
+    ; Redondear ventanas + TODOS los controles con la secuencia probada del hover.
     try if (IsObject(miGui))
         RedondearVentana(miGui.Hwnd, 20)
     try if (IsObject(historialGui) && historialVisible)
         RedondearVentana(historialGui.Hwnd, 14)
-    for ctrl, info in _ctrlRadios {
-        try AplicarRegion(ctrl, false)
-    }
-    try DllCall("RedrawWindow", "Ptr", miGui.Hwnd, "Ptr", 0, "Ptr", 0, "UInt", RDW_FLAGS)
-    if (IsObject(historialGui) && historialVisible)
-        try DllCall("RedrawWindow", "Ptr", historialGui.Hwnd, "Ptr", 0, "Ptr", 0, "UInt", RDW_FLAGS)
+    RedondearFuerteTodos()
 }
 
 RedondearControl(ctrl, radio := 10) {
@@ -9434,9 +9471,24 @@ ExportarSesion(*) {
 ; Las luces son controles Text: su color es el Background. Repintamos al cambiar.
 ; AplicarRegion() re-aplica SetWindowRgn tras Opt() para mantener el borde redondeado.
 SetLuz(control, color) {
-    control.Opt("Background" color)
-    AplicarRegion(control)
-    try DllCall("InvalidateRect", "Ptr", control.Hwnd, "Ptr", 0, "Int", 1)
+    global _ctrlRadios
+    ; Misma secuencia probada del hover, para que las luces NO se cuadren al
+    ; iniciar/parar/cambiar de estado (AplicarRegion suelto no bastaba).
+    try {
+        DllCall("SendMessageW", "Ptr", control.Hwnd, "UInt", 0x000B, "Ptr", 0, "Ptr", 0)
+        control.Opt("Background" color)
+        if (_ctrlRadios.Has(control)) {
+            _ri := _ctrlRadios[control]
+            rgn := DllCall("CreateRoundRectRgn", "Int", 0, "Int", 0,
+                           "Int", _ri.rw + 1, "Int", _ri.rh + 1,
+                           "Int", _ri.radio, "Int", _ri.radio, "Ptr")
+            DllCall("SetWindowRgn", "Ptr", control.Hwnd, "Ptr", rgn, "Int", 0)
+        }
+        DllCall("SendMessageW", "Ptr", control.Hwnd, "UInt", 0x000B, "Ptr", 1, "Ptr", 0)
+        DllCall("InvalidateRect", "Ptr", control.Hwnd, "Ptr", 0, "Int", 1)
+        DllCall("UpdateWindow",   "Ptr", control.Hwnd)
+        InvalidarEsquinasEnPadre(control)
+    }
 }
 
 LuzAccionFlash(catColor := "") {
@@ -12535,6 +12587,9 @@ Iniciar(*) {
     logosPulsoDir := 1
     ActualizarEstadoVisual()
     AnimarLucesEncendido()
+    ; La animación de luces termina a ~300ms; re-redondear TODO después con la
+    ; secuencia probada para que ni luces ni botones queden cuadrados al iniciar.
+    SetTimer(RedondearFuerteTodos, -360)
 
     ; dstv (perfil 4) = solo detector, sin AFK ni Brawlhalla
     if (perfilActivo = 4) {
