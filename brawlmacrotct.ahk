@@ -20,7 +20,7 @@ configPath := A_ScriptDir "\brawlmacro_config.ini"
 global eggsBackupPath := A_ScriptDir "\brawlmacro_eggs.txt"
 global heartbeatPath := A_ScriptDir "\brawlmacro_heartbeat.txt"
 global historialLogPath := A_ScriptDir "\brawlmacro_historial.log"
-global VERSION_ACTUAL := "31.5.9"
+global VERSION_ACTUAL := "31.5.10"
 
 ; ===== TEMAS =====
 temas := [
@@ -436,7 +436,7 @@ global temaCustomData := Map()
 global centroPersGui := "", centroPersVisible := false
 
 ; ===== PRESETS DE RENDIMIENTO =====
-global presetRendimiento := 3
+global presetRendimiento := 4
 global fpsContador := 0
 global fpsActual := 0
 global fpsLabel := ""
@@ -5153,9 +5153,9 @@ particulasTamano    := Integer(IniRead(configPath, "Particulas", "Tamano",     "
 particulasOpacidad  := Integer(IniRead(configPath, "Particulas", "Opacidad",   "100"))
 
 ; Cargar preset de rendimiento
-presetRendimiento := Integer(IniRead(configPath, "UI", "PresetRendimiento", "3"))
+presetRendimiento := Integer(IniRead(configPath, "UI", "PresetRendimiento", "4"))
 if (presetRendimiento < 1 || presetRendimiento > 7)
-    presetRendimiento := 3
+    presetRendimiento := 4
 
 ; Cargar toggles de optimización
 optHoverAccent   := Integer(IniRead(configPath, "Optimizacion", "HoverAccent",   "1")) = 1
@@ -5671,14 +5671,14 @@ HoverBreath() {
 ; ===== PRESETS DE RENDIMIENTO =====
 NombrePreset(p) {
     switch p {
-        case 1: return "Eco"
-        case 2: return "Ligero"
-        case 3: return "Normal"
-        case 4: return "Ultra"
-        case 5: return "50 FPS"
-        case 6: return "33 FPS"
-        case 7: return "16 FPS"
-        default: return "Normal"
+        case 1: return "60 FPS"
+        case 2: return "50 FPS"
+        case 3: return "33 FPS"
+        case 4: return "30 FPS"
+        case 5: return "20 FPS"
+        case 6: return "16 FPS"
+        case 7: return "8 FPS"
+        default: return "30 FPS"
     }
 }
 
@@ -5691,46 +5691,11 @@ AplicarPreset(p) {
     global activo, colorTextoPrincipal
 
     presetRendimiento := p
+    ; Presets ordenados de MAYOR a MENOR fps (1=más fluido/más CPU, 7=más ahorro).
+    ; Todos nombrados directamente por su fps objetivo — ver NombrePreset().
     switch p {
         case 1:
-            ; ECO — minimo consumo de CPU posible sin romper funcionalidad
-            ; Apaga TODAS las animaciones cosmeticas. La deteccion sigue funcionando igual.
-            presetHoverPoll := 150       ; 1s ~ 6fps (era 50)
-            presetHoverBreath := 0       ; off — el boton hover no respira
-            presetParticulas := 0        ; off — sin particulas
-            presetPulsoBar := 0          ; off
-            presetPulsoLogo := 0         ; off
-            presetRGB := 500             ; lentisimo si esta on
-            presetBarras := 200          ; AnimarBarras a 5fps (gradiente shimmer casi parado)
-            presetDecoraciones := false  ; sin slashes/aura Gojo/Sukuna
-            presetDecoFps := 120         ; ~8fps (apenas se usa, decoraciones off)
-            presetTrayIcon := 3000       ; cada 3s (era 1s)
-            presetLogros := 15000        ; cada 15s (era 5s)
-        case 2:
-            presetHoverPoll := 32
-            presetHoverBreath := 80
-            presetParticulas := 100
-            presetPulsoBar := 80
-            presetPulsoLogo := 100
-            presetRGB := 120
-            presetBarras := 50
-            presetDecoraciones := true
-            presetDecoFps := 50          ; ~20fps
-            presetTrayIcon := 1500
-            presetLogros := 8000
-        case 3:
-            presetHoverPoll := 16
-            presetHoverBreath := 40
-            presetParticulas := 50
-            presetPulsoBar := 40
-            presetPulsoLogo := 50
-            presetRGB := 60
-            presetBarras := 33
-            presetDecoraciones := true
-            presetDecoFps := 33          ; ~30fps
-            presetTrayIcon := 1000
-            presetLogros := 5000
-        case 4:
+            ; 60 FPS — máxima fluidez (Six Eyes Gojo suaves)
             presetHoverPoll := 8
             presetHoverBreath := 20
             presetParticulas := 25
@@ -5739,11 +5704,11 @@ AplicarPreset(p) {
             presetRGB := 30
             presetBarras := 16
             presetDecoraciones := true
-            presetDecoFps := 16          ; ~60fps (Ultra — Six Eyes suaves)
+            presetDecoFps := 16          ; 60fps
             presetTrayIcon := 1000
             presetLogros := 5000
-        case 5:
-            ; 50 FPS — entre Normal y Ultra
+        case 2:
+            ; 50 FPS
             presetHoverPoll := 11
             presetHoverBreath := 27
             presetParticulas := 33
@@ -5755,8 +5720,8 @@ AplicarPreset(p) {
             presetDecoFps := 20          ; 50fps
             presetTrayIcon := 1000
             presetLogros := 5000
-        case 6:
-            ; 33 FPS — apenas por encima de Normal
+        case 3:
+            ; 33 FPS
             presetHoverPoll := 15
             presetHoverBreath := 38
             presetParticulas := 47
@@ -5768,8 +5733,34 @@ AplicarPreset(p) {
             presetDecoFps := 30          ; 33fps
             presetTrayIcon := 1000
             presetLogros := 5000
-        case 7:
-            ; 16 FPS — entre Eco y Ligero
+        case 4:
+            ; 30 FPS — equilibrio recomendado (antes "Normal")
+            presetHoverPoll := 16
+            presetHoverBreath := 40
+            presetParticulas := 50
+            presetPulsoBar := 40
+            presetPulsoLogo := 50
+            presetRGB := 60
+            presetBarras := 33
+            presetDecoraciones := true
+            presetDecoFps := 33          ; 30fps
+            presetTrayIcon := 1000
+            presetLogros := 5000
+        case 5:
+            ; 20 FPS (antes "Ligero")
+            presetHoverPoll := 32
+            presetHoverBreath := 80
+            presetParticulas := 100
+            presetPulsoBar := 80
+            presetPulsoLogo := 100
+            presetRGB := 120
+            presetBarras := 50
+            presetDecoraciones := true
+            presetDecoFps := 50          ; 20fps
+            presetTrayIcon := 1500
+            presetLogros := 8000
+        case 6:
+            ; 16 FPS
             presetHoverPoll := 71
             presetHoverBreath := 53
             presetParticulas := 67
@@ -5781,6 +5772,20 @@ AplicarPreset(p) {
             presetDecoFps := 63          ; 16fps
             presetTrayIcon := 2000
             presetLogros := 10333
+        case 7:
+            ; 8 FPS — mínimo consumo de CPU posible sin romper funcionalidad (antes "Eco")
+            ; Apaga TODAS las animaciones cosmeticas. La deteccion sigue funcionando igual.
+            presetHoverPoll := 150       ; 1s ~ 6fps (era 50)
+            presetHoverBreath := 0       ; off — el boton hover no respira
+            presetParticulas := 0        ; off — sin particulas
+            presetPulsoBar := 0          ; off
+            presetPulsoLogo := 0         ; off
+            presetRGB := 500             ; lentisimo si esta on
+            presetBarras := 200          ; AnimarBarras a 5fps (gradiente shimmer casi parado)
+            presetDecoraciones := false  ; sin slashes/aura Gojo/Sukuna
+            presetDecoFps := 120         ; 8fps (apenas se usa, decoraciones off)
+            presetTrayIcon := 3000       ; cada 3s (era 1s)
+            presetLogros := 15000        ; cada 15s (era 5s)
     }
 
     SetTimer(HoverPoll, presetHoverPoll)
@@ -7082,8 +7087,8 @@ TutorialPaginas() {
 
     { ico: Chr(0x26A1), tit: "Rendimiento (si va lento)",
       txt: "Baja o sube los fps del macro para mejor rendimiento:`n`n"
-         . "• Eco : pocas animaciones.`n"
-         . "• Ligero · 16 FPS · Normal · 33 FPS · 50 FPS · Ultra : más animaciones, menos rendimiento (no recomendado en pc como la del xavi).`n`n"
+         . "• 8 FPS : pocas animaciones (recomendado en pc lenta, como la del xavi).`n"
+         . "• 16 · 20 · 30 · 33 · 50 · 60 FPS : cada paso de más fps anima más fluido pero usa más CPU.`n`n"
          . "En ⚙ Optimizar apagas efectos sueltos. El toggle 'Decoración del tema' mantiene o quita los adornos del borde, aunque estés en Eco.`n`n"
          . "No afecta en el funcionamiento del macro." },
 
