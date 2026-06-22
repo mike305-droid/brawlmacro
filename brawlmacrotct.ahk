@@ -20,7 +20,7 @@ configPath := A_ScriptDir "\brawlmacro_config.ini"
 global eggsBackupPath := A_ScriptDir "\brawlmacro_eggs.txt"
 global heartbeatPath := A_ScriptDir "\brawlmacro_heartbeat.txt"
 global historialLogPath := A_ScriptDir "\brawlmacro_historial.log"
-global VERSION_ACTUAL := "31.5.11"
+global VERSION_ACTUAL := "31.5.12"
 
 ; ===== TEMAS =====
 temas := [
@@ -1983,8 +1983,9 @@ AplicarConfigParticulas() {
 ; pero el usuario quiere mantener la decoración (toggle "Decoración del tema").
 ActualizarEscenaSola() {
     global miGui, overlayPartMain, temaEnTransicion, optEscena
-    global particulasActivas, presetParticulas, modoMini
+    global particulasActivas, presetParticulas, modoMini, fpsContador
     static BAR_H := 25
+    fpsContador++   ; mide el fps REAL de la decoración (no el polling del hover)
     if (temaEnTransicion || !optEscena || modoMini)
         return
     if (particulasActivas && presetParticulas > 0)
@@ -2025,8 +2026,9 @@ RefrescarTimersVisuales() {
 ActualizarParticulas() {
     global particulasMain, particulasHist, miGui, historialGui, historialVisible, particulasInited
     global overlayPartMain, overlayPartHist
-    global temaEnTransicion, particulasActivas
+    global temaEnTransicion, particulasActivas, fpsContador
     global temas, temaActual, modoMini, particulasMini
+    fpsContador++   ; mide el fps REAL de la decoración (no el polling del hover)
     if (!particulasInited || temaEnTransicion || !particulasActivas)
         return
 
@@ -5544,8 +5546,7 @@ ChequearAutoCierre() {
 HoverPoll() {
     global hoverBotones, hoverActual, hoverBreathT, hoverBreathDir, hoverBreathBase
     global colorBotonHover, colorBtnTexto, rgbBotones, colorRGBActual, temaPremiumActivo
-    global fpsContador, _ctrlRadios
-    fpsContador++
+    global _ctrlRadios
 
     ; ── En modo RGB (o PREMIUM): hover desactivado para evitar parpadeo.
     ;    Los botones ya ciclan colores uniformemente con ActualizarRGB; el hover compite
@@ -5671,13 +5672,13 @@ HoverBreath() {
 ; ===== PRESETS DE RENDIMIENTO =====
 NombrePreset(p) {
     switch p {
-        case 1: return "Ultra"
-        case 2: return "Alto"
-        case 3: return "Fluido"
+        case 1: return "Eco"
+        case 2: return "Bajo"
+        case 3: return "Ligero"
         case 4: return "Normal"
-        case 5: return "Ligero"
-        case 6: return "Bajo"
-        case 7: return "Eco"
+        case 5: return "Fluido"
+        case 6: return "Alto"
+        case 7: return "Ultra"
         default: return "Normal"
     }
 }
@@ -5691,49 +5692,50 @@ AplicarPreset(p) {
     global activo, colorTextoPrincipal
 
     presetRendimiento := p
-    ; Presets ordenados de MAYOR a MENOR fps (1=más fluido/más CPU, 7=más ahorro).
-    ; Nombres — ver NombrePreset(): Ultra(60) Alto(50) Fluido(33) Normal(30)
-    ; Ligero(20) Bajo(16) Eco(8).
+    ; Presets ordenados de MENOR a MAYOR fps (1=más ahorro, 7=más fluido/más CPU).
+    ; Nombres — ver NombrePreset(): Eco(8) Bajo(16) Ligero(20) Normal(30)
+    ; Fluido(33) Alto(50) Ultra(60).
     switch p {
         case 1:
-            ; Ultra — 60 FPS, máxima fluidez (Six Eyes Gojo suaves)
-            presetHoverPoll := 8
-            presetHoverBreath := 20
-            presetParticulas := 25
-            presetPulsoBar := 20
-            presetPulsoLogo := 25
-            presetRGB := 30
-            presetBarras := 16
-            presetDecoraciones := true
-            presetDecoFps := 16          ; 60fps
-            presetTrayIcon := 1000
-            presetLogros := 5000
+            ; Eco — 8 FPS, mínimo consumo de CPU posible sin romper funcionalidad
+            ; Apaga TODAS las animaciones cosmeticas. La deteccion sigue funcionando igual.
+            presetHoverPoll := 150       ; 1s ~ 6fps (era 50)
+            presetHoverBreath := 0       ; off — el boton hover no respira
+            presetParticulas := 0        ; off — sin particulas
+            presetPulsoBar := 0          ; off
+            presetPulsoLogo := 0         ; off
+            presetRGB := 500             ; lentisimo si esta on
+            presetBarras := 200          ; AnimarBarras a 5fps (gradiente shimmer casi parado)
+            presetDecoraciones := false  ; sin slashes/aura Gojo/Sukuna
+            presetDecoFps := 120         ; 8fps (apenas se usa, decoraciones off)
+            presetTrayIcon := 3000       ; cada 3s (era 1s)
+            presetLogros := 15000        ; cada 15s (era 5s)
         case 2:
-            ; Alto — 50 FPS
-            presetHoverPoll := 11
-            presetHoverBreath := 27
-            presetParticulas := 33
-            presetPulsoBar := 27
-            presetPulsoLogo := 33
-            presetRGB := 40
-            presetBarras := 22
+            ; Bajo — 16 FPS
+            presetHoverPoll := 71
+            presetHoverBreath := 53
+            presetParticulas := 67
+            presetPulsoBar := 53
+            presetPulsoLogo := 67
+            presetRGB := 247
+            presetBarras := 100
             presetDecoraciones := true
-            presetDecoFps := 20          ; 50fps
-            presetTrayIcon := 1000
-            presetLogros := 5000
+            presetDecoFps := 63          ; 16fps
+            presetTrayIcon := 2000
+            presetLogros := 10333
         case 3:
-            ; Fluido — 33 FPS
-            presetHoverPoll := 15
-            presetHoverBreath := 38
-            presetParticulas := 47
-            presetPulsoBar := 38
-            presetPulsoLogo := 47
-            presetRGB := 57
-            presetBarras := 31
+            ; Ligero — 20 FPS
+            presetHoverPoll := 32
+            presetHoverBreath := 80
+            presetParticulas := 100
+            presetPulsoBar := 80
+            presetPulsoLogo := 100
+            presetRGB := 120
+            presetBarras := 50
             presetDecoraciones := true
-            presetDecoFps := 30          ; 33fps
-            presetTrayIcon := 1000
-            presetLogros := 5000
+            presetDecoFps := 50          ; 20fps
+            presetTrayIcon := 1500
+            presetLogros := 8000
         case 4:
             ; Normal — 30 FPS, equilibrio recomendado
             presetHoverPoll := 16
@@ -5748,45 +5750,44 @@ AplicarPreset(p) {
             presetTrayIcon := 1000
             presetLogros := 5000
         case 5:
-            ; Ligero — 20 FPS
-            presetHoverPoll := 32
-            presetHoverBreath := 80
-            presetParticulas := 100
-            presetPulsoBar := 80
-            presetPulsoLogo := 100
-            presetRGB := 120
-            presetBarras := 50
+            ; Fluido — 33 FPS
+            presetHoverPoll := 15
+            presetHoverBreath := 38
+            presetParticulas := 47
+            presetPulsoBar := 38
+            presetPulsoLogo := 47
+            presetRGB := 57
+            presetBarras := 31
             presetDecoraciones := true
-            presetDecoFps := 50          ; 20fps
-            presetTrayIcon := 1500
-            presetLogros := 8000
+            presetDecoFps := 30          ; 33fps
+            presetTrayIcon := 1000
+            presetLogros := 5000
         case 6:
-            ; Bajo — 16 FPS
-            presetHoverPoll := 71
-            presetHoverBreath := 53
-            presetParticulas := 67
-            presetPulsoBar := 53
-            presetPulsoLogo := 67
-            presetRGB := 247
-            presetBarras := 100
+            ; Alto — 50 FPS
+            presetHoverPoll := 11
+            presetHoverBreath := 27
+            presetParticulas := 33
+            presetPulsoBar := 27
+            presetPulsoLogo := 33
+            presetRGB := 40
+            presetBarras := 22
             presetDecoraciones := true
-            presetDecoFps := 63          ; 16fps
-            presetTrayIcon := 2000
-            presetLogros := 10333
+            presetDecoFps := 20          ; 50fps
+            presetTrayIcon := 1000
+            presetLogros := 5000
         case 7:
-            ; Eco — 8 FPS, mínimo consumo de CPU posible sin romper funcionalidad
-            ; Apaga TODAS las animaciones cosmeticas. La deteccion sigue funcionando igual.
-            presetHoverPoll := 150       ; 1s ~ 6fps (era 50)
-            presetHoverBreath := 0       ; off — el boton hover no respira
-            presetParticulas := 0        ; off — sin particulas
-            presetPulsoBar := 0          ; off
-            presetPulsoLogo := 0         ; off
-            presetRGB := 500             ; lentisimo si esta on
-            presetBarras := 200          ; AnimarBarras a 5fps (gradiente shimmer casi parado)
-            presetDecoraciones := false  ; sin slashes/aura Gojo/Sukuna
-            presetDecoFps := 120         ; 8fps (apenas se usa, decoraciones off)
-            presetTrayIcon := 3000       ; cada 3s (era 1s)
-            presetLogros := 15000        ; cada 15s (era 5s)
+            ; Ultra — 60 FPS, máxima fluidez (Six Eyes Gojo suaves)
+            presetHoverPoll := 8
+            presetHoverBreath := 20
+            presetParticulas := 25
+            presetPulsoBar := 20
+            presetPulsoLogo := 25
+            presetRGB := 30
+            presetBarras := 16
+            presetDecoraciones := true
+            presetDecoFps := 16          ; 60fps
+            presetTrayIcon := 1000
+            presetLogros := 5000
     }
 
     SetTimer(HoverPoll, presetHoverPoll)
