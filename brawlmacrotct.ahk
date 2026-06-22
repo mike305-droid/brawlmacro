@@ -20,7 +20,7 @@ configPath := A_ScriptDir "\brawlmacro_config.ini"
 global eggsBackupPath := A_ScriptDir "\brawlmacro_eggs.txt"
 global heartbeatPath := A_ScriptDir "\brawlmacro_heartbeat.txt"
 global historialLogPath := A_ScriptDir "\brawlmacro_historial.log"
-global VERSION_ACTUAL := "31.5.16"
+global VERSION_ACTUAL := "31.5.17"
 
 ; ===== TEMAS =====
 temas := [
@@ -5056,7 +5056,7 @@ SendMessage(0x0443, 0, HexToBGR(colorFondoHistorial), , "ahk_id " historialBox.H
 DllCall("ShowScrollBar", "Ptr", historialBox.Hwnd, "Int", 1, "Int", 0)  ; SB_VERT=1, bShow=0
 
 cooldownText := historialGui.Add("Text", "x10 y155 w250 h88 vCooldownText c" colorCooldown " Background" colorVentanaHistorial)
-cooldownText.SetFont("s12", "Segoe UI")   ; visor de detección en vivo (1.5x del tamaño original)
+cooldownText.SetFont("s9.6", "Segoe UI")   ; visor de detección en vivo (1.2x del tamaño original s8)
 separadorHistorial := historialGui.Add("Text", "x0 y148 w270 h2 Background" MezclarHex(colorBarra, colorFondoPrincipal, 0.45), "")
 secuenciasLabel := historialGui.Add("Text", "x10 y245 w250 h20 +0x201 vSecuenciasLabel c" colorTextoPrincipal " Background" colorVentanaHistorial)
 destruccionesLabel := historialGui.Add("Text", "x10 y265 w250 h20 +0x201 vDestruccionesLabel c" colorTextoPrincipal " Background" colorVentanaHistorial)
