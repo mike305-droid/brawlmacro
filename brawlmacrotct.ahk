@@ -27,7 +27,7 @@ configPath := A_ScriptDir "\brawlmacro_config.ini"
 global eggsBackupPath := A_ScriptDir "\brawlmacro_eggs.txt"
 global heartbeatPath := A_ScriptDir "\brawlmacro_heartbeat.txt"
 global historialLogPath := A_ScriptDir "\brawlmacro_historial.log"
-global VERSION_ACTUAL := "31.5.19"
+global VERSION_ACTUAL := "31.5.20"
 
 ; ===== TEMAS =====
 temas := [
@@ -85,14 +85,6 @@ temas := [
     { nombre:"☆ Sky",         secreto:true, unlock:"leyendas", fondo:"E1F5FE", texto:"0277BD", barra:"FFFFFF", textoBarra:"0277BD", historial:"F0FAFE", panel:"B3E5FC", cooldown:"F06292", afk:"81D4FA", boton:"FFFFFF", hover:"F5F9FB", logo:"0277BD", luzOn:"81D4FA", luzAccion:"F8BBD9", luzOff:"0277BD",  btnTexto:"0277BD", histColor1:"0277BD", histColor2:"F06292", histColor3:"81D4FA" },
     { nombre:"✦ N I K A ✦",       secreto:true, unlock:"blanco",  fondo:"FFFFFF", texto:"CC0000", barra:"CC0000", textoBarra:"FFFFFF", historial:"FFFFFF", panel:"FFF2F2", cooldown:"990000", afk:"CC0000", boton:"FFF2F2", hover:"FFE0E0", logo:"CC0000", luzOn:"DD0000", luzAccion:"FF2222", luzOff:"CC0000",  btnTexto:"CC0000", histColor1:"CC0000", histColor2:"DD0000", histColor3:"FF2222" },
     { nombre:"◓ Pokémon",     secreto:true, unlock:"leyendas", fondo:"FFFFFF", texto:"1C2B43", barra:"FF1A1A", textoBarra:"FFFFFF", historial:"F5F7FA", panel:"E8EDF5", cooldown:"FFC107", afk:"3F7CE6", boton:"FF1A1A", hover:"E60000", logo:"FFC107", luzOn:"FF1A1A", luzAccion:"FFC107", luzOff:"1C2B43",  btnTexto:"FFFFFF", histColor1:"1C2B43", histColor2:"FF1A1A", histColor3:"FFC107" },
-    ; ── SUKUNA: Rey de las Maldiciones. Negro + rojos + gris rojizo + blanco hueso ──
-    ; Acentos en BLANCO (los huesos visibles del Rey). Paleta de alto contraste.
-    { nombre:"⛩ S U K U N A ⛩", secreto:true, unlock:"sukuna", logoChar:Chr(0x26E9), efecto:"cross",
-      fondo:"0A0000", texto:"D9D5D2", barra:"2E0506", textoBarra:"D9D5D2",
-      historial:"070000", panel:"3D1A1A", cooldown:"FF3030", afk:"D00000",
-      boton:"3A0808", hover:"5C1010", logo:"B30000",
-      luzOn:"D00000", luzAccion:"FF3030", luzOff:"2A1010",
-      btnTexto:"D9D5D2", histColor1:"D9D5D2", histColor2:"FF3030", histColor3:"6E3838" },
     { nombre:"⚓ One Piece",   secreto:true, unlock:"leyendas", fondo:"0A2540", texto:"FFE066", barra:"FF8C42", textoBarra:"2C1810", historial:"071E33", panel:"103056", cooldown:"E63946", afk:"06D6A0", boton:"FF8C42", hover:"FFA866", logo:"FFE066", luzOn:"FF8C42", luzAccion:"06D6A0", luzOff:"0A2540",  btnTexto:"2C1810", histColor1:"FFE066", histColor2:"FF8C42", histColor3:"06D6A0" },
     { nombre:"➰ Naruto",      secreto:true, unlock:"leyendas", efecto:"multi", fondo:"1A1008", texto:"FF9020", barra:"FF6600", textoBarra:"FFFFFF", historial:"120A05", panel:"281A08", cooldown:"3366FF", afk:"4488FF", boton:"FF6600", hover:"FF8830", logo:"4488FF", luzOn:"FF6600", luzAccion:"4488FF", luzOff:"1A1008",  btnTexto:"FFFFFF", histColor1:"FF9020", histColor2:"FF6600", histColor3:"4488FF" },
     { nombre:"☀ F E N I X ☀",   secreto:true, unlock:"solar",   fondo:"FFF8EC", texto:"8B3A00", barra:"FF6B00", textoBarra:"FFFFFF", historial:"FFFBF5", panel:"FFE5C0", cooldown:"00C9B7", afk:"00C9B7", boton:"FFB347", hover:"FF8C00", logo:"00C9B7", luzOn:"00C9B7", luzAccion:"FF6B00", luzOff:"FFB347",  btnTexto:"FFFFFF", histColor1:"FFD700", histColor2:"FF6B00", histColor3:"00C9B7" },
@@ -101,6 +93,21 @@ temas := [
     { nombre:"⌖ Valorant",    secreto:true, unlock:"gamer", fondo:"0F1923", texto:"ECE8E1", barra:"FF4655", textoBarra:"FFFFFF", historial:"0A1018", panel:"162030", cooldown:"FFFF00", afk:"BD3944", boton:"1A2A3A", hover:"FF4655", logo:"FF4655", luzOn:"FF4655", luzAccion:"ECE8E1", luzOff:"0F1923",  btnTexto:"FFFFFF", histColor1:"ECE8E1", histColor2:"FF4655", histColor3:"BD3944" },
     { nombre:"★ Brawl",       secreto:true, unlock:"gamer", fondo:"000000", texto:"FFFFFF", barra:"0050D5", textoBarra:"FFFFFF", historial:"000000", panel:"0A1A30", cooldown:"FF4444", afk:"4FC3F7", boton:"0050D5", hover:"1976D2", logo:"FFFFFF", luzOn:"00B0FF", luzAccion:"FFFFFF", luzOff:"050E1C",  btnTexto:"FFFFFF", histColor1:"FFFFFF", histColor2:"00B0FF", histColor3:"0050D5" },
     { nombre:"✦ Discord",    secreto:true, unlock:"gamer", fondo:"2C2F33", texto:"DCDDDE", barra:"5865F2", textoBarra:"FFFFFF", historial:"23272A", panel:"36393F", cooldown:"ED4245", afk:"57F287", boton:"40444B", hover:"5865F2", logo:"FFFFFF", luzOn:"5865F2", luzAccion:"57F287", luzOff:"2C2F33",  btnTexto:"FFFFFF", histColor1:"DCDDDE", histColor2:"5865F2", histColor3:"57F287" },
+    { nombre:"✦ E C L I P S E ✦", secreto:true, unlock:"shadow",  efecto:"nova", fondo:"050508", texto:"C8A060", barra:"0D0A20", textoBarra:"FFB347", historial:"030306", panel:"0A0818", cooldown:"FF2244", afk:"00FFCC", boton:"14102A", hover:"221840", logo:"FFB347", luzOn:"FF6600", luzAccion:"FFD700", luzOff:"080520",  btnTexto:"FFB347", histColor1:"FFD700", histColor2:"FF6600", histColor3:"00FFCC" },
+    { nombre:"✦ C O S M O S ✦",   secreto:true, unlock:"cosmos",  efecto:"pulse", fondo:"03000F", texto:"E2C9FF", barra:"180040", textoBarra:"FFD700", historial:"020008", panel:"0D001E", cooldown:"FF1493", afk:"00E5FF", boton:"12002E", hover:"1E0050", logo:"FFD700", luzOn:"BF00FF", luzAccion:"FF69B4", luzOff:"080020",  btnTexto:"FFD700", histColor1:"FF69B4", histColor2:"BF00FF", histColor3:"00E5FF" },
+    { nombre:"♦ P R E M I U M ♦", secreto:true, unlock:"premium", fondo:"050008", texto:"FFFFFF", barra:"0F0020", textoBarra:"FFFFFF", historial:"030005", panel:"0A0015", cooldown:"FF0066", afk:"00FFCC", boton:"15002A", hover:"25004A", logo:"FFFFFF", luzOn:"FF00FF", luzAccion:"FFD700", luzOff:"0A0015",  btnTexto:"FFFFFF", histColor1:"FF00FF", histColor2:"00FFFF", histColor3:"FFFF00" },
+    { nombre:"☀ Retrowave",   secreto:true, unlock:"gamer", efecto:"nova", fondo:"1A0833", texto:"FF6EC7", barra:"7A1FA2", textoBarra:"00E5FF", historial:"0F051F", panel:"23104D", cooldown:"FF4081", afk:"FF8A50", boton:"7A1FA2", hover:"9C27B0", logo:"FF8A50", luzOn:"FF6EC7", luzAccion:"00E5FF", luzOff:"1A0833",  btnTexto:"FFFFFF", histColor1:"FF6EC7", histColor2:"00E5FF", histColor3:"FF8A50" },
+    { nombre:"◆ Cyberpunk",   secreto:true, unlock:"gamer", efecto:"multi", fondo:"0D0B1F", texto:"00FFFF", barra:"FF00AA", textoBarra:"FFFF00", historial:"070518", panel:"130E2E", cooldown:"FFFF00", afk:"00FFFF", boton:"FF00AA", hover:"FF33BB", logo:"FFFF00", luzOn:"FF00AA", luzAccion:"00FFFF", luzOff:"1A1240",  btnTexto:"FFFFFF", histColor1:"00FFFF", histColor2:"FF00AA", histColor3:"FFFF00" },
+    ; ── GOJO y SUKUNA fijos al final de los secretos (no por color): son los
+    ;    unlocks más especiales, así que van siempre los últimos antes del custom.
+    ; ── SUKUNA: Rey de las Maldiciones. Negro + rojos + gris rojizo + blanco hueso ──
+    ; Acentos en BLANCO (los huesos visibles del Rey). Paleta de alto contraste.
+    { nombre:"⛩ S U K U N A ⛩", secreto:true, unlock:"sukuna", logoChar:Chr(0x26E9), efecto:"cross",
+      fondo:"0A0000", texto:"D9D5D2", barra:"2E0506", textoBarra:"D9D5D2",
+      historial:"070000", panel:"3D1A1A", cooldown:"FF3030", afk:"D00000",
+      boton:"3A0808", hover:"5C1010", logo:"B30000",
+      luzOn:"D00000", luzAccion:"FF3030", luzOff:"2A1010",
+      btnTexto:"D9D5D2", histColor1:"D9D5D2", histColor2:"FF3030", histColor3:"6E3838" },
     ; ── GOJO: el más fuerte. Uniforme negro + pelo blanco + Limitless beige + Six Eyes azul + Hollow Purple ──
     ; Logo: ∞ (Limitless). Negro azulado del uniforme, blanco del pelo, beige del Infinito, azul cielo, morado Hollow Purple.
     { nombre:"♾ G O J O ♾", secreto:true, unlock:"gojo", logoChar:Chr(0x221E), efecto:"pulse",
@@ -109,11 +116,6 @@ temas := [
       boton:"1A1F35", hover:"3D1F66", logo:"FFFFFF",
       luzOn:"4FC3F7", luzAccion:"8A2BE2", luzOff:"0A0E1F",
       btnTexto:"E8DEC4", histColor1:"E8DEC4", histColor2:"4FC3F7", histColor3:"8A2BE2" },
-    { nombre:"✦ E C L I P S E ✦", secreto:true, unlock:"shadow",  efecto:"nova", fondo:"050508", texto:"C8A060", barra:"0D0A20", textoBarra:"FFB347", historial:"030306", panel:"0A0818", cooldown:"FF2244", afk:"00FFCC", boton:"14102A", hover:"221840", logo:"FFB347", luzOn:"FF6600", luzAccion:"FFD700", luzOff:"080520",  btnTexto:"FFB347", histColor1:"FFD700", histColor2:"FF6600", histColor3:"00FFCC" },
-    { nombre:"✦ C O S M O S ✦",   secreto:true, unlock:"cosmos",  efecto:"pulse", fondo:"03000F", texto:"E2C9FF", barra:"180040", textoBarra:"FFD700", historial:"020008", panel:"0D001E", cooldown:"FF1493", afk:"00E5FF", boton:"12002E", hover:"1E0050", logo:"FFD700", luzOn:"BF00FF", luzAccion:"FF69B4", luzOff:"080020",  btnTexto:"FFD700", histColor1:"FF69B4", histColor2:"BF00FF", histColor3:"00E5FF" },
-    { nombre:"♦ P R E M I U M ♦", secreto:true, unlock:"premium", fondo:"050008", texto:"FFFFFF", barra:"0F0020", textoBarra:"FFFFFF", historial:"030005", panel:"0A0015", cooldown:"FF0066", afk:"00FFCC", boton:"15002A", hover:"25004A", logo:"FFFFFF", luzOn:"FF00FF", luzAccion:"FFD700", luzOff:"0A0015",  btnTexto:"FFFFFF", histColor1:"FF00FF", histColor2:"00FFFF", histColor3:"FFFF00" },
-    { nombre:"☀ Retrowave",   secreto:true, unlock:"gamer", efecto:"nova", fondo:"1A0833", texto:"FF6EC7", barra:"7A1FA2", textoBarra:"00E5FF", historial:"0F051F", panel:"23104D", cooldown:"FF4081", afk:"FF8A50", boton:"7A1FA2", hover:"9C27B0", logo:"FF8A50", luzOn:"FF6EC7", luzAccion:"00E5FF", luzOff:"1A0833",  btnTexto:"FFFFFF", histColor1:"FF6EC7", histColor2:"00E5FF", histColor3:"FF8A50" },
-    { nombre:"◆ Cyberpunk",   secreto:true, unlock:"gamer", efecto:"multi", fondo:"0D0B1F", texto:"00FFFF", barra:"FF00AA", textoBarra:"FFFF00", historial:"070518", panel:"130E2E", cooldown:"FFFF00", afk:"00FFFF", boton:"FF00AA", hover:"FF33BB", logo:"FFFF00", luzOn:"FF00AA", luzAccion:"00FFFF", luzOff:"1A1240",  btnTexto:"FFFFFF", histColor1:"00FFFF", histColor2:"FF00AA", histColor3:"FFFF00" },
 ]
 
 ; ── TEMA PERSONALIZABLE (v31.2): editable por el usuario y guardado en [TemaCustom] ──
@@ -13880,6 +13882,31 @@ NormalizarHex(s) {
     return Format("{:U}", Trim(StrReplace(s, "#")))
 }
 
+; Selector de color nativo de Windows (comdlg32 ChooseColorW) — para no obligar
+; a nadie a buscar/escribir códigos hexadecimales a mano. Devuelve "RRGGBB" o
+; "" si se cancela. hexActual precarga el color que ya tenía ese campo.
+ElegirColorDialog(hwndOwner, hexActual) {
+    static customColors := 0
+    if (!customColors)
+        customColors := Buffer(16 * 4, 0)   ; paleta "colores personalizados" del diálogo
+
+    cc := Buffer(72, 0)                      ; sizeof(CHOOSECOLOR) en x64
+    NumPut("UInt", 72, cc, 0)                ; lStructSize
+    NumPut("Ptr",  hwndOwner, cc, 8)          ; hwndOwner
+    NumPut("UInt", HexToBGR(hexActual), cc, 24)  ; rgbResult (color inicial)
+    NumPut("Ptr",  customColors.Ptr, cc, 32)  ; lpCustColors
+    NumPut("UInt", 0x3, cc, 40)               ; Flags: CC_RGBINIT | CC_FULLOPEN
+
+    if !DllCall("comdlg32\ChooseColorW", "Ptr", cc.Ptr)
+        return ""
+
+    rgb := NumGet(cc, 24, "UInt")             ; COLORREF elegido: 0x00BBGGRR
+    r := rgb & 0xFF
+    g := (rgb >> 8) & 0xFF
+    b := (rgb >> 16) & 0xFF
+    return Format("{:02X}{:02X}{:02X}", r, g, b)
+}
+
 ; Campos editables del tema personalizado (clave interna + etiqueta).
 TemaCustomCampos() {
     return [
@@ -13981,9 +14008,12 @@ AbrirEditorTema(*) {
         editorTemaGui.Add("Text", "x" x " y" (y+3) " w78 h18 c" colorTextoPrincipal " Background" colorFondoPrincipal, c.l).SetFont("s8", "Segoe UI")
         ed := editorTemaGui.Add("Edit", "x" (x+80) " y" y " w58 h20 Background" colorFondoPrincipal " c" colorTextoPrincipal " Limit6", t.%c.k%)
         ed.SetFont("s8", "Consolas")
-        sw := editorTemaGui.Add("Text", "x" (x+142) " y" y " w20 h20 Background" t.%c.k%, "")
+        ; La muestra de color es clicable: abre el selector nativo de Windows en
+        ; vez de obligar a escribir el hex a mano (queda como atajo para quien lo sepa).
+        sw := editorTemaGui.Add("Text", "x" (x+142) " y" y " w20 h20 +0x201 Background" t.%c.k%, "")
         editorTemaCampos[c.k] := {ed: ed, sw: sw}
         ed.OnEvent("Change", EditorTemaPreviewSwatch.Bind(c.k))
+        sw.OnEvent("Click", EditorTemaAbrirPicker.Bind(c.k))
     }
     filas := Ceil(campos.Length / 2)
     yT := y0 + filas * 28 + 6
@@ -14032,6 +14062,27 @@ EditorTemaPreviewSwatch(clave, *) {
     v := editorTemaCampos[clave].ed.Value
     if (EsHexValido(v))
         try editorTemaCampos[clave].sw.Opt("Background" NormalizarHex(v))
+}
+
+; Click en la muestra de color: abre el selector nativo de Windows precargado
+; con el color actual del campo, y vuelca lo elegido al Edit + a la muestra.
+EditorTemaAbrirPicker(clave, *) {
+    global editorTemaCampos, editorTemaGui, autoCierrePaneles
+    if (!editorTemaCampos.Has(clave))
+        return
+    campo := editorTemaCampos[clave]
+    actual := EsHexValido(campo.ed.Value) ? NormalizarHex(campo.ed.Value) : "FFFFFF"
+    ; El selector es modal y elegir un color puede tardar más de los 30s de
+    ; gracia del auto-cierre (el cursor pasa fuera del editor) — pausarlo
+    ; mientras el diálogo está abierto y reactivarlo al volver.
+    try autoCierrePaneles.Delete(editorTemaGui.Hwnd)
+    elegido := ElegirColorDialog(editorTemaGui.Hwnd, actual)
+    if (editorTemaCampos.Has(clave))   ; el editor podría haberse cerrado por otra vía
+        RegistrarAutoCierre(editorTemaGui, CerrarEditorTema, 30)
+    if (elegido = "")
+        return
+    campo.ed.Value := elegido
+    try campo.sw.Opt("Background" elegido)
 }
 
 CerrarEditorTema(*) {
