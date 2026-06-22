@@ -20,7 +20,7 @@ configPath := A_ScriptDir "\brawlmacro_config.ini"
 global eggsBackupPath := A_ScriptDir "\brawlmacro_eggs.txt"
 global heartbeatPath := A_ScriptDir "\brawlmacro_heartbeat.txt"
 global historialLogPath := A_ScriptDir "\brawlmacro_historial.log"
-global VERSION_ACTUAL := "31.5.14"
+global VERSION_ACTUAL := "31.5.15"
 
 ; ===== TEMAS =====
 temas := [
@@ -10759,7 +10759,6 @@ HexToBGR(hex) {
 ; Visor de detección EN VIVO: muestra qué pasos busca y cuáles están en cooldown.
 ActualizarCooldowns(*) {
     global pasosPrioridad, pasosNormales, cooldownText, activo
-    marca := (Mod(A_TickCount // 350, 2) = 0) ? Chr(0x25CF) : Chr(0x25CB)
 
     if (!activo) {
         out := "Detenido — pulsa Iniciar"
@@ -10769,8 +10768,6 @@ ActualizarCooldowns(*) {
     }
 
     enEspera := ""
-    buscando := ""
-    nBuscando := 0
     restanteGlobal := BloqueoGlobalRestante()
     if (restanteGlobal > 0)
         enEspera .= "  " Chr(0x1F512) " GLOBAL  " Round(restanteGlobal / 1000, 1) "s`n"
@@ -10782,8 +10779,6 @@ ActualizarCooldowns(*) {
         restante := paso.cooldown - (A_TickCount - paso.lastUsed)
         if (restante > 0)
             enEspera .= "  " paso.nombre "  " Round(restante / 1000, 1) "s`n"
-        else
-            buscando .= (nBuscando++ ? ", " : "") paso.nombre
     }
     for paso in pasosNormales {
         if !paso.HasProp("lastUsed")
@@ -10793,14 +10788,8 @@ ActualizarCooldowns(*) {
         restante := paso.cooldown - (A_TickCount - paso.lastUsed)
         if (restante > 0)
             enEspera .= "  " paso.nombre "  " Round(restante / 1000, 1) "s`n"
-        else
-            buscando .= (nBuscando++ ? ", " : "") paso.nombre
     }
-    out := marca " Detectando (" nBuscando ")`n"
-    if (buscando != "")
-        out .= marca " " buscando "`n"
-    if (enEspera != "")
-        out .= Chr(0x23F3) " En cooldown:`n" enEspera
+    out := (enEspera != "") ? Chr(0x23F3) " En cooldown:`n" enEspera : "Sin cooldowns activos"
     if (cooldownText.Value != out)
         cooldownText.Value := out
 }
