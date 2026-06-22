@@ -20,7 +20,7 @@ configPath := A_ScriptDir "\brawlmacro_config.ini"
 global eggsBackupPath := A_ScriptDir "\brawlmacro_eggs.txt"
 global heartbeatPath := A_ScriptDir "\brawlmacro_heartbeat.txt"
 global historialLogPath := A_ScriptDir "\brawlmacro_historial.log"
-global VERSION_ACTUAL := "31.5.10"
+global VERSION_ACTUAL := "31.5.11"
 
 ; ===== TEMAS =====
 temas := [
@@ -5671,14 +5671,14 @@ HoverBreath() {
 ; ===== PRESETS DE RENDIMIENTO =====
 NombrePreset(p) {
     switch p {
-        case 1: return "60 FPS"
-        case 2: return "50 FPS"
-        case 3: return "33 FPS"
-        case 4: return "30 FPS"
-        case 5: return "20 FPS"
-        case 6: return "16 FPS"
-        case 7: return "8 FPS"
-        default: return "30 FPS"
+        case 1: return "Ultra"
+        case 2: return "Alto"
+        case 3: return "Fluido"
+        case 4: return "Normal"
+        case 5: return "Ligero"
+        case 6: return "Bajo"
+        case 7: return "Eco"
+        default: return "Normal"
     }
 }
 
@@ -5692,10 +5692,11 @@ AplicarPreset(p) {
 
     presetRendimiento := p
     ; Presets ordenados de MAYOR a MENOR fps (1=más fluido/más CPU, 7=más ahorro).
-    ; Todos nombrados directamente por su fps objetivo — ver NombrePreset().
+    ; Nombres — ver NombrePreset(): Ultra(60) Alto(50) Fluido(33) Normal(30)
+    ; Ligero(20) Bajo(16) Eco(8).
     switch p {
         case 1:
-            ; 60 FPS — máxima fluidez (Six Eyes Gojo suaves)
+            ; Ultra — 60 FPS, máxima fluidez (Six Eyes Gojo suaves)
             presetHoverPoll := 8
             presetHoverBreath := 20
             presetParticulas := 25
@@ -5708,7 +5709,7 @@ AplicarPreset(p) {
             presetTrayIcon := 1000
             presetLogros := 5000
         case 2:
-            ; 50 FPS
+            ; Alto — 50 FPS
             presetHoverPoll := 11
             presetHoverBreath := 27
             presetParticulas := 33
@@ -5721,7 +5722,7 @@ AplicarPreset(p) {
             presetTrayIcon := 1000
             presetLogros := 5000
         case 3:
-            ; 33 FPS
+            ; Fluido — 33 FPS
             presetHoverPoll := 15
             presetHoverBreath := 38
             presetParticulas := 47
@@ -5734,7 +5735,7 @@ AplicarPreset(p) {
             presetTrayIcon := 1000
             presetLogros := 5000
         case 4:
-            ; 30 FPS — equilibrio recomendado (antes "Normal")
+            ; Normal — 30 FPS, equilibrio recomendado
             presetHoverPoll := 16
             presetHoverBreath := 40
             presetParticulas := 50
@@ -5747,7 +5748,7 @@ AplicarPreset(p) {
             presetTrayIcon := 1000
             presetLogros := 5000
         case 5:
-            ; 20 FPS (antes "Ligero")
+            ; Ligero — 20 FPS
             presetHoverPoll := 32
             presetHoverBreath := 80
             presetParticulas := 100
@@ -5760,7 +5761,7 @@ AplicarPreset(p) {
             presetTrayIcon := 1500
             presetLogros := 8000
         case 6:
-            ; 16 FPS
+            ; Bajo — 16 FPS
             presetHoverPoll := 71
             presetHoverBreath := 53
             presetParticulas := 67
@@ -5773,7 +5774,7 @@ AplicarPreset(p) {
             presetTrayIcon := 2000
             presetLogros := 10333
         case 7:
-            ; 8 FPS — mínimo consumo de CPU posible sin romper funcionalidad (antes "Eco")
+            ; Eco — 8 FPS, mínimo consumo de CPU posible sin romper funcionalidad
             ; Apaga TODAS las animaciones cosmeticas. La deteccion sigue funcionando igual.
             presetHoverPoll := 150       ; 1s ~ 6fps (era 50)
             presetHoverBreath := 0       ; off — el boton hover no respira
@@ -7087,8 +7088,8 @@ TutorialPaginas() {
 
     { ico: Chr(0x26A1), tit: "Rendimiento (si va lento)",
       txt: "Baja o sube los fps del macro para mejor rendimiento:`n`n"
-         . "• 8 FPS : pocas animaciones (recomendado en pc lenta, como la del xavi).`n"
-         . "• 16 · 20 · 30 · 33 · 50 · 60 FPS : cada paso de más fps anima más fluido pero usa más CPU.`n`n"
+         . "• Eco : pocas animaciones (recomendado en pc lenta, como la del xavi).`n"
+         . "• Bajo · Ligero · Normal · Fluido · Alto · Ultra : cada paso anima más fluido pero usa más CPU.`n`n"
          . "En ⚙ Optimizar apagas efectos sueltos. El toggle 'Decoración del tema' mantiene o quita los adornos del borde, aunque estés en Eco.`n`n"
          . "No afecta en el funcionamiento del macro." },
 
