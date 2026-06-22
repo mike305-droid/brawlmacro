@@ -27,7 +27,7 @@ configPath := A_ScriptDir "\brawlmacro_config.ini"
 global eggsBackupPath := A_ScriptDir "\brawlmacro_eggs.txt"
 global heartbeatPath := A_ScriptDir "\brawlmacro_heartbeat.txt"
 global historialLogPath := A_ScriptDir "\brawlmacro_historial.log"
-global VERSION_ACTUAL := "31.5.21"
+global VERSION_ACTUAL := "31.5.22"
 
 ; ===== TEMAS =====
 temas := [
@@ -443,6 +443,7 @@ global temaCustomActivo := false
 global editorTemaGui := "", editorTemaVisible := false, editorTemaCampos := Map()
 global temaCustomData := Map()
 global temaCustomHue := 207, temaCustomOscuridad := 75   ; tono (0-360) y oscuridad (0-100) del tema personalizado
+global editorTemaHbmHue := 0, editorTemaHbmOsc := 0   ; HBITMAP de las tiras de gradiente (hay que liberarlos a mano)
 
 ; ── Centro de personalización (hub que abre tema/RGB/partículas/atajos/optimización) ──
 global centroPersGui := "", centroPersVisible := false
@@ -13881,20 +13882,32 @@ RefrescarEditorHotkeys() {
 ; oscuro). Todo lo demás se deriva matemáticamente en HSV: nadie tiene que
 ; buscar ni escribir códigos hexadecimales. La barra/botón siempre es el color
 ; vívido que más destaca, independientemente de si el tema es claro u oscuro.
+; Val/Sat del fondo según oscuridad — compartido con la tira de gradiente del
+; slider para que la vista previa sea EXACTAMENTE el mismo cálculo.
+ValSatFondo(oscuridad) {
+    darkFrac := oscuridad / 100.0
+    return [0.97 - 0.93 * darkFrac, 0.12 + 0.24 * darkFrac]
+}
+
 GenerarTemaPersonalizado(t, hue, oscuridad) {
     darkFrac := oscuridad / 100.0
     esOscuro := (darkFrac > 0.5)
 
-    ; Fondo: casi negro si es oscuro, casi blanco si es claro, con un tinte sutil del tono.
-    fondoVal := 0.96 - 0.90 * darkFrac
-    fondoSat := 0.06 + 0.12 * darkFrac
+    ; Fondo: casi negro si es oscuro, casi blanco si es claro. Más tinte que
+    ; antes (sat hasta 0.36) para que el tono se note también en el fondo.
+    vs := ValSatFondo(oscuridad)
+    fondoVal := vs[1], fondoSat := vs[2]
     t.fondo := HSVaHex(hue, fondoSat, fondoVal)
 
     ; Texto: contraste fuerte contra el fondo (con personalidad: tiñe del tono en vez de gris puro).
-    t.texto := esOscuro ? HSVaHex(hue, 0.05, 0.92) : HSVaHex(hue, 0.35, 0.18)
+    t.texto := esOscuro ? HSVaHex(hue, 0.08, 0.94) : HSVaHex(hue, 0.45, 0.16)
 
-    ; Barra/botón: el acento vívido que siempre destaca, sin depender de la oscuridad del tema.
-    t.barra := HSVaHex(hue, 0.70, 0.80)
+    ; Barra/botón: el acento que siempre destaca. AHORA también responde a la
+    ; oscuridad (más suave/pastel en temas claros, más profundo/neón en
+    ; oscuros) además de rotar con el tono — así los 2 sliders dan variedad real.
+    accSat := 0.55 + 0.35 * darkFrac
+    accVal := 0.92 - 0.20 * darkFrac
+    t.barra := HSVaHex(hue, accSat, accVal)
     t.boton := t.barra
 
     ; Texto sobre la barra/botón: blanco salvo que la barra sea muy clara (entonces oscuro).
@@ -13904,12 +13917,13 @@ GenerarTemaPersonalizado(t, hue, oscuridad) {
     t.hover := MezclarHex(t.barra, "FFFFFF", 0.22)
 
     ; Historial: un paso más en la misma dirección que el fondo (separación sutil).
-    t.historial := esOscuro ? HSVaHex(hue, fondoSat, Max(0.0, fondoVal - 0.03))
-                             : HSVaHex(hue, fondoSat, Min(1.0, fondoVal + 0.025))
+    t.historial := esOscuro ? HSVaHex(hue, fondoSat, Max(0.0, fondoVal - 0.04))
+                             : HSVaHex(hue, fondoSat, Min(1.0, fondoVal + 0.035))
 
-    ; Acentos secundarios: tono desplazado para distinguirse del principal.
-    t.afk      := HSVaHex(Mod(hue + 40, 360), 0.70, 0.85)
-    t.cooldown := HSVaHex(Mod(hue + 180, 360), 0.85, 0.95)
+    ; Acentos secundarios: tono desplazado para distinguirse del principal,
+    ; también con más rango de saturación/brillo entre claro y oscuro.
+    t.afk      := HSVaHex(Mod(hue + 40, 360), 0.60 + 0.30 * darkFrac, 0.95 - 0.15 * darkFrac)
+    t.cooldown := HSVaHex(Mod(hue + 180, 360), 0.80, 0.95)
 
     t.logo       := t.texto
     t.histColor1 := t.texto
@@ -13921,6 +13935,54 @@ GenerarTemaPersonalizado(t, hue, oscuridad) {
     t.luzOn     := t.afk
     t.luzAccion := t.barra
     t.luzOff    := t.fondo
+}
+
+; ── Tiras de gradiente para los sliders (que "las líneas cambien de color") ──
+; Hue: arcoíris completo 0-360°, fijo (no depende de la oscuridad).
+CrearTiraHue(w, h) {
+    bmp := 0
+    DllCall("gdiplus\GdipCreateBitmapFromScan0", "Int", w, "Int", h, "Int", 0, "Int", 0x26200A, "Ptr", 0, "Ptr*", &bmp)
+    if (!bmp)
+        return 0
+    g := 0
+    DllCall("gdiplus\GdipGetImageGraphicsContext", "Ptr", bmp, "Ptr*", &g)
+    loop w {
+        x := A_Index - 1
+        argb := 0xFF000000 | Integer("0x" HSVaHex(x / w * 360, 1.0, 1.0))
+        br := 0
+        DllCall("gdiplus\GdipCreateSolidFill", "UInt", argb, "Ptr*", &br)
+        DllCall("gdiplus\GdipFillRectangle", "Ptr", g, "Ptr", br, "Float", x, "Float", 0, "Float", 1.2, "Float", h)
+        DllCall("gdiplus\GdipDeleteBrush", "Ptr", br)
+    }
+    hbm := 0
+    DllCall("gdiplus\GdipCreateHBITMAPFromBitmap", "Ptr", bmp, "Ptr*", &hbm, "UInt", 0)
+    DllCall("gdiplus\GdipDeleteGraphics", "Ptr", g)
+    DllCall("gdiplus\GdipDisposeImage", "Ptr", bmp)
+    return hbm
+}
+
+; Oscuridad: claro→oscuro usando el tono actual (se regenera si cambia el hue).
+CrearTiraOscuridad(w, h, hue) {
+    bmp := 0
+    DllCall("gdiplus\GdipCreateBitmapFromScan0", "Int", w, "Int", h, "Int", 0, "Int", 0x26200A, "Ptr", 0, "Ptr*", &bmp)
+    if (!bmp)
+        return 0
+    g := 0
+    DllCall("gdiplus\GdipGetImageGraphicsContext", "Ptr", bmp, "Ptr*", &g)
+    loop w {
+        x := A_Index - 1
+        vs := ValSatFondo(x / w * 100)
+        argb := 0xFF000000 | Integer("0x" HSVaHex(hue, vs[2], vs[1]))
+        br := 0
+        DllCall("gdiplus\GdipCreateSolidFill", "UInt", argb, "Ptr*", &br)
+        DllCall("gdiplus\GdipFillRectangle", "Ptr", g, "Ptr", br, "Float", x, "Float", 0, "Float", 1.2, "Float", h)
+        DllCall("gdiplus\GdipDeleteBrush", "Ptr", br)
+    }
+    hbm := 0
+    DllCall("gdiplus\GdipCreateHBITMAPFromBitmap", "Ptr", bmp, "Ptr*", &hbm, "UInt", 0)
+    DllCall("gdiplus\GdipDeleteGraphics", "Ptr", g)
+    DllCall("gdiplus\GdipDisposeImage", "Ptr", bmp)
+    return hbm
 }
 
 ; Carga el tono/oscuridad guardados y regenera la paleta del tema custom.
@@ -13961,15 +14023,37 @@ AplicarTransparenciaGuardada() {
     AplicarTransparencia(Integer(IniRead(configPath, "TemaCustom", "Alpha", "255")))
 }
 
+; Crea las 2 muestras (marco negro + relleno blanco) que marcan la posición
+; actual sobre una tira de gradiente. Devuelve {outer, inner} para moverlas.
+CrearMarcadorSlider(gui, y, h) {
+    outer := gui.Add("Text", "x12 y" y " w4 h" h " Background000000", "")
+    inner := gui.Add("Text", "x13 y" (y+1) " w2 h" (h-2) " BackgroundFFFFFF", "")
+    return {outer: outer, inner: inner}
+}
+
+MoverMarcadorSlider(m, x) {
+    try m.outer.Move(x)
+    try m.inner.Move(x + 1)
+}
+
 AbrirEditorTema(*) {
     global editorTemaGui, editorTemaVisible, editorTemaCampos, configPath
     global colorFondoPrincipal, colorTextoPrincipal, colorBarra, colorTextoBarra, colorBotonNormal, colorBtnTexto
-    global temaCustomHue, temaCustomOscuridad
+    global temaCustomHue, temaCustomOscuridad, editorTemaHbmHue, editorTemaHbmOsc
     if (editorTemaVisible && IsObject(editorTemaGui)) {
         try LimpiarHoverGui(editorTemaGui)
         try editorTemaGui.Destroy()
         editorTemaVisible := false
         return
+    }
+    ; Liberar tiras de una apertura anterior (no se borran solas con la Gui).
+    if (editorTemaHbmHue) {
+        try DllCall("DeleteObject", "Ptr", editorTemaHbmHue)
+        editorTemaHbmHue := 0
+    }
+    if (editorTemaHbmOsc) {
+        try DllCall("DeleteObject", "Ptr", editorTemaHbmOsc)
+        editorTemaHbmOsc := 0
     }
     editorTemaGui := Gui("+AlwaysOnTop -Caption +ToolWindow")
     editorTemaGui.BackColor := colorFondoPrincipal
@@ -13982,44 +14066,69 @@ AbrirEditorTema(*) {
     barr.OnEvent("DoubleClick", (*) => CerrarEditorTema())
 
     ; Todo el tema se controla con 2 sliders: de qué COLOR es (tono) y qué tan
-    ; OSCURO es (oscuridad). El resto de la paleta se deriva en HSV — nadie
-    ; tiene que buscar ni escribir códigos hexadecimales.
+    ; OSCURO es (oscuridad). Cada slider tiene su tira de gradiente debajo
+    ; (arcoíris / claro-oscuro) con una marca que indica la posición actual,
+    ; así "la línea" sí cambia/muestra el color en todo momento.
     yT := 40
     lblHue := editorTemaGui.Add("Text", "x12 y" yT " w356 h18 c" colorTextoPrincipal " Background" colorFondoPrincipal,
         Chr(0x1F308) " Color: " temaCustomHue "°")
     lblHue.SetFont("s9 Bold", "Segoe UI")
-    yT += 20
-    sHue := editorTemaGui.Add("Slider", "x12 y" yT " w356 h26 NoTicks Range0-360", temaCustomHue)
-    yT += 34
+    yT += 18
+    editorTemaHbmHue := CrearTiraHue(356, 14)
+    editorTemaGui.Add("Picture", "x12 y" yT " w356 h14", "HBITMAP:" editorTemaHbmHue)
+    mHue := CrearMarcadorSlider(editorTemaGui, yT, 14)
+    yT += 16
+    sHue := editorTemaGui.Add("Slider", "x12 y" yT " w356 h24 NoTicks Range0-360", temaCustomHue)
+    yT += 30
 
     lblOsc := editorTemaGui.Add("Text", "x12 y" yT " w356 h18 c" colorTextoPrincipal " Background" colorFondoPrincipal,
         Chr(0x1F311) " Oscuridad: " temaCustomOscuridad "%")
     lblOsc.SetFont("s9 Bold", "Segoe UI")
-    yT += 20
-    sOsc := editorTemaGui.Add("Slider", "x12 y" yT " w356 h26 NoTicks Range0-100", temaCustomOscuridad)
-    yT += 34
+    yT += 18
+    editorTemaHbmOsc := CrearTiraOscuridad(356, 14, temaCustomHue)
+    picOsc := editorTemaGui.Add("Picture", "x12 y" yT " w356 h14", "HBITMAP:" editorTemaHbmOsc)
+    mOsc := CrearMarcadorSlider(editorTemaGui, yT, 14)
+    yT += 16
+    sOsc := editorTemaGui.Add("Slider", "x12 y" yT " w356 h24 NoTicks Range0-100", temaCustomOscuridad)
+    yT += 30
 
-    editorTemaCampos["sHue"] := sHue
-    editorTemaCampos["sOsc"] := sOsc
-    editorTemaCampos["lblHue"] := lblHue
-    editorTemaCampos["lblOsc"] := lblOsc
+    editorTemaCampos["sHue"]    := sHue
+    editorTemaCampos["sOsc"]    := sOsc
+    editorTemaCampos["lblHue"]  := lblHue
+    editorTemaCampos["lblOsc"]  := lblOsc
+    editorTemaCampos["picOsc"]  := picOsc
+    editorTemaCampos["mHue"]    := mHue
+    editorTemaCampos["mOsc"]    := mOsc
+    MoverMarcadorSlider(mHue, 12 + Round(temaCustomHue / 360 * 352))
+    MoverMarcadorSlider(mOsc, 12 + Round(temaCustomOscuridad / 100 * 352))
     sHue.OnEvent("Change", EditorTemaSliderChange)
     sOsc.OnEvent("Change", EditorTemaSliderChange)
 
-    ; Vista previa en vivo: muestras que se recalculan al mover los sliders,
-    ; sin tocar aún el tema activo (eso lo hacen Aplicar/Activar).
+    ; Vista previa en vivo: una mini-ventana de mentira con el header, el
+    ; fondo, un botón y 2 líneas de historial — para ver de un vistazo cómo
+    ; va a quedar todo junto, no muestras sueltas sin contexto.
     prev := {}
     GenerarTemaPersonalizado(prev, temaCustomHue, temaCustomOscuridad)
-    previewDefs := [{k:"fondo", l:"Fondo"}, {k:"barra", l:"Barra"}, {k:"texto", l:"Texto"}, {k:"afk", l:"Acento"}, {k:"cooldown", l:"Cooldown"}]
-    pw := 64, px := 12
-    for pd in previewDefs {
-        sw := editorTemaGui.Add("Text", "x" px " y" yT " w" (pw-6) " h36 Background" prev.%pd.k%, "")
-        lbl := editorTemaGui.Add("Text", "x" px " y" (yT+38) " w" (pw-6) " h16 c" colorTextoPrincipal " Background" colorFondoPrincipal " Center", pd.l)
-        lbl.SetFont("s7", "Segoe UI")
-        editorTemaCampos["sw_" pd.k] := sw
-        px += pw
-    }
-    yT += 58
+    mY := yT
+    mHeader := editorTemaGui.Add("Text", "x12 y" mY " w356 h24 Center Background" prev.barra " c" prev.textoBarra, "Vista previa")
+    mHeader.SetFont("s9 Bold", "Segoe UI")
+    mBody := editorTemaGui.Add("Text", "x12 y" (mY+24) " w356 h54 Background" prev.fondo, "")
+    mTxt := editorTemaGui.Add("Text", "x20 y" (mY+32) " w160 h18 Background" prev.fondo " c" prev.texto, "Texto de ejemplo")
+    mBtn := editorTemaGui.Add("Text", "x20 y" (mY+54) " w90 h18 Center Background" prev.boton " c" prev.btnTexto, "Botón")
+    mBtn.SetFont("s8 Bold", "Segoe UI")
+    mHist := editorTemaGui.Add("Text", "x184 y" (mY+30) " w176 h42 Background" prev.historial, "")
+    mH1 := editorTemaGui.Add("Text", "x190 y" (mY+34) " w164 h16 Background" prev.historial " c" prev.histColor1, Chr(0x25CF) " Evento detectado")
+    mH1.SetFont("s7", "Segoe UI")
+    mH2 := editorTemaGui.Add("Text", "x190 y" (mY+52) " w164 h16 Background" prev.historial " c" prev.cooldown, Chr(0x23F3) " Cooldown 5s")
+    mH2.SetFont("s7", "Segoe UI")
+    editorTemaCampos["mHeader"] := mHeader
+    editorTemaCampos["mBody"]   := mBody
+    editorTemaCampos["mTxt"]    := mTxt
+    editorTemaCampos["mBtn"]    := mBtn
+    editorTemaCampos["mHist"]   := mHist
+    editorTemaCampos["mH1"]     := mH1
+    editorTemaCampos["mH2"]     := mH2
+    yT += 24 + 54 + 8
 
     ; Transparencia
     editorTemaGui.Add("Text", "x12 y" yT " w120 h18 c" colorTextoPrincipal " Background" colorFondoPrincipal, "Transparencia:").SetFont("s8 Bold", "Segoe UI")
@@ -14058,32 +14167,55 @@ AbrirEditorTema(*) {
     RegistrarAutoCierre(editorTemaGui, CerrarEditorTema, 30)
 }
 
-; Se dispara al mover cualquiera de los 2 sliders: recalcula etiquetas y la
+; Se dispara al mover cualquiera de los 2 sliders: recalcula etiquetas,
+; marcas de posición, la tira de oscuridad (depende del tono) y la
 ; vista previa en vivo, sin tocar aún el tema activo (eso lo hacen los botones).
 EditorTemaSliderChange(*) {
-    global editorTemaCampos
+    global editorTemaCampos, editorTemaHbmOsc
     if (!editorTemaCampos.Has("sHue") || !editorTemaCampos.Has("sOsc"))
         return
     hue := editorTemaCampos["sHue"].Value
     osc := editorTemaCampos["sOsc"].Value
     try editorTemaCampos["lblHue"].Text := Chr(0x1F308) " Color: " hue "°"
     try editorTemaCampos["lblOsc"].Text := Chr(0x1F311) " Oscuridad: " osc "%"
+    MoverMarcadorSlider(editorTemaCampos["mHue"], 12 + Round(hue / 360 * 352))
+    MoverMarcadorSlider(editorTemaCampos["mOsc"], 12 + Round(osc / 100 * 352))
+
+    ; La tira de oscuridad se tiñe del tono actual — regenerarla al vuelo.
+    nuevoHbm := CrearTiraOscuridad(356, 14, hue)
+    if (nuevoHbm) {
+        try editorTemaCampos["picOsc"].Value := "HBITMAP:" nuevoHbm
+        if (editorTemaHbmOsc)
+            try DllCall("DeleteObject", "Ptr", editorTemaHbmOsc)
+        editorTemaHbmOsc := nuevoHbm
+    }
+
     prev := {}
     GenerarTemaPersonalizado(prev, hue, osc)
-    for clave in ["fondo", "barra", "texto", "afk", "cooldown"] {
-        k := "sw_" clave
-        if (editorTemaCampos.Has(k))
-            try editorTemaCampos[k].Opt("Background" prev.%clave%)
-    }
+    try editorTemaCampos["mHeader"].Opt("Background" prev.barra " c" prev.textoBarra)
+    try editorTemaCampos["mBody"].Opt("Background" prev.fondo)
+    try editorTemaCampos["mTxt"].Opt("Background" prev.fondo " c" prev.texto)
+    try editorTemaCampos["mBtn"].Opt("Background" prev.boton " c" prev.btnTexto)
+    try editorTemaCampos["mHist"].Opt("Background" prev.historial)
+    try editorTemaCampos["mH1"].Opt("Background" prev.historial " c" prev.histColor1)
+    try editorTemaCampos["mH2"].Opt("Background" prev.historial " c" prev.cooldown)
 }
 
 CerrarEditorTema(*) {
-    global editorTemaGui, editorTemaVisible
+    global editorTemaGui, editorTemaVisible, editorTemaHbmHue, editorTemaHbmOsc
     if (IsObject(editorTemaGui)) {
         try LimpiarHoverGui(editorTemaGui)
         try editorTemaGui.Destroy()
     }
     editorTemaVisible := false
+    if (editorTemaHbmHue) {
+        try DllCall("DeleteObject", "Ptr", editorTemaHbmHue)
+        editorTemaHbmHue := 0
+    }
+    if (editorTemaHbmOsc) {
+        try DllCall("DeleteObject", "Ptr", editorTemaHbmOsc)
+        editorTemaHbmOsc := 0
+    }
 }
 
 ; Lee los sliders, genera la paleta completa, la activa y la guarda.
