@@ -15,12 +15,19 @@ ManejarErrorGlobal(err, mode) {
     return true
 }
 
+; Windows redondea SetTimer hacia arriba al múltiplo de su resolución de reloj
+; (15.6ms por defecto) — por eso los presets de fps altos (Ultra pide 16ms =
+; 60fps) nunca pasaban de ~32fps reales. Bajar la resolución a 1ms deja que
+; SetTimer se acerque de verdad a los intervalos cortos que pide cada preset.
+DllCall("winmm\timeBeginPeriod", "UInt", 1)
+OnExit((*) => DllCall("winmm\timeEndPeriod", "UInt", 1))
+
 ; ===== CONFIGURACION =====
 configPath := A_ScriptDir "\brawlmacro_config.ini"
 global eggsBackupPath := A_ScriptDir "\brawlmacro_eggs.txt"
 global heartbeatPath := A_ScriptDir "\brawlmacro_heartbeat.txt"
 global historialLogPath := A_ScriptDir "\brawlmacro_historial.log"
-global VERSION_ACTUAL := "31.5.17"
+global VERSION_ACTUAL := "31.5.18"
 
 ; ===== TEMAS =====
 temas := [
@@ -5716,7 +5723,7 @@ AplicarPreset(p) {
             ; Bajo — 16 FPS
             presetHoverPoll := 71
             presetHoverBreath := 53
-            presetParticulas := 67
+            presetParticulas := 63
             presetPulsoBar := 53
             presetPulsoLogo := 67
             presetRGB := 247
@@ -5729,7 +5736,7 @@ AplicarPreset(p) {
             ; Ligero — 20 FPS
             presetHoverPoll := 32
             presetHoverBreath := 80
-            presetParticulas := 100
+            presetParticulas := 50
             presetPulsoBar := 80
             presetPulsoLogo := 100
             presetRGB := 120
@@ -5742,7 +5749,7 @@ AplicarPreset(p) {
             ; Normal — 30 FPS, equilibrio recomendado
             presetHoverPoll := 16
             presetHoverBreath := 40
-            presetParticulas := 50
+            presetParticulas := 33
             presetPulsoBar := 40
             presetPulsoLogo := 50
             presetRGB := 60
@@ -5755,7 +5762,7 @@ AplicarPreset(p) {
             ; Fluido — 33 FPS
             presetHoverPoll := 15
             presetHoverBreath := 38
-            presetParticulas := 47
+            presetParticulas := 30
             presetPulsoBar := 38
             presetPulsoLogo := 47
             presetRGB := 57
@@ -5768,7 +5775,7 @@ AplicarPreset(p) {
             ; Alto — 50 FPS
             presetHoverPoll := 11
             presetHoverBreath := 27
-            presetParticulas := 33
+            presetParticulas := 20
             presetPulsoBar := 27
             presetPulsoLogo := 33
             presetRGB := 40
@@ -5781,7 +5788,7 @@ AplicarPreset(p) {
             ; Ultra — 60 FPS, máxima fluidez (Six Eyes Gojo suaves)
             presetHoverPoll := 8
             presetHoverBreath := 20
-            presetParticulas := 25
+            presetParticulas := 16
             presetPulsoBar := 20
             presetPulsoLogo := 25
             presetRGB := 30
