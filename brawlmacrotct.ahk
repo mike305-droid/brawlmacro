@@ -27,7 +27,7 @@ configPath := A_ScriptDir "\brawlmacro_config.ini"
 global eggsBackupPath := A_ScriptDir "\brawlmacro_eggs.txt"
 global heartbeatPath := A_ScriptDir "\brawlmacro_heartbeat.txt"
 global historialLogPath := A_ScriptDir "\brawlmacro_historial.log"
-global VERSION_ACTUAL := "31.5.20"
+global VERSION_ACTUAL := "31.5.21"
 
 ; ===== TEMAS =====
 temas := [
@@ -442,6 +442,7 @@ global hotkeysGui := "", hotkeysGuiVisible := false, hkRegistradas := Map(), hkC
 global temaCustomActivo := false
 global editorTemaGui := "", editorTemaVisible := false, editorTemaCampos := Map()
 global temaCustomData := Map()
+global temaCustomHue := 207, temaCustomOscuridad := 75   ; tono (0-360) y oscuridad (0-100) del tema personalizado
 
 ; ── Centro de personalización (hub que abre tema/RGB/partículas/atajos/optimización) ──
 global centroPersGui := "", centroPersVisible := false
@@ -5463,6 +5464,14 @@ AclararHex(hex, factor := 0.18) {
     g := Min(255, g + Round((255 - g) * factor))
     b := Min(255, b + Round((255 - b) * factor))
     return Format("{:02X}{:02X}{:02X}", r, g, b)
+}
+
+; Luminancia perceptual aproximada (0-255) de un color HEX. >180 ≈ "claro".
+LuminanciaHex(hex) {
+    r := Integer("0x" SubStr(hex, 1, 2))
+    g := Integer("0x" SubStr(hex, 3, 2))
+    b := Integer("0x" SubStr(hex, 5, 2))
+    return (r * 299 + g * 587 + b * 114) / 1000
 }
 
 ; Elimina del registro todos los botones cuyo padre sea la gui dada.
@@ -13867,91 +13876,67 @@ RefrescarEditorHotkeys() {
 }
 
 ; ─────────────────────── (2) TEMA PERSONALIZABLE ───────────────────────
-EsHexValido(s) {
-    s := Trim(StrReplace(s, "#"))
-    if (StrLen(s) != 6)
-        return false
-    loop 6 {
-        if !InStr("0123456789abcdefABCDEF", SubStr(s, A_Index, 1))
-            return false
-    }
-    return true
+; Genera la paleta COMPLETA de un tema a partir de solo 2 parámetros: el tono
+; (hue, 0-360 — de qué color es) y la oscuridad (0-100 — 0=tema claro, 100=tema
+; oscuro). Todo lo demás se deriva matemáticamente en HSV: nadie tiene que
+; buscar ni escribir códigos hexadecimales. La barra/botón siempre es el color
+; vívido que más destaca, independientemente de si el tema es claro u oscuro.
+GenerarTemaPersonalizado(t, hue, oscuridad) {
+    darkFrac := oscuridad / 100.0
+    esOscuro := (darkFrac > 0.5)
+
+    ; Fondo: casi negro si es oscuro, casi blanco si es claro, con un tinte sutil del tono.
+    fondoVal := 0.96 - 0.90 * darkFrac
+    fondoSat := 0.06 + 0.12 * darkFrac
+    t.fondo := HSVaHex(hue, fondoSat, fondoVal)
+
+    ; Texto: contraste fuerte contra el fondo (con personalidad: tiñe del tono en vez de gris puro).
+    t.texto := esOscuro ? HSVaHex(hue, 0.05, 0.92) : HSVaHex(hue, 0.35, 0.18)
+
+    ; Barra/botón: el acento vívido que siempre destaca, sin depender de la oscuridad del tema.
+    t.barra := HSVaHex(hue, 0.70, 0.80)
+    t.boton := t.barra
+
+    ; Texto sobre la barra/botón: blanco salvo que la barra sea muy clara (entonces oscuro).
+    t.textoBarra := LuminanciaHex(t.barra) > 180 ? "1A1A1A" : "FFFFFF"
+    t.btnTexto   := t.textoBarra
+
+    t.hover := MezclarHex(t.barra, "FFFFFF", 0.22)
+
+    ; Historial: un paso más en la misma dirección que el fondo (separación sutil).
+    t.historial := esOscuro ? HSVaHex(hue, fondoSat, Max(0.0, fondoVal - 0.03))
+                             : HSVaHex(hue, fondoSat, Min(1.0, fondoVal + 0.025))
+
+    ; Acentos secundarios: tono desplazado para distinguirse del principal.
+    t.afk      := HSVaHex(Mod(hue + 40, 360), 0.70, 0.85)
+    t.cooldown := HSVaHex(Mod(hue + 180, 360), 0.85, 0.95)
+
+    t.logo       := t.texto
+    t.histColor1 := t.texto
+    t.histColor2 := t.afk
+    t.histColor3 := t.barra
+
+    ; Derivados ya usados por el resto del macro (luces, panel).
+    t.panel     := MezclarHex(t.fondo, t.barra, 0.18)
+    t.luzOn     := t.afk
+    t.luzAccion := t.barra
+    t.luzOff    := t.fondo
 }
 
-NormalizarHex(s) {
-    return Format("{:U}", Trim(StrReplace(s, "#")))
-}
-
-; Selector de color nativo de Windows (comdlg32 ChooseColorW) — para no obligar
-; a nadie a buscar/escribir códigos hexadecimales a mano. Devuelve "RRGGBB" o
-; "" si se cancela. hexActual precarga el color que ya tenía ese campo.
-ElegirColorDialog(hwndOwner, hexActual) {
-    static customColors := 0
-    if (!customColors)
-        customColors := Buffer(16 * 4, 0)   ; paleta "colores personalizados" del diálogo
-
-    cc := Buffer(72, 0)                      ; sizeof(CHOOSECOLOR) en x64
-    NumPut("UInt", 72, cc, 0)                ; lStructSize
-    NumPut("Ptr",  hwndOwner, cc, 8)          ; hwndOwner
-    NumPut("UInt", HexToBGR(hexActual), cc, 24)  ; rgbResult (color inicial)
-    NumPut("Ptr",  customColors.Ptr, cc, 32)  ; lpCustColors
-    NumPut("UInt", 0x3, cc, 40)               ; Flags: CC_RGBINIT | CC_FULLOPEN
-
-    if !DllCall("comdlg32\ChooseColorW", "Ptr", cc.Ptr)
-        return ""
-
-    rgb := NumGet(cc, 24, "UInt")             ; COLORREF elegido: 0x00BBGGRR
-    r := rgb & 0xFF
-    g := (rgb >> 8) & 0xFF
-    b := (rgb >> 16) & 0xFF
-    return Format("{:02X}{:02X}{:02X}", r, g, b)
-}
-
-; Campos editables del tema personalizado (clave interna + etiqueta).
-TemaCustomCampos() {
-    return [
-        {k:"fondo",      l:"Fondo"},
-        {k:"texto",      l:"Texto"},
-        {k:"barra",      l:"Barra"},
-        {k:"textoBarra", l:"Texto barra"},
-        {k:"boton",      l:"Botón"},
-        {k:"hover",      l:"Botón hover"},
-        {k:"btnTexto",   l:"Texto botón"},
-        {k:"historial",  l:"Fondo historial"},
-        {k:"cooldown",   l:"Cooldown"},
-        {k:"afk",        l:"AFK / acento"},
-        {k:"logo",       l:"Logo"},
-        {k:"histColor1", l:"Hist color 1"},
-        {k:"histColor2", l:"Hist color 2"},
-        {k:"histColor3", l:"Hist color 3"}
-    ]
-}
-
-; Carga los colores guardados del tema custom (y deriva los que no se editan).
+; Carga el tono/oscuridad guardados y regenera la paleta del tema custom.
 CargarTemaCustom() {
-    global configPath, temas, temaCustomIdx
+    global configPath, temas, temaCustomIdx, temaCustomHue, temaCustomOscuridad
     if (!temaCustomIdx)
         return
-    t := temas[temaCustomIdx]
-    for c in TemaCustomCampos() {
-        v := IniRead(configPath, "TemaCustom", c.k, "")
-        if (v != "" && EsHexValido(v))
-            t.%c.k% := NormalizarHex(v)
-    }
-    ; Derivar los campos no editables a partir de los editables.
-    t.panel       := MezclarHex(t.fondo, t.barra, 0.18)
-    t.luzOn       := t.afk
-    t.luzAccion   := t.barra
-    t.luzOff      := t.fondo
+    temaCustomHue       := Integer(IniRead(configPath, "TemaCustom", "Hue", "207"))
+    temaCustomOscuridad := Integer(IniRead(configPath, "TemaCustom", "Oscuridad", "75"))
+    GenerarTemaPersonalizado(temas[temaCustomIdx], temaCustomHue, temaCustomOscuridad)
 }
 
 GuardarTemaCustom() {
-    global configPath, temas, temaCustomIdx
-    if (!temaCustomIdx)
-        return
-    t := temas[temaCustomIdx]
-    for c in TemaCustomCampos()
-        IniWrite(t.%c.k%, configPath, "TemaCustom", c.k)
+    global configPath, temaCustomHue, temaCustomOscuridad
+    IniWrite(temaCustomHue, configPath, "TemaCustom", "Hue")
+    IniWrite(temaCustomOscuridad, configPath, "TemaCustom", "Oscuridad")
 }
 
 AplicarTransparencia(alpha) {
@@ -13977,8 +13962,9 @@ AplicarTransparenciaGuardada() {
 }
 
 AbrirEditorTema(*) {
-    global editorTemaGui, editorTemaVisible, editorTemaCampos, temas, temaCustomIdx, configPath
+    global editorTemaGui, editorTemaVisible, editorTemaCampos, configPath
     global colorFondoPrincipal, colorTextoPrincipal, colorBarra, colorTextoBarra, colorBotonNormal, colorBtnTexto
+    global temaCustomHue, temaCustomOscuridad
     if (editorTemaVisible && IsObject(editorTemaGui)) {
         try LimpiarHoverGui(editorTemaGui)
         try editorTemaGui.Destroy()
@@ -13995,28 +13981,45 @@ AbrirEditorTema(*) {
     barr.OnEvent("Click", (*) => PostMessage(0xA1, 2,,, "ahk_id " editorTemaGui.Hwnd))
     barr.OnEvent("DoubleClick", (*) => CerrarEditorTema())
 
-    t := temas[temaCustomIdx]
-    campos := TemaCustomCampos()
-    ; Dos columnas de campos de color: etiqueta + edit hex + muestra.
-    colW := W // 2
-    y0 := 36
-    for i, c in campos {
-        col := Mod(i - 1, 2)
-        fila := (i - 1) // 2
-        x := 12 + col * colW
-        y := y0 + fila * 28
-        editorTemaGui.Add("Text", "x" x " y" (y+3) " w78 h18 c" colorTextoPrincipal " Background" colorFondoPrincipal, c.l).SetFont("s8", "Segoe UI")
-        ed := editorTemaGui.Add("Edit", "x" (x+80) " y" y " w58 h20 Background" colorFondoPrincipal " c" colorTextoPrincipal " Limit6", t.%c.k%)
-        ed.SetFont("s8", "Consolas")
-        ; La muestra de color es clicable: abre el selector nativo de Windows en
-        ; vez de obligar a escribir el hex a mano (queda como atajo para quien lo sepa).
-        sw := editorTemaGui.Add("Text", "x" (x+142) " y" y " w20 h20 +0x201 Background" t.%c.k%, "")
-        editorTemaCampos[c.k] := {ed: ed, sw: sw}
-        ed.OnEvent("Change", EditorTemaPreviewSwatch.Bind(c.k))
-        sw.OnEvent("Click", EditorTemaAbrirPicker.Bind(c.k))
+    ; Todo el tema se controla con 2 sliders: de qué COLOR es (tono) y qué tan
+    ; OSCURO es (oscuridad). El resto de la paleta se deriva en HSV — nadie
+    ; tiene que buscar ni escribir códigos hexadecimales.
+    yT := 40
+    lblHue := editorTemaGui.Add("Text", "x12 y" yT " w356 h18 c" colorTextoPrincipal " Background" colorFondoPrincipal,
+        Chr(0x1F308) " Color: " temaCustomHue "°")
+    lblHue.SetFont("s9 Bold", "Segoe UI")
+    yT += 20
+    sHue := editorTemaGui.Add("Slider", "x12 y" yT " w356 h26 NoTicks Range0-360", temaCustomHue)
+    yT += 34
+
+    lblOsc := editorTemaGui.Add("Text", "x12 y" yT " w356 h18 c" colorTextoPrincipal " Background" colorFondoPrincipal,
+        Chr(0x1F311) " Oscuridad: " temaCustomOscuridad "%")
+    lblOsc.SetFont("s9 Bold", "Segoe UI")
+    yT += 20
+    sOsc := editorTemaGui.Add("Slider", "x12 y" yT " w356 h26 NoTicks Range0-100", temaCustomOscuridad)
+    yT += 34
+
+    editorTemaCampos["sHue"] := sHue
+    editorTemaCampos["sOsc"] := sOsc
+    editorTemaCampos["lblHue"] := lblHue
+    editorTemaCampos["lblOsc"] := lblOsc
+    sHue.OnEvent("Change", EditorTemaSliderChange)
+    sOsc.OnEvent("Change", EditorTemaSliderChange)
+
+    ; Vista previa en vivo: muestras que se recalculan al mover los sliders,
+    ; sin tocar aún el tema activo (eso lo hacen Aplicar/Activar).
+    prev := {}
+    GenerarTemaPersonalizado(prev, temaCustomHue, temaCustomOscuridad)
+    previewDefs := [{k:"fondo", l:"Fondo"}, {k:"barra", l:"Barra"}, {k:"texto", l:"Texto"}, {k:"afk", l:"Acento"}, {k:"cooldown", l:"Cooldown"}]
+    pw := 64, px := 12
+    for pd in previewDefs {
+        sw := editorTemaGui.Add("Text", "x" px " y" yT " w" (pw-6) " h36 Background" prev.%pd.k%, "")
+        lbl := editorTemaGui.Add("Text", "x" px " y" (yT+38) " w" (pw-6) " h16 c" colorTextoPrincipal " Background" colorFondoPrincipal " Center", pd.l)
+        lbl.SetFont("s7", "Segoe UI")
+        editorTemaCampos["sw_" pd.k] := sw
+        px += pw
     }
-    filas := Ceil(campos.Length / 2)
-    yT := y0 + filas * 28 + 6
+    yT += 58
 
     ; Transparencia
     editorTemaGui.Add("Text", "x12 y" yT " w120 h18 c" colorTextoPrincipal " Background" colorFondoPrincipal, "Transparencia:").SetFont("s8 Bold", "Segoe UI")
@@ -14055,34 +14058,23 @@ AbrirEditorTema(*) {
     RegistrarAutoCierre(editorTemaGui, CerrarEditorTema, 30)
 }
 
-EditorTemaPreviewSwatch(clave, *) {
+; Se dispara al mover cualquiera de los 2 sliders: recalcula etiquetas y la
+; vista previa en vivo, sin tocar aún el tema activo (eso lo hacen los botones).
+EditorTemaSliderChange(*) {
     global editorTemaCampos
-    if (!editorTemaCampos.Has(clave))
+    if (!editorTemaCampos.Has("sHue") || !editorTemaCampos.Has("sOsc"))
         return
-    v := editorTemaCampos[clave].ed.Value
-    if (EsHexValido(v))
-        try editorTemaCampos[clave].sw.Opt("Background" NormalizarHex(v))
-}
-
-; Click en la muestra de color: abre el selector nativo de Windows precargado
-; con el color actual del campo, y vuelca lo elegido al Edit + a la muestra.
-EditorTemaAbrirPicker(clave, *) {
-    global editorTemaCampos, editorTemaGui, autoCierrePaneles
-    if (!editorTemaCampos.Has(clave))
-        return
-    campo := editorTemaCampos[clave]
-    actual := EsHexValido(campo.ed.Value) ? NormalizarHex(campo.ed.Value) : "FFFFFF"
-    ; El selector es modal y elegir un color puede tardar más de los 30s de
-    ; gracia del auto-cierre (el cursor pasa fuera del editor) — pausarlo
-    ; mientras el diálogo está abierto y reactivarlo al volver.
-    try autoCierrePaneles.Delete(editorTemaGui.Hwnd)
-    elegido := ElegirColorDialog(editorTemaGui.Hwnd, actual)
-    if (editorTemaCampos.Has(clave))   ; el editor podría haberse cerrado por otra vía
-        RegistrarAutoCierre(editorTemaGui, CerrarEditorTema, 30)
-    if (elegido = "")
-        return
-    campo.ed.Value := elegido
-    try campo.sw.Opt("Background" elegido)
+    hue := editorTemaCampos["sHue"].Value
+    osc := editorTemaCampos["sOsc"].Value
+    try editorTemaCampos["lblHue"].Text := Chr(0x1F308) " Color: " hue "°"
+    try editorTemaCampos["lblOsc"].Text := Chr(0x1F311) " Oscuridad: " osc "%"
+    prev := {}
+    GenerarTemaPersonalizado(prev, hue, osc)
+    for clave in ["fondo", "barra", "texto", "afk", "cooldown"] {
+        k := "sw_" clave
+        if (editorTemaCampos.Has(k))
+            try editorTemaCampos[k].Opt("Background" prev.%clave%)
+    }
 }
 
 CerrarEditorTema(*) {
@@ -14094,34 +14086,20 @@ CerrarEditorTema(*) {
     editorTemaVisible := false
 }
 
-; Lee los edits, valida, vuelca al tema custom, lo activa y guarda.
+; Lee los sliders, genera la paleta completa, la activa y la guarda.
 EditorTemaAplicar() {
-    global editorTemaCampos, temas, temaCustomIdx, temaActual
-    t := temas[temaCustomIdx]
-    invalidos := 0
-    for c in TemaCustomCampos() {
-        if (!editorTemaCampos.Has(c.k))
-            continue
-        v := editorTemaCampos[c.k].ed.Value
-        if (EsHexValido(v))
-            t.%c.k% := NormalizarHex(v)
-        else
-            invalidos += 1
-    }
-    ; Derivar campos no editables
-    t.panel     := MezclarHex(t.fondo, t.barra, 0.18)
-    t.luzOn     := t.afk
-    t.luzAccion := t.barra
-    t.luzOff    := t.fondo
+    global editorTemaCampos, temas, temaCustomIdx, temaActual, temaCustomHue, temaCustomOscuridad
+    if (!editorTemaCampos.Has("sHue") || !editorTemaCampos.Has("sOsc"))
+        return
+    temaCustomHue       := editorTemaCampos["sHue"].Value
+    temaCustomOscuridad := editorTemaCampos["sOsc"].Value
+    GenerarTemaPersonalizado(temas[temaCustomIdx], temaCustomHue, temaCustomOscuridad)
     GuardarTemaCustom()
     ; Activar el tema custom para ver el resultado de inmediato
     temaActual := temaCustomIdx
     AplicarTema(temas[temaCustomIdx], false)
     GuardarTema()
-    if (invalidos > 0)
-        AgregarHistorial(Chr(0x26A0) " Tema aplicado (" invalidos " color(es) inválidos ignorados)", "FF8800")
-    else
-        AgregarHistorial(Chr(0x1F3A8) " Tema personalizado aplicado", "")
+    AgregarHistorial(Chr(0x1F3A8) " Tema personalizado aplicado", "")
 }
 
 EditorTemaActivar() {
@@ -14133,17 +14111,10 @@ EditorTemaActivar() {
 }
 
 EditorTemaReset() {
-    global configPath, temas, temaCustomIdx
-    ; Borrar config y recargar valores por defecto base.
-    base := {fondo:"161A24", texto:"E6E6E6", barra:"3D7EBE", textoBarra:"FFFFFF",
-        historial:"10131B", cooldown:"FF6B6B", afk:"6FB0E0", boton:"2A3142",
-        hover:"3A4459", logo:"FFFFFF", btnTexto:"FFFFFF",
-        histColor1:"E6E6E6", histColor2:"6FB0E0", histColor3:"3D7EBE"}
-    t := temas[temaCustomIdx]
-    for c in TemaCustomCampos()
-        t.%c.k% := base.%c.k%
-    t.panel := MezclarHex(t.fondo, t.barra, 0.18)
-    t.luzOn := t.afk, t.luzAccion := t.barra, t.luzOff := t.fondo
+    global configPath, temas, temaCustomIdx, temaCustomHue, temaCustomOscuridad
+    temaCustomHue := 207
+    temaCustomOscuridad := 75
+    GenerarTemaPersonalizado(temas[temaCustomIdx], temaCustomHue, temaCustomOscuridad)
     try IniDelete(configPath, "TemaCustom")
     GuardarTemaCustom()
     AplicarTransparencia(255)
