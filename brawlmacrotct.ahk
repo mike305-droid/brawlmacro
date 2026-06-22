@@ -27,7 +27,7 @@ configPath := A_ScriptDir "\brawlmacro_config.ini"
 global eggsBackupPath := A_ScriptDir "\brawlmacro_eggs.txt"
 global heartbeatPath := A_ScriptDir "\brawlmacro_heartbeat.txt"
 global historialLogPath := A_ScriptDir "\brawlmacro_historial.log"
-global VERSION_ACTUAL := "31.5.18"
+global VERSION_ACTUAL := "31.5.19"
 
 ; ===== TEMAS =====
 temas := [
@@ -446,8 +446,6 @@ global centroPersGui := "", centroPersVisible := false
 
 ; ===== PRESETS DE RENDIMIENTO =====
 global presetRendimiento := 4
-global fpsContador := 0
-global fpsActual := 0
 global fpsLabel := ""
 global presetLabel := ""
 global presetHoverPoll := 16
@@ -1992,9 +1990,8 @@ AplicarConfigParticulas() {
 ; pero el usuario quiere mantener la decoración (toggle "Decoración del tema").
 ActualizarEscenaSola() {
     global miGui, overlayPartMain, temaEnTransicion, optEscena
-    global particulasActivas, presetParticulas, modoMini, fpsContador
+    global particulasActivas, presetParticulas, modoMini
     static BAR_H := 25
-    fpsContador++   ; mide el fps REAL de la decoración (no el polling del hover)
     if (temaEnTransicion || !optEscena || modoMini)
         return
     if (particulasActivas && presetParticulas > 0)
@@ -2035,9 +2032,8 @@ RefrescarTimersVisuales() {
 ActualizarParticulas() {
     global particulasMain, particulasHist, miGui, historialGui, historialVisible, particulasInited
     global overlayPartMain, overlayPartHist
-    global temaEnTransicion, particulasActivas, fpsContador
+    global temaEnTransicion, particulasActivas
     global temas, temaActual, modoMini, particulasMini
-    fpsContador++   ; mide el fps REAL de la decoración (no el polling del hover)
     if (!particulasInited || temaEnTransicion || !particulasActivas)
         return
 
@@ -5692,6 +5688,19 @@ NombrePreset(p) {
     }
 }
 
+FpsObjetivoPreset(p) {
+    switch p {
+        case 1: return 8
+        case 2: return 16
+        case 3: return 20
+        case 4: return 30
+        case 5: return 33
+        case 6: return 50
+        case 7: return 60
+        default: return 30
+    }
+}
+
 AplicarPreset(p) {
     global presetRendimiento, presetHoverPoll, presetHoverBreath
     global presetParticulas, presetPulsoBar, presetPulsoLogo, presetRGB
@@ -5826,12 +5835,12 @@ CiclarPreset(*) {
     AplicarPreset(p)
 }
 
+; Muestra el fps OBJETIVO del preset activo (no el medido en vivo): el real
+; depende del coste de dibujado del momento y confundía más de lo que ayudaba.
 ActualizarFPS() {
-    global fpsContador, fpsActual, fpsLabel
-    fpsActual := fpsContador
-    fpsContador := 0
+    global presetRendimiento, fpsLabel
     if (IsObject(fpsLabel))
-        try fpsLabel.Text := fpsActual " fps"
+        try fpsLabel.Text := FpsObjetivoPreset(presetRendimiento) " fps"
     try ActualizarCicloLabel()
 }
 
