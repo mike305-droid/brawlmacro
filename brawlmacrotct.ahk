@@ -9,8 +9,33 @@ CoordMode("Mouse", "Screen")
 ; para que el macro siga vivo en vez de cerrarse/reiniciarse de golpe.
 OnError(ManejarErrorGlobal)
 ManejarErrorGlobal(err, mode) {
+    static ultimoMsg := "", ultimoMsgT := 0, ultimaEscrituraT := 0, suprimidos := 0
+    ; ANTES: se escribía a disco en CADA error. Si un error ocurría dentro de un
+    ; timer rápido (cada 16 ms) eso eran ~60 FileAppend por segundo → el disco se
+    ; saturaba y el macro se sentía trabado/"mal optimizado" e incluso el watchdog
+    ; lo reiniciaba por falta de heartbeat. Ahora se limita el ritmo de escritura:
+    ahora := A_TickCount
+    msg := err.Message " @ " err.File ":" err.Line
+    ; 1) Mismo error repetido en <10 s → suprimir (caso típico: timer que falla
+    ;    cada frame; en el log se veían 342 líneas idénticas seguidas).
+    if (msg = ultimoMsg && (ahora - ultimoMsgT) < 10000) {
+        suprimidos += 1
+        ultimoMsgT := ahora
+        return true
+    }
+    ; 2) Tope global: como mucho 1 escritura por segundo aunque sean errores
+    ;    distintos alternándose, para no thrashear el disco en una tormenta.
+    if (ahora - ultimaEscrituraT < 1000) {
+        suprimidos += 1
+        return true
+    }
+    extra := suprimidos > 0 ? "  [+" suprimidos " suprimidos]" : ""
+    suprimidos := 0
+    ultimoMsg := msg
+    ultimoMsgT := ahora
+    ultimaEscrituraT := ahora
     try FileAppend(FormatTime(, "yyyy-MM-dd HH:mm:ss") " ERROR: " err.Message
-        " @ " err.File ":" err.Line " (" err.What ") Extra=" err.Extra "`n",
+        " @ " err.File ":" err.Line " (" err.What ") Extra=" err.Extra extra "`n",
         A_ScriptDir "\brawlmacro_errores.log")
     return true
 }
@@ -27,7 +52,7 @@ configPath := A_ScriptDir "\brawlmacro_config.ini"
 global eggsBackupPath := A_ScriptDir "\brawlmacro_eggs.txt"
 global heartbeatPath := A_ScriptDir "\brawlmacro_heartbeat.txt"
 global historialLogPath := A_ScriptDir "\brawlmacro_historial.log"
-global VERSION_ACTUAL := "31.5.23"
+global VERSION_ACTUAL := "31.5.24"
 
 ; ===== TEMAS =====
 temas := [
@@ -10960,10 +10985,17 @@ BuscarPixel(paso, &x, &y) {
     y2 := Round(paso.y2 * scaleY)
     x := ""
     y := ""
-    if PixelSearch(&foundX, &foundY, x1, y1, x2, y2, paso.color, paso.tolerancia) {
-        x := foundX
-        y := foundY
-        return true
+    ; PixelSearch lee la pantalla vía un DC del escritorio. Si la pantalla no está
+    ; disponible un instante (bloqueo de sesión, salvapantallas, escritorio seguro
+    ; de UAC, RDP, suspensión) lanza "(6) Controlador no válido". Antes ese error
+    ; se propagaba y floodeaba el log; ahora se traga y se trata como "no detectado"
+    ; — el siguiente tick reintenta cuando la pantalla vuelve.
+    try {
+        if PixelSearch(&foundX, &foundY, x1, y1, x2, y2, paso.color, paso.tolerancia) {
+            x := foundX
+            y := foundY
+            return true
+        }
     }
     return false
 }
