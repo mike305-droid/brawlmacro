@@ -27,7 +27,7 @@ configPath := A_ScriptDir "\brawlmacro_config.ini"
 global eggsBackupPath := A_ScriptDir "\brawlmacro_eggs.txt"
 global heartbeatPath := A_ScriptDir "\brawlmacro_heartbeat.txt"
 global historialLogPath := A_ScriptDir "\brawlmacro_historial.log"
-global VERSION_ACTUAL := "31.5.22"
+global VERSION_ACTUAL := "31.5.23"
 
 ; ===== TEMAS =====
 temas := [
@@ -443,7 +443,9 @@ global temaCustomActivo := false
 global editorTemaGui := "", editorTemaVisible := false, editorTemaCampos := Map()
 global temaCustomData := Map()
 global temaCustomHue := 207, temaCustomOscuridad := 75   ; tono (0-360) y oscuridad (0-100) del tema personalizado
+global temaCustomDeco := "", temaCustomAccion := ""   ; decoración (escena) y efecto de acción elegidos ("" = automático)
 global editorTemaHbmHue := 0, editorTemaHbmOsc := 0   ; HBITMAP de las tiras de gradiente (hay que liberarlos a mano)
+global editorTemaLiveArmed := false   ; throttle del preview en vivo sobre la ventana real
 
 ; ── Centro de personalización (hub que abre tema/RGB/partículas/atajos/optimización) ──
 global centroPersGui := "", centroPersVisible := false
@@ -1837,6 +1839,9 @@ global overlayPartMain := "", overlayPartHist := ""
 ; EFECTOS DE PARTÍCULA POR TEMA — cada tema tiene su propio "detalle"
 ; ═══════════════════════════════════════════════════════════════
 EfectoDeTema(t) {
+    ; Efecto elegido a mano (tema personalizado): tiene prioridad sobre todo.
+    if (t.HasProp("efAccion") && t.efAccion != "")
+        return t.efAccion
     ; Secretos identificables por su unlock (nombres con espacios entre letras)
     if (t.HasProp("unlock")) {
         switch t.unlock {
@@ -2440,7 +2445,7 @@ EscenaLinea(g, argb, x1, y1, x2, y2, grosor) {
 ; Decoración ESPECÍFICA por tema (según su nombre), con respaldo a la categoría
 ; por efecto (EfectoDeTema) si el tema no tiene una decoración propia definida.
 DecoDeTema(t) {
-    if (t.HasProp("deco"))
+    if (t.HasProp("deco") && t.deco != "")
         return t.deco
     ; Secretos de nombre espaciado (✦ C O S M O S ✦, etc.) → por unlock
     if (t.HasProp("unlock")) {
@@ -5394,6 +5399,9 @@ SetTimer(SukunaAutoDismantle, 4000)
 
 ; Ciclo automático jugar/descanso (8 h jugar → Alt+F4 + 1 h descanso → relanzar). Cada 30 s.
 SetTimer(TickCicloDescanso, 30000)
+; Destrabar con 'c' si Brawlhalla está abierto pero el macro no detecta nada
+; (p. ej. popup de noticias al despertar del descanso). Solo tct/sp, ver función.
+SetTimer(TickDestrabarC, 5000)
 ; Guardado periódico de stats (horas/secuencias/destrucciones): antes SOLO se
 ; guardaban al cerrar con la ✕ o al reiniciar — si el watchdog mataba el proceso
 ; o había un crash, la sesión entera se perdía (por eso las secuencias se quedaban en 0).
@@ -12622,6 +12630,29 @@ CheckBrawlhallaMinimizado() {
     }
 }
 
+; ═════ DESTRABAR CON 'c' (solo tct/sp) ═════
+; Si Brawlhalla está ABIERTO pero el macro lleva >5s sin detectar NINGÚN pixel,
+; está atascado en una pantalla que tapa todo (típico al despertar del descanso:
+; el juego abre en un popup de noticias / "qué hay de nuevo"). Pulsar 'c' cada 5s
+; confirma/cierra esos diálogos hasta que vuelve a detectar algo y sigue solo.
+; Gates: solo tct(1)/sp(2); nunca en descanso (el juego está cerrado a propósito);
+; nunca durante una partida (bloqueo global activo) para no estorbar al juego.
+TickDestrabarC() {
+    global activo, perfilActivo, enDescanso, ultimaDeteccionReal
+    static avisado := false
+    if (!activo || enDescanso || (perfilActivo != 1 && perfilActivo != 2)
+        || BloqueoGlobalActivo() || !ProcessExist("Brawlhalla.exe")
+        || (A_TickCount - ultimaDeteccionReal < 5000)) {
+        avisado := false
+        return
+    }
+    if (!avisado) {
+        AgregarHistorial(Chr(0x2328) " Brawlhalla abierto sin detección — pulsando 'c' para destrabar", "FF8800")
+        avisado := true
+    }
+    try SendInput "c"
+}
+
 ; Alias retrocompatible
 LanzarBrawlhalla() => LanzarJuegoDelPerfil()
 
@@ -13889,7 +13920,7 @@ ValSatFondo(oscuridad) {
     return [0.97 - 0.93 * darkFrac, 0.12 + 0.24 * darkFrac]
 }
 
-GenerarTemaPersonalizado(t, hue, oscuridad) {
+GenerarTemaPersonalizado(t, hue, oscuridad, deco := "", accion := "") {
     darkFrac := oscuridad / 100.0
     esOscuro := (darkFrac > 0.5)
 
@@ -13935,6 +13966,12 @@ GenerarTemaPersonalizado(t, hue, oscuridad) {
     t.luzOn     := t.afk
     t.luzAccion := t.barra
     t.luzOff    := t.fondo
+
+    ; Decoración (escena del borde) y efecto de acción/partículas elegidos por
+    ; el usuario. "" = automático: DecoDeTema/EfectoDeTema los infieren del color.
+    ; Se guardan SIEMPRE (aunque sea "") para poder volver a "automático".
+    t.deco     := deco
+    t.efAccion := accion
 }
 
 ; ── Tiras de gradiente para los sliders (que "las líneas cambien de color") ──
@@ -13985,20 +14022,55 @@ CrearTiraOscuridad(w, h, hue) {
     return hbm
 }
 
-; Carga el tono/oscuridad guardados y regenera la paleta del tema custom.
+; Carga tono/oscuridad/decoración/acción guardados y regenera la paleta custom.
 CargarTemaCustom() {
-    global configPath, temas, temaCustomIdx, temaCustomHue, temaCustomOscuridad
+    global configPath, temas, temaCustomIdx, temaCustomHue, temaCustomOscuridad, temaCustomDeco, temaCustomAccion
     if (!temaCustomIdx)
         return
     temaCustomHue       := Integer(IniRead(configPath, "TemaCustom", "Hue", "207"))
     temaCustomOscuridad := Integer(IniRead(configPath, "TemaCustom", "Oscuridad", "75"))
-    GenerarTemaPersonalizado(temas[temaCustomIdx], temaCustomHue, temaCustomOscuridad)
+    temaCustomDeco      := IniRead(configPath, "TemaCustom", "Deco", "")
+    temaCustomAccion    := IniRead(configPath, "TemaCustom", "Accion", "")
+    GenerarTemaPersonalizado(temas[temaCustomIdx], temaCustomHue, temaCustomOscuridad, temaCustomDeco, temaCustomAccion)
 }
 
 GuardarTemaCustom() {
-    global configPath, temaCustomHue, temaCustomOscuridad
+    global configPath, temaCustomHue, temaCustomOscuridad, temaCustomDeco, temaCustomAccion
     IniWrite(temaCustomHue, configPath, "TemaCustom", "Hue")
     IniWrite(temaCustomOscuridad, configPath, "TemaCustom", "Oscuridad")
+    IniWrite(temaCustomDeco, configPath, "TemaCustom", "Deco")
+    IniWrite(temaCustomAccion, configPath, "TemaCustom", "Accion")
+}
+
+; ── Opciones de los 2 selectores del editor (decoración + acción) ──
+; Decoraciones = escenas del borde inferior con case real en PintarEscenaTema.
+; "" (primera) = automática (DecoDeTema la infiere del color del tema).
+TemaCustomDecoOpciones() {
+    return ["", "hielo","iglu","gotas","menta","pasto","vainilla","ajedrez","mostaza","palmera"
+        ,"nubes","luna","cielo","cactus","atardecer","melocoton","naranja","lavanda","lila"
+        ,"sakura","rosa","chicle","miel","bambu","jungla","pinos","olas","submarino"
+        ,"aurora","ceniza","grafito","abisal","cafe","portal","tundra","gema","neon","oro"
+        ,"lava","sangre","vino","veneno","cobre","electrico","glitch","circuito","ciudadneon"
+        ,"planeta","eclipse","void","fenix","diamantes","solnika","espadas","retrowave","chat"
+        ,"spotify","mira","bloques","pokebola","naruto","onepiece","matrixlluvia"
+        ,"nieve","hojas","brasas","burbujas","petalos","estrellas","matrix","chispas","lluvia"]
+}
+
+; Acciones = estilo de la ráfaga al detectar + las partículas flotantes (mismo
+; vocabulario elemental). "" = automática (se infiere del color del tema).
+TemaCustomAccionOpciones() {
+    return ["", "nieve","brasas","estrellas","chispas","lluvia","matrix","burbujas","petalos","hojas"]
+}
+
+; Etiqueta legible de un estilo interno ("" → "Automática", resto capitalizado).
+EtiquetaEstilo(s) {
+    if (s = "")
+        return "Automática"
+    mapa := Map("matrixlluvia","Lluvia Matrix", "ciudadneon","Ciudad Neón", "solnika","Sol Nika"
+        , "onepiece","One Piece", "abisal","Abismo")
+    if (mapa.Has(s))
+        return mapa[s]
+    return Format("{:U}", SubStr(s, 1, 1)) SubStr(s, 2)
 }
 
 AplicarTransparencia(alpha) {
@@ -14059,8 +14131,9 @@ AbrirEditorTema(*) {
     editorTemaGui.BackColor := colorFondoPrincipal
     editorTemaGui.SetFont("s9 c" colorTextoPrincipal, "Segoe UI")
     editorTemaCampos := Map()
-    W := 380
-    barr := editorTemaGui.Add("Text", "x0 y0 w" W " h28 Background" colorBarra " Center +0x200", "  " Chr(0x1F3A8) "  Editor de tema personalizado")
+    W := 400
+    cSep := MezclarHex(colorBarra, colorFondoPrincipal, 0.55)   ; color de los separadores
+    barr := editorTemaGui.Add("Text", "x0 y0 w" W " h30 Background" colorBarra " Center +0x200", "  " Chr(0x1F3A8) "  Editor de tema personalizado")
     barr.SetFont("s10 c" colorTextoBarra " Bold", "Segoe UI Semibold")
     barr.OnEvent("Click", (*) => PostMessage(0xA1, 2,,, "ahk_id " editorTemaGui.Hwnd))
     barr.OnEvent("DoubleClick", (*) => CerrarEditorTema())
@@ -14069,27 +14142,29 @@ AbrirEditorTema(*) {
     ; OSCURO es (oscuridad). Cada slider tiene su tira de gradiente debajo
     ; (arcoíris / claro-oscuro) con una marca que indica la posición actual,
     ; así "la línea" sí cambia/muestra el color en todo momento.
+    ; Line1/Page8: el clic en la barra del slider avanza de a poco (antes
+    ; saltaba 1/5 del rango = 72° de golpe, lo que molestaba).
     yT := 40
-    lblHue := editorTemaGui.Add("Text", "x12 y" yT " w356 h18 c" colorTextoPrincipal " Background" colorFondoPrincipal,
+    lblHue := editorTemaGui.Add("Text", "x14 y" yT " w372 h18 c" colorTextoPrincipal " Background" colorFondoPrincipal,
         Chr(0x1F308) " Color: " temaCustomHue "°")
     lblHue.SetFont("s9 Bold", "Segoe UI")
     yT += 18
-    editorTemaHbmHue := CrearTiraHue(356, 14)
-    editorTemaGui.Add("Picture", "x12 y" yT " w356 h14", "HBITMAP:" editorTemaHbmHue)
-    mHue := CrearMarcadorSlider(editorTemaGui, yT, 14)
-    yT += 16
-    sHue := editorTemaGui.Add("Slider", "x12 y" yT " w356 h24 NoTicks Range0-360", temaCustomHue)
-    yT += 30
+    editorTemaHbmHue := CrearTiraHue(376, 13)
+    editorTemaGui.Add("Picture", "x12 y" yT " w376 h13", "HBITMAP:" editorTemaHbmHue)
+    mHue := CrearMarcadorSlider(editorTemaGui, yT, 13)
+    yT += 15
+    sHue := editorTemaGui.Add("Slider", "x12 y" yT " w376 h22 NoTicks Line1 Page8 Range0-360", temaCustomHue)
+    yT += 28
 
-    lblOsc := editorTemaGui.Add("Text", "x12 y" yT " w356 h18 c" colorTextoPrincipal " Background" colorFondoPrincipal,
+    lblOsc := editorTemaGui.Add("Text", "x14 y" yT " w372 h18 c" colorTextoPrincipal " Background" colorFondoPrincipal,
         Chr(0x1F311) " Oscuridad: " temaCustomOscuridad "%")
     lblOsc.SetFont("s9 Bold", "Segoe UI")
     yT += 18
-    editorTemaHbmOsc := CrearTiraOscuridad(356, 14, temaCustomHue)
-    picOsc := editorTemaGui.Add("Picture", "x12 y" yT " w356 h14", "HBITMAP:" editorTemaHbmOsc)
-    mOsc := CrearMarcadorSlider(editorTemaGui, yT, 14)
-    yT += 16
-    sOsc := editorTemaGui.Add("Slider", "x12 y" yT " w356 h24 NoTicks Range0-100", temaCustomOscuridad)
+    editorTemaHbmOsc := CrearTiraOscuridad(376, 13, temaCustomHue)
+    picOsc := editorTemaGui.Add("Picture", "x12 y" yT " w376 h13", "HBITMAP:" editorTemaHbmOsc)
+    mOsc := CrearMarcadorSlider(editorTemaGui, yT, 13)
+    yT += 15
+    sOsc := editorTemaGui.Add("Slider", "x12 y" yT " w376 h22 NoTicks Line1 Page4 Range0-100", temaCustomOscuridad)
     yT += 30
 
     editorTemaCampos["sHue"]    := sHue
@@ -14099,27 +14174,51 @@ AbrirEditorTema(*) {
     editorTemaCampos["picOsc"]  := picOsc
     editorTemaCampos["mHue"]    := mHue
     editorTemaCampos["mOsc"]    := mOsc
-    MoverMarcadorSlider(mHue, 12 + Round(temaCustomHue / 360 * 352))
-    MoverMarcadorSlider(mOsc, 12 + Round(temaCustomOscuridad / 100 * 352))
+    MoverMarcadorSlider(mHue, 12 + Round(temaCustomHue / 360 * 372))
+    MoverMarcadorSlider(mOsc, 12 + Round(temaCustomOscuridad / 100 * 372))
     sHue.OnEvent("Change", EditorTemaSliderChange)
     sOsc.OnEvent("Change", EditorTemaSliderChange)
 
-    ; Vista previa en vivo: una mini-ventana de mentira con el header, el
-    ; fondo, un botón y 2 líneas de historial — para ver de un vistazo cómo
-    ; va a quedar todo junto, no muestras sueltas sin contexto.
+    ; ── Separador + selectores de decoración y efecto de acción ──
+    editorTemaGui.Add("Text", "x12 y" yT " w376 h1 Background" cSep, "")
+    yT += 9
+    dCic := CrearCicladorTema(editorTemaGui, Chr(0x2728) " Decoración", yT, EtiquetaEstilo(temaCustomDeco),
+        colorTextoPrincipal, colorFondoPrincipal, colorBotonNormal, colorBtnTexto)
+    dCic.prev.OnEvent("Click", EditorTemaCiclarDeco.Bind(-1))
+    dCic.next.OnEvent("Click", EditorTemaCiclarDeco.Bind(1))
+    RegistrarHover(dCic.prev, () => colorBotonNormal)
+    RegistrarHover(dCic.next, () => colorBotonNormal)
+    editorTemaCampos["dName"] := dCic.name
+    yT += 30
+    aCic := CrearCicladorTema(editorTemaGui, Chr(0x1F4A5) " Acción", yT, EtiquetaEstilo(temaCustomAccion),
+        colorTextoPrincipal, colorFondoPrincipal, colorBotonNormal, colorBtnTexto)
+    aCic.prev.OnEvent("Click", EditorTemaCiclarAccion.Bind(-1))
+    aCic.next.OnEvent("Click", EditorTemaCiclarAccion.Bind(1))
+    RegistrarHover(aCic.prev, () => colorBotonNormal)
+    RegistrarHover(aCic.next, () => colorBotonNormal)
+    editorTemaCampos["aName"] := aCic.name
+    yT += 34
+
+    editorTemaGui.Add("Text", "x12 y" yT " w376 h1 Background" cSep, "")
+    yT += 9
+
+    ; Vista previa: una mini-ventana de mentira con el header, el fondo, un
+    ; botón y 2 líneas de historial — para ver cómo queda todo junto. Los
+    ; colores se actualizan en vivo; la decoración/acción se ven en la ventana
+    ; real del macro (se aplican en vivo al mover cualquier control).
     prev := {}
     GenerarTemaPersonalizado(prev, temaCustomHue, temaCustomOscuridad)
     mY := yT
-    mHeader := editorTemaGui.Add("Text", "x12 y" mY " w356 h24 Center Background" prev.barra " c" prev.textoBarra, "Vista previa")
+    mHeader := editorTemaGui.Add("Text", "x12 y" mY " w376 h24 Center Background" prev.barra " c" prev.textoBarra, "Vista previa")
     mHeader.SetFont("s9 Bold", "Segoe UI")
-    mBody := editorTemaGui.Add("Text", "x12 y" (mY+24) " w356 h54 Background" prev.fondo, "")
+    mBody := editorTemaGui.Add("Text", "x12 y" (mY+24) " w376 h54 Background" prev.fondo, "")
     mTxt := editorTemaGui.Add("Text", "x20 y" (mY+32) " w160 h18 Background" prev.fondo " c" prev.texto, "Texto de ejemplo")
     mBtn := editorTemaGui.Add("Text", "x20 y" (mY+54) " w90 h18 Center Background" prev.boton " c" prev.btnTexto, "Botón")
     mBtn.SetFont("s8 Bold", "Segoe UI")
-    mHist := editorTemaGui.Add("Text", "x184 y" (mY+30) " w176 h42 Background" prev.historial, "")
-    mH1 := editorTemaGui.Add("Text", "x190 y" (mY+34) " w164 h16 Background" prev.historial " c" prev.histColor1, Chr(0x25CF) " Evento detectado")
+    mHist := editorTemaGui.Add("Text", "x196 y" (mY+30) " w180 h42 Background" prev.historial, "")
+    mH1 := editorTemaGui.Add("Text", "x202 y" (mY+34) " w168 h16 Background" prev.historial " c" prev.histColor1, Chr(0x25CF) " Evento detectado")
     mH1.SetFont("s7", "Segoe UI")
-    mH2 := editorTemaGui.Add("Text", "x190 y" (mY+52) " w164 h16 Background" prev.historial " c" prev.cooldown, Chr(0x23F3) " Cooldown 5s")
+    mH2 := editorTemaGui.Add("Text", "x202 y" (mY+52) " w168 h16 Background" prev.historial " c" prev.cooldown, Chr(0x23F3) " Cooldown 5s")
     mH2.SetFont("s7", "Segoe UI")
     editorTemaCampos["mHeader"] := mHeader
     editorTemaCampos["mBody"]   := mBody
@@ -14128,12 +14227,12 @@ AbrirEditorTema(*) {
     editorTemaCampos["mHist"]   := mHist
     editorTemaCampos["mH1"]     := mH1
     editorTemaCampos["mH2"]     := mH2
-    yT += 24 + 54 + 8
+    yT += 24 + 54 + 10
 
     ; Transparencia
-    editorTemaGui.Add("Text", "x12 y" yT " w120 h18 c" colorTextoPrincipal " Background" colorFondoPrincipal, "Transparencia:").SetFont("s8 Bold", "Segoe UI")
+    editorTemaGui.Add("Text", "x14 y" yT " w110 h18 c" colorTextoPrincipal " Background" colorFondoPrincipal, "Transparencia:").SetFont("s8 Bold", "Segoe UI")
     transp := [{lbl:"100%", v:255}, {lbl:"95%", v:242}, {lbl:"90%", v:230}, {lbl:"80%", v:204}]
-    xb := 120.0
+    xb := 132.0
     actualA := Integer(IniRead(configPath, "TemaCustom", "Alpha", "255"))
     for it in transp {
         bg := (actualA = it.v) ? colorBarra : colorBotonNormal
@@ -14144,18 +14243,18 @@ AbrirEditorTema(*) {
         RegistrarHover(b, MakeColorFn(bg))
         xb += 60
     }
-    yT += 30
+    yT += 32
 
     ; Botones de acción
-    bAplicar := editorTemaGui.Add("Text", "x12 y" yT " w110 h30 +0x201 Background" colorBarra " c" colorBtnTexto " Center", Chr(0x2714) " Aplicar")
+    bAplicar := editorTemaGui.Add("Text", "x12 y" yT " w118 h30 +0x201 Background" colorBarra " c" colorBtnTexto " Center", Chr(0x2714) " Aplicar")
     bAplicar.SetFont("s9 Bold", "Segoe UI Semibold")
     bAplicar.OnEvent("Click", (*) => EditorTemaAplicar())
     RegistrarHover(bAplicar, () => colorBarra)
-    bGuardar := editorTemaGui.Add("Text", "x130 y" yT " w120 h30 +0x201 Background" colorBotonNormal " c" colorBtnTexto " Center", Chr(0x1F4BE) " Activar tema")
+    bGuardar := editorTemaGui.Add("Text", "x136 y" yT " w128 h30 +0x201 Background" colorBotonNormal " c" colorBtnTexto " Center", Chr(0x1F4BE) " Activar tema")
     bGuardar.SetFont("s9 Bold", "Segoe UI Semibold")
     bGuardar.OnEvent("Click", (*) => EditorTemaActivar())
     RegistrarHover(bGuardar, () => colorBotonNormal)
-    bReset := editorTemaGui.Add("Text", "x258 y" yT " w110 h30 +0x201 Background" colorBotonNormal " c" colorBtnTexto " Center", Chr(0x21BA) " Restablecer")
+    bReset := editorTemaGui.Add("Text", "x270 y" yT " w118 h30 +0x201 Background" colorBotonNormal " c" colorBtnTexto " Center", Chr(0x21BA) " Restablecer")
     bReset.SetFont("s9 Bold", "Segoe UI Semibold")
     bReset.OnEvent("Click", (*) => EditorTemaReset())
     RegistrarHover(bReset, () => colorBotonNormal)
@@ -14165,6 +14264,80 @@ AbrirEditorTema(*) {
     RedondearVentana(editorTemaGui.Hwnd, 12)
     editorTemaVisible := true
     RegistrarAutoCierre(editorTemaGui, CerrarEditorTema, 30)
+}
+
+; Crea un selector ◀ [nombre] ▶ (mismo idioma visual que el resto del macro).
+CrearCicladorTema(gui, etiqueta, y, valorActual, lblColor, fondoColor, btnColor, btnTextoColor) {
+    gui.Add("Text", "x14 y" (y+5) " w94 h18 c" lblColor " Background" fondoColor, etiqueta).SetFont("s8 Bold", "Segoe UI")
+    bPrev := gui.Add("Text", "x112 y" y " w26 h26 +0x201 Background" btnColor " c" btnTextoColor " Center", Chr(0x25C0))
+    bPrev.SetFont("s9 Bold", "Segoe UI")
+    name := gui.Add("Text", "x142 y" y " w216 h26 +0x201 Background" btnColor " c" btnTextoColor " Center", valorActual)
+    name.SetFont("s9", "Segoe UI")
+    bNext := gui.Add("Text", "x362 y" y " w26 h26 +0x201 Background" btnColor " c" btnTextoColor " Center", Chr(0x25B6))
+    bNext.SetFont("s9 Bold", "Segoe UI")
+    return {prev: bPrev, next: bNext, name: name}
+}
+
+; Cicla la decoración (escena) elegida y dispara el preview en vivo.
+EditorTemaCiclarDeco(dir, *) {
+    global temaCustomDeco, editorTemaCampos
+    ops := TemaCustomDecoOpciones()
+    idx := 1
+    for i, v in ops {
+        if (v = temaCustomDeco) {
+            idx := i
+            break
+        }
+    }
+    idx := Mod(idx - 1 + dir + ops.Length, ops.Length) + 1
+    temaCustomDeco := ops[idx]
+    try editorTemaCampos["dName"].Text := EtiquetaEstilo(temaCustomDeco)
+    EditorTemaLiveTrigger()
+}
+
+; Cicla el efecto de acción (ráfaga + partículas) elegido y dispara el preview.
+EditorTemaCiclarAccion(dir, *) {
+    global temaCustomAccion, editorTemaCampos
+    ops := TemaCustomAccionOpciones()
+    idx := 1
+    for i, v in ops {
+        if (v = temaCustomAccion) {
+            idx := i
+            break
+        }
+    }
+    idx := Mod(idx - 1 + dir + ops.Length, ops.Length) + 1
+    temaCustomAccion := ops[idx]
+    try editorTemaCampos["aName"].Text := EtiquetaEstilo(temaCustomAccion)
+    EditorTemaLiveTrigger()
+}
+
+; Throttle del preview en vivo: aplica el tema a la ventana REAL como mucho cada
+; ~40ms aunque el slider dispare decenas de eventos al arrastrar (evita lag).
+EditorTemaLiveTrigger() {
+    global editorTemaLiveArmed
+    if (!editorTemaLiveArmed) {
+        editorTemaLiveArmed := true
+        SetTimer(EditorTemaLiveApply, -40)
+    }
+}
+
+EditorTemaLiveApply() {
+    global editorTemaLiveArmed, editorTemaCampos, editorTemaVisible, temas, temaCustomIdx, temaActual
+    global temaCustomHue, temaCustomOscuridad, temaCustomDeco, temaCustomAccion
+    editorTemaLiveArmed := false
+    ; Si el editor se cerró entre el arme del timer y este disparo, los controles
+    ; ya no existen — abortar para no leer .Value de un control destruido.
+    if (!editorTemaVisible || !editorTemaCampos.Has("sHue") || !editorTemaCampos.Has("sOsc"))
+        return
+    try {
+        temaCustomHue       := editorTemaCampos["sHue"].Value
+        temaCustomOscuridad := editorTemaCampos["sOsc"].Value
+    } catch
+        return
+    GenerarTemaPersonalizado(temas[temaCustomIdx], temaCustomHue, temaCustomOscuridad, temaCustomDeco, temaCustomAccion)
+    temaActual := temaCustomIdx
+    AplicarTema(temas[temaCustomIdx], false)
 }
 
 ; Se dispara al mover cualquiera de los 2 sliders: recalcula etiquetas,
@@ -14178,11 +14351,11 @@ EditorTemaSliderChange(*) {
     osc := editorTemaCampos["sOsc"].Value
     try editorTemaCampos["lblHue"].Text := Chr(0x1F308) " Color: " hue "°"
     try editorTemaCampos["lblOsc"].Text := Chr(0x1F311) " Oscuridad: " osc "%"
-    MoverMarcadorSlider(editorTemaCampos["mHue"], 12 + Round(hue / 360 * 352))
-    MoverMarcadorSlider(editorTemaCampos["mOsc"], 12 + Round(osc / 100 * 352))
+    MoverMarcadorSlider(editorTemaCampos["mHue"], 12 + Round(hue / 360 * 372))
+    MoverMarcadorSlider(editorTemaCampos["mOsc"], 12 + Round(osc / 100 * 372))
 
     ; La tira de oscuridad se tiñe del tono actual — regenerarla al vuelo.
-    nuevoHbm := CrearTiraOscuridad(356, 14, hue)
+    nuevoHbm := CrearTiraOscuridad(376, 13, hue)
     if (nuevoHbm) {
         try editorTemaCampos["picOsc"].Value := "HBITMAP:" nuevoHbm
         if (editorTemaHbmOsc)
@@ -14199,10 +14372,16 @@ EditorTemaSliderChange(*) {
     try editorTemaCampos["mHist"].Opt("Background" prev.historial)
     try editorTemaCampos["mH1"].Opt("Background" prev.historial " c" prev.histColor1)
     try editorTemaCampos["mH2"].Opt("Background" prev.historial " c" prev.cooldown)
+
+    ; Aplicar en vivo a la ventana real del macro (throttled) para verlo de verdad.
+    EditorTemaLiveTrigger()
 }
 
 CerrarEditorTema(*) {
-    global editorTemaGui, editorTemaVisible, editorTemaHbmHue, editorTemaHbmOsc
+    global editorTemaGui, editorTemaVisible, editorTemaHbmHue, editorTemaHbmOsc, editorTemaLiveArmed
+    ; Cancelar cualquier preview en vivo pendiente para que no se dispare tras cerrar.
+    SetTimer(EditorTemaLiveApply, 0)
+    editorTemaLiveArmed := false
     if (IsObject(editorTemaGui)) {
         try LimpiarHoverGui(editorTemaGui)
         try editorTemaGui.Destroy()
@@ -14221,11 +14400,12 @@ CerrarEditorTema(*) {
 ; Lee los sliders, genera la paleta completa, la activa y la guarda.
 EditorTemaAplicar() {
     global editorTemaCampos, temas, temaCustomIdx, temaActual, temaCustomHue, temaCustomOscuridad
+    global temaCustomDeco, temaCustomAccion
     if (!editorTemaCampos.Has("sHue") || !editorTemaCampos.Has("sOsc"))
         return
     temaCustomHue       := editorTemaCampos["sHue"].Value
     temaCustomOscuridad := editorTemaCampos["sOsc"].Value
-    GenerarTemaPersonalizado(temas[temaCustomIdx], temaCustomHue, temaCustomOscuridad)
+    GenerarTemaPersonalizado(temas[temaCustomIdx], temaCustomHue, temaCustomOscuridad, temaCustomDeco, temaCustomAccion)
     GuardarTemaCustom()
     ; Activar el tema custom para ver el resultado de inmediato
     temaActual := temaCustomIdx
@@ -14243,10 +14423,12 @@ EditorTemaActivar() {
 }
 
 EditorTemaReset() {
-    global configPath, temas, temaCustomIdx, temaCustomHue, temaCustomOscuridad
+    global configPath, temas, temaCustomIdx, temaCustomHue, temaCustomOscuridad, temaCustomDeco, temaCustomAccion
     temaCustomHue := 207
     temaCustomOscuridad := 75
-    GenerarTemaPersonalizado(temas[temaCustomIdx], temaCustomHue, temaCustomOscuridad)
+    temaCustomDeco := ""
+    temaCustomAccion := ""
+    GenerarTemaPersonalizado(temas[temaCustomIdx], temaCustomHue, temaCustomOscuridad, temaCustomDeco, temaCustomAccion)
     try IniDelete(configPath, "TemaCustom")
     GuardarTemaCustom()
     AplicarTransparencia(255)
