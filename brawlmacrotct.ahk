@@ -52,7 +52,7 @@ configPath := A_ScriptDir "\brawlmacro_config.ini"
 global eggsBackupPath := A_ScriptDir "\brawlmacro_eggs.txt"
 global heartbeatPath := A_ScriptDir "\brawlmacro_heartbeat.txt"
 global historialLogPath := A_ScriptDir "\brawlmacro_historial.log"
-global VERSION_ACTUAL := "31.5.25"
+global VERSION_ACTUAL := "31.5.24"
 
 ; ===== TEMAS =====
 temas := [
@@ -1391,10 +1391,8 @@ ToggleMiniMode(*) {
         ; ── Salir de mini mode ──
         modoMini := false
         try IniWrite(0, configPath, "UI", "MiniMode")
-        if (IsObject(overlayPartMini)) {
-            try LiberarCacheOverlayParticulas(overlayPartMini.Hwnd)
+        if (IsObject(overlayPartMini))
             try overlayPartMini.Destroy()
-        }
         overlayPartMini := ""
         if (IsObject(overlayDecoMini))
             try overlayDecoMini.Destroy()
@@ -1861,9 +1859,6 @@ global particulasMain := [], particulasHist := []
 global miGuiPartCb := 0, histGuiPartCb := 0
 global particulasInited := false
 global overlayPartMain := "", overlayPartHist := ""
-; Recursos GDI+/DIB persistentes por overlay (clave = Hwnd) para no recrearlos
-; cada frame. Ver PintarOverlayParticulas / CrearCacheOverlay.
-global overlayDibCache := Map()
 
 ; ═══════════════════════════════════════════════════════════════
 ; EFECTOS DE PARTÍCULA POR TEMA — cada tema tiene su propio "detalle"
@@ -2240,92 +2235,33 @@ LanzarWatchdogSiNoEsta() {
 }
 
 
-; Crea (una sola vez por tamaño) los recursos GDI+/DIB reutilizables de un overlay:
-; un DIB section de 32bpp sobre el que GDI+ dibuja DIRECTAMENTE en su memoria, más
-; el DC y el contexto de dibujo. Devuelve un objeto con todo o 0 si algo falla.
-CrearCacheOverlay(w, h) {
-    static PixelFormat32bppPARGB := 0xE200B
-    hdc := DllCall("CreateCompatibleDC", "Ptr", 0, "Ptr")
-    if (!hdc)
-        return 0
-    ; BITMAPINFOHEADER: top-down (alto negativo), 32bpp, BI_RGB.
-    bi := Buffer(40, 0)
-    NumPut("UInt", 40, bi, 0)
-    NumPut("Int", w, bi, 4)
-    NumPut("Int", -h, bi, 8)
-    NumPut("UShort", 1, bi, 12)
-    NumPut("UShort", 32, bi, 14)
-    NumPut("UInt", 0, bi, 16)
-    pBits := 0
-    hbm := DllCall("gdi32\CreateDIBSection", "Ptr", hdc, "Ptr", bi, "UInt", 0, "Ptr*", &pBits, "Ptr", 0, "UInt", 0, "Ptr")
-    if (!hbm || !pBits) {
-        DllCall("DeleteDC", "Ptr", hdc)
-        return 0
-    }
-    oldBmp := DllCall("SelectObject", "Ptr", hdc, "Ptr", hbm, "Ptr")
-    gbmp := 0
-    ; GDI+ dibuja sobre los píxeles del DIB (stride = w*4, top-down) en formato
-    ; PARGB premultiplicado, que es justo lo que UpdateLayeredWindow espera.
-    DllCall("gdiplus\GdipCreateBitmapFromScan0", "Int", w, "Int", h, "Int", w*4, "Int", PixelFormat32bppPARGB, "Ptr", pBits, "Ptr*", &gbmp)
-    if (!gbmp) {
-        DllCall("SelectObject", "Ptr", hdc, "Ptr", oldBmp)
-        DllCall("DeleteObject", "Ptr", hbm)
-        DllCall("DeleteDC", "Ptr", hdc)
-        return 0
-    }
-    g := 0
-    DllCall("gdiplus\GdipGetImageGraphicsContext", "Ptr", gbmp, "Ptr*", &g)
-    if (!g) {
-        DllCall("gdiplus\GdipDisposeImage", "Ptr", gbmp)
-        DllCall("SelectObject", "Ptr", hdc, "Ptr", oldBmp)
-        DllCall("DeleteObject", "Ptr", hbm)
-        DllCall("DeleteDC", "Ptr", hdc)
-        return 0
-    }
-    DllCall("gdiplus\GdipSetSmoothingMode", "Ptr", g, "Int", 4)   ; AA on (persiste)
-    return {hdc: hdc, hbm: hbm, oldBmp: oldBmp, gbmp: gbmp, g: g, w: w, h: h}
-}
-
-; Libera los recursos cacheados de un overlay (al destruirlo o cambiar de tamaño).
-LiberarCacheOverlayParticulas(hwnd) {
-    global overlayDibCache
-    if (!overlayDibCache.Has(hwnd))
-        return
-    c := overlayDibCache[hwnd]
-    try DllCall("gdiplus\GdipDeleteGraphics", "Ptr", c.g)
-    try DllCall("gdiplus\GdipDisposeImage", "Ptr", c.gbmp)
-    try DllCall("SelectObject", "Ptr", c.hdc, "Ptr", c.oldBmp)
-    try DllCall("DeleteObject", "Ptr", c.hbm)
-    try DllCall("DeleteDC", "Ptr", c.hdc)
-    overlayDibCache.Delete(hwnd)
-}
-
 ; Pinta partículas con alpha por píxel (PARGB) sobre la overlay layered y las muestra
 ; vía UpdateLayeredWindow. Así cada partícula se mezcla contra los píxeles reales que
 ; hay detrás (sin halo y respetando el fondo), no contra una color-key negra.
-; OPTIMIZADO: el DIB/contexto GDI+ se reutiliza entre frames (CrearCacheOverlay) en
-; vez de crear y destruir bitmap+HBITMAP+DC en CADA frame. La salida es idéntica.
 PintarOverlayParticulas(overlayHwnd, w, h, particulas, excludeRect := "", conEscena := false) {
     global colorLogoMacro, colorFondoPrincipal, temaPremiumActivo, rgbBarraHue
-    global temas, temaActual, optEscena, overlayDibCache
+    global temas, temaActual, optEscena
 
     if (w <= 0 || h <= 0)
         return
 
-    ; Recurso persistente por overlay; se recrea solo si cambia el tamaño.
-    c := overlayDibCache.Has(overlayHwnd) ? overlayDibCache[overlayHwnd] : 0
-    if (!c || c.w != w || c.h != h) {
-        if (c)
-            LiberarCacheOverlayParticulas(overlayHwnd)
-        c := CrearCacheOverlay(w, h)
-        if (!c)
-            return
-        overlayDibCache[overlayHwnd] := c
-    }
-    g := c.g
+    ; Bitmap GDI+ con formato PARGB (premultiplicado, lo que UpdateLayeredWindow espera)
+    static PixelFormat32bppPARGB := 0xE200B
+    bmp := 0
+    if (DllCall("gdiplus\GdipCreateBitmapFromScan0",
+        "Int", w, "Int", h, "Int", 0,
+        "Int", PixelFormat32bppPARGB,
+        "Ptr", 0, "Ptr*", &bmp) != 0)
+        return
 
-    DllCall("gdiplus\GdipResetClip", "Ptr", g)                              ; limpiar clip del frame anterior
-    DllCall("gdiplus\GdipGraphicsClear", "Ptr", g, "UInt", 0x00000000)      ; transparente total
+    g := 0
+    if (DllCall("gdiplus\GdipGetImageGraphicsContext", "Ptr", bmp, "Ptr*", &g) != 0 || !g) {
+        DllCall("gdiplus\GdipDisposeImage", "Ptr", bmp)
+        return
+    }
+
+    DllCall("gdiplus\GdipSetSmoothingMode", "Ptr", g, "Int", 4)            ; AA on
+    DllCall("gdiplus\GdipGraphicsClear",    "Ptr", g, "UInt", 0x00000000)   ; transparente total
 
     ; Excluir del clip una zona (p. ej. la del scrollbar) para que las partículas no pinten ahí
     if (IsObject(excludeRect)) {
@@ -2436,9 +2372,18 @@ PintarOverlayParticulas(overlayHwnd, w, h, particulas, excludeRect := "", conEsc
         DllCall("gdiplus\GdipDeleteBrush", "Ptr", brush)
     }
 
-    ; GDI+ ya escribió los píxeles directamente en la memoria del DIB cacheado.
-    ; No se crea/destruye nada: solo se vuelca el DIB a la ventana en capas.
-    DllCall("gdi32\GdiFlush")   ; asegurar que el dibujo GDI+ está completo en memoria
+    DllCall("gdiplus\GdipDeleteGraphics", "Ptr", g)
+
+    ; HBITMAP premultiplicado a partir del Bitmap PARGB
+    hbm := 0
+    DllCall("gdiplus\GdipCreateHBITMAPFromBitmap", "Ptr", bmp, "Ptr*", &hbm, "UInt", 0)
+    DllCall("gdiplus\GdipDisposeImage", "Ptr", bmp)
+    if (!hbm)
+        return
+
+    hdcScreen := DllCall("GetDC", "Ptr", 0, "Ptr")
+    hdcMem    := DllCall("CreateCompatibleDC", "Ptr", hdcScreen, "Ptr")
+    oldBmp    := DllCall("SelectObject", "Ptr", hdcMem, "Ptr", hbm, "Ptr")
 
     sizeWin := Buffer(8, 0)
     NumPut("Int", w, sizeWin, 0)
@@ -2454,15 +2399,20 @@ PintarOverlayParticulas(overlayHwnd, w, h, particulas, excludeRect := "", conEsc
 
     DllCall("UpdateLayeredWindow",
         "Ptr",  overlayHwnd,
-        "Ptr",  0,          ; hdcDst NULL → usa el DC de pantalla por defecto
+        "Ptr",  hdcScreen,
         "Ptr",  0,          ; pptDst NULL → no mover
         "Ptr",  sizeWin,
-        "Ptr",  c.hdc,      ; DC con el DIB cacheado seleccionado (ya pintado)
+        "Ptr",  hdcMem,
         "Ptr",  ptSrc,
         "UInt", 0,          ; crKey (no se usa)
         "Ptr",  blend,
         "UInt", 2,          ; ULW_ALPHA
         "Int")
+
+    DllCall("SelectObject", "Ptr", hdcMem, "Ptr", oldBmp)
+    DllCall("DeleteDC",     "Ptr", hdcMem)
+    DllCall("ReleaseDC",    "Ptr", 0, "Ptr", hdcScreen)
+    DllCall("DeleteObject", "Ptr", hbm)
 }
 
 ; Rellena un polígono GDI+ a partir de un array de puntos [[x,y],...].
@@ -8899,10 +8849,8 @@ AplicarTema(tema, guardar := true, fromTrans := false) {
     ; Actualizar mini mode si está activo — recrear con colores nuevos
     if (modoMini && IsObject(miniGui)) {
         miniGui.GetPos(&miniX, &miniY)
-        if (IsObject(overlayPartMini)) {
-            try LiberarCacheOverlayParticulas(overlayPartMini.Hwnd)
+        if (IsObject(overlayPartMini))
             try overlayPartMini.Destroy()
-        }
         overlayPartMini := ""
         if (IsObject(overlayDecoMini))
             try overlayDecoMini.Destroy()
@@ -9021,10 +8969,8 @@ AplicarTemaAlMini(tema) {
     logoMacroMini.SetFont("s48 c" colorLogoMacro " Bold", "Segoe UI Symbol")
 
     ; Recrear overlays (decoración y partículas)
-    if (IsObject(overlayPartMini)) {
-        try LiberarCacheOverlayParticulas(overlayPartMini.Hwnd)
+    if (IsObject(overlayPartMini))
         try overlayPartMini.Destroy()
-    }
     overlayPartMini := ""
     if (IsObject(overlayDecoMini))
         try overlayDecoMini.Destroy()
@@ -9299,10 +9245,8 @@ Cerrar(*) {
     try FileDelete(heartbeatPath)
     ; Cerrar miniGui y sus overlays si están activos
     if (modoMini) {
-        if (IsObject(overlayPartMini)) {
-            try LiberarCacheOverlayParticulas(overlayPartMini.Hwnd)
+        if (IsObject(overlayPartMini))
             try overlayPartMini.Destroy()
-        }
         if (IsObject(overlayDecoMini))
             try overlayDecoMini.Destroy()
         if (IsObject(miniGui))
