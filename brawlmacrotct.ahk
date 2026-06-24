@@ -52,7 +52,7 @@ configPath := A_ScriptDir "\brawlmacro_config.ini"
 global eggsBackupPath := A_ScriptDir "\brawlmacro_eggs.txt"
 global heartbeatPath := A_ScriptDir "\brawlmacro_heartbeat.txt"
 global historialLogPath := A_ScriptDir "\brawlmacro_historial.log"
-global VERSION_ACTUAL := "31.5.24"
+global VERSION_ACTUAL := "31.5.26"
 
 ; ===== TEMAS =====
 temas := [
@@ -313,6 +313,7 @@ global temaBarraCtrl := "", temaBarraInfCtrl := ""
 global scaleX, scaleY
 global contadorSecuencias := 0, secuenciasLabel := ""
 global contadorDestruccion := 0, destruccionesLabel := ""
+global contadorDestrabado := 0   ; veces que se pulsó 'c' para destrabar (stats de sesión)
 global tiempoUltimoLanzamiento := 0
 global bloqueoGlobalHasta := 0
 global rgbBarraHue := 0
@@ -577,6 +578,34 @@ GuardarStats() {
     IniWrite(Round(totalGuardar, 4), configPath, "Stats", "Horas")
     IniWrite(secGuardar, configPath, "Stats", "Secuencias")
     IniWrite(totalDestruccionGuardada + contadorDestruccion, configPath, "Stats", "Destruccion")
+}
+
+; Resumen de sesión en el historial. Aparece SOLO cuando llevas al menos 5 min de
+; tiempo ACTIVO acumulado, y se repite cada 5 min de actividad. El timer corre cada
+; 60 s y usa tramos completos de 5 min de tiempoSesion (no depende de cuándo arrancó
+; el macro). Reutiliza los contadores de sesión y el estimador de oro ya existentes.
+TickEstadisticasSesion() {
+    global activo, tiempoAcumulado, tiempoInicio, timerActivo
+    global contadorSecuencias, contadorDestruccion, contadorDestrabado
+    static ultimoBloque := 0
+    if (!activo)
+        return   ; tiempoSesion es acumulativo en la ejecución → no reseteamos (evita repetir el resumen al reanudar)
+    tiempoSesion := tiempoAcumulado + (timerActivo ? (A_TickCount - tiempoInicio) : 0)
+    bloque := tiempoSesion // 300000          ; nº de tramos completos de 5 min
+    if (bloque < 1 || bloque = ultimoBloque)
+        return
+    ultimoBloque := bloque
+
+    totMin := tiempoSesion // 60000
+    h := totMin // 60
+    m := Mod(totMin, 60)
+    tStr := (h > 0 ? h "h " m "m" : m "m")
+    oro := FormatearMiles(contadorSecuencias * OroPorSecuencia())
+
+    resumen := Chr(0x1F4CA) " Resumen de sesión · " tStr " activo · "
+             . contadorSecuencias " secuencias · ~" oro " oro · "
+             . contadorDestruccion " relanz · " contadorDestrabado " destrabes 'c'"
+    AgregarHistorial(resumen, "00BCD4")
 }
 
 MostrarEstadisticas(*) {
@@ -5431,6 +5460,8 @@ SetTimer(TickDestrabarC, 5000)
 ; guardaban al cerrar con la ✕ o al reiniciar — si el watchdog mataba el proceso
 ; o había un crash, la sesión entera se perdía (por eso las secuencias se quedaban en 0).
 SetTimer(GuardarStats, 300000)
+; Resumen de sesión en el historial: cada 5 min de tiempo activo (gate de 5 min).
+SetTimer(TickEstadisticasSesion, 60000)
 
 SetTimer(EscribirHeartbeat, 5000) ; cada 5 s escribe pid + timestamp en heartbeat.txt para el watchdog externo
 EscribirHeartbeat()              ; un primer write inmediato
@@ -12670,7 +12701,7 @@ CheckBrawlhallaMinimizado() {
 ; Gates: solo tct(1)/sp(2); nunca en descanso (el juego está cerrado a propósito);
 ; nunca durante una partida (bloqueo global activo) para no estorbar al juego.
 TickDestrabarC() {
-    global activo, perfilActivo, enDescanso, ultimaDeteccionReal
+    global activo, perfilActivo, enDescanso, ultimaDeteccionReal, contadorDestrabado
     static avisado := false
     if (!activo || enDescanso || (perfilActivo != 1 && perfilActivo != 2)
         || BloqueoGlobalActivo() || !ProcessExist("Brawlhalla.exe")
@@ -12683,6 +12714,7 @@ TickDestrabarC() {
         avisado := true
     }
     try SendInput "c"
+    contadorDestrabado += 1
 }
 
 ; Alias retrocompatible
