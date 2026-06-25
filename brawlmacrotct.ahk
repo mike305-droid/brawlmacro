@@ -52,7 +52,7 @@ configPath := A_ScriptDir "\brawlmacro_config.ini"
 global eggsBackupPath := A_ScriptDir "\brawlmacro_eggs.txt"
 global heartbeatPath := A_ScriptDir "\brawlmacro_heartbeat.txt"
 global historialLogPath := A_ScriptDir "\brawlmacro_historial.log"
-global VERSION_ACTUAL := "31.5.27"
+global VERSION_ACTUAL := "31.5.28"
 
 ; ===== TEMAS =====
 temas := [
@@ -127,7 +127,7 @@ temas := [
     ;    unlocks más especiales, así que van siempre los últimos antes del custom.
     ; ── SUKUNA: Rey de las Maldiciones. Negro + rojos + gris rojizo + blanco hueso ──
     ; Acentos en BLANCO (los huesos visibles del Rey). Paleta de alto contraste.
-    { nombre:"⛩ S U K U N A ⛩", secreto:true, unlock:"sukuna", logoChar:Chr(0x26E9), efecto:"cross",
+    { nombre:"⛩ King of Curses", secreto:true, unlock:"sukuna", logoChar:Chr(0x26E9), efecto:"cross",
       fondo:"0A0000", texto:"D9D5D2", barra:"2E0506", textoBarra:"D9D5D2",
       historial:"070000", panel:"3D1A1A", cooldown:"FF3030", afk:"D00000",
       boton:"3A0808", hover:"5C1010", logo:"B30000",
@@ -135,7 +135,7 @@ temas := [
       btnTexto:"D9D5D2", histColor1:"D9D5D2", histColor2:"FF3030", histColor3:"6E3838" },
     ; ── GOJO: el más fuerte. Uniforme negro + pelo blanco + Limitless beige + Six Eyes azul + Hollow Purple ──
     ; Logo: ∞ (Limitless). Negro azulado del uniforme, blanco del pelo, beige del Infinito, azul cielo, morado Hollow Purple.
-    { nombre:"♾ G O J O ♾", secreto:true, unlock:"gojo", logoChar:Chr(0x221E), efecto:"pulse",
+    { nombre:"♾ The Honored One", secreto:true, unlock:"gojo", logoChar:Chr(0x221E), efecto:"pulse",
       fondo:"0A0E1F", texto:"E8DEC4", barra:"5B2A8C", textoBarra:"FFFFFF",
       historial:"070B18", panel:"131A30", cooldown:"D4C8A8", afk:"4FC3F7",
       boton:"1A1F35", hover:"3D1F66", logo:"FFFFFF",
@@ -10333,7 +10333,7 @@ LanzarDominioGojo() {
         return   ; ya desplegándose
     gojoDominioFrame := 30
     try ReposicionarOverlayDeco()
-    AgregarHistorial(Chr(0x267E) " 領域展開 · 無量空処 — Expansión de Dominio: Vacío Ilimitado", "8A2BE2")
+    ; (historial de "Expansión de Dominio" quitado a petición del usuario; el efecto visual se mantiene)
     SetTimer(AnimarDominioGojo, 40)
 }
 
@@ -12199,6 +12199,8 @@ DefinirLogros() {
         { id: "themeSolar",   nombre: "Renacer de las cenizas",desc: "??? (las 3 luces tienen un orden secreto: izq → centro → der)", icono: Chr(0x1F525), desbloqueado: false, pagina: 0 },
         { id: "themeBlanco",  nombre: "Pureza absoluta",       desc: "??? (el historial guarda un secreto AFK)",              icono: Chr(0x2728), desbloqueado: false, pagina: 0 },
         { id: "themePremium", nombre: "El elegido",            desc: "??? (consigue TODOS los demás secretos primero)",             icono: Chr(0x1F48E), desbloqueado: false, pagina: 0 },
+        { id: "themeGojo",    nombre: "The Honored One",       desc: "??? (mezcla el azul con el rojo)",                            icono: Chr(0x267E), desbloqueado: false, pagina: 0 },
+        { id: "themeSukuna",  nombre: "King of Curses",        desc: "??? (lo que representa a sukuna)",                            icono: Chr(0x26E9), desbloqueado: false, pagina: 0 },
         { id: "gamerpack",    nombre: "Pack Gamer",            desc: "??? (Las SECUENCIAS son el camino)",     icono: Chr(0x1F3AE), desbloqueado: false, pagina: 0 },
         { id: "leyendaspack", nombre: "Pack Leyendas",         desc: "??? (el medidor ⚡ gira en bucle... no pares de tocarlo)", icono: Chr(0x1F4FA), desbloqueado: false, pagina: 0 },
         { id: "kiko",         nombre: "kiko",                  desc: "Llega a 67 secuencias",            icono: Chr(0x1F60E), desbloqueado: false, pagina: 1 },
@@ -12238,6 +12240,7 @@ VerificarLogros() {
     global totalHorasGuardadas, totalDestruccionGuardada, contadorDestruccion
     global streakMax, tiempoAcumulado, tiempoInicio, timerActivo, totalCriticos
     global eggDesbloqueado, eggVoidDesbloqueado, eggShadowDesbloqueado, eggSolarDesbloqueado, eggBlancoDesbloqueado, eggPremiumDesbloqueado, eggGamerDesbloqueado, eggLeyendasDesbloqueado
+    global eggGojoDesbloqueado, eggSukunaDesbloqueado
 
     totalSecs := totalSecuenciasGuardadas + contadorSecuencias
     totalDestru := totalDestruccionGuardada + contadorDestruccion
@@ -12268,7 +12271,9 @@ VerificarLogros() {
         "themeVoid",     eggVoidDesbloqueado,
         "themeSolar",    eggSolarDesbloqueado,
         "themeBlanco",   eggBlancoDesbloqueado,
-        "themePremium",  eggPremiumDesbloqueado
+        "themePremium",  eggPremiumDesbloqueado,
+        "themeGojo",     eggGojoDesbloqueado,
+        "themeSukuna",   eggSukunaDesbloqueado
     )
     for l in logros {
         if (!l.desbloqueado && cumplidos.Has(l.id) && cumplidos[l.id]) {
