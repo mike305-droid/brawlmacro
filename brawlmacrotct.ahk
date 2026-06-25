@@ -52,7 +52,7 @@ configPath := A_ScriptDir "\brawlmacro_config.ini"
 global eggsBackupPath := A_ScriptDir "\brawlmacro_eggs.txt"
 global heartbeatPath := A_ScriptDir "\brawlmacro_heartbeat.txt"
 global historialLogPath := A_ScriptDir "\brawlmacro_historial.log"
-global VERSION_ACTUAL := "31.5.26"
+global VERSION_ACTUAL := "31.5.27"
 
 ; ===== TEMAS =====
 temas := [
@@ -5455,7 +5455,9 @@ SetTimer(SukunaAutoDismantle, 4000)
 SetTimer(TickCicloDescanso, 30000)
 ; Destrabar con 'c' si Brawlhalla está abierto pero el macro no detecta nada
 ; (p. ej. popup de noticias al despertar del descanso). Solo tct/sp, ver función.
-SetTimer(TickDestrabarC, 5000)
+; DESACTIVADO a petición del usuario: las pulsaciones de 'c' molestaban. Para
+; reactivarlo, descomenta la línea de abajo.
+; SetTimer(TickDestrabarC, 5000)
 ; Guardado periódico de stats (horas/secuencias/destrucciones): antes SOLO se
 ; guardaban al cerrar con la ✕ o al reiniciar — si el watchdog mataba el proceso
 ; o había un crash, la sesión entera se perdía (por eso las secuencias se quedaban en 0).
