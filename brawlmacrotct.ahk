@@ -213,6 +213,8 @@ pasosNormales.Push({ tipo:"pimg", nombre:"dragonpurple",		   color:0x8B52FF, cat
 pasosNormales.Push({ tipo:"pimg", nombre:"dragonpurple",		   color:0x8B52FF, categoria:2, hold:400, tolerancia:1, delayClick:500, delayTecla:500, cooldown:200, tct:true,  lastUsed:0, x1:49, y1:271, x2:49, y2:271 })
 pasosNormales.Push({ tipo:"pimg", nombre:"dragonyellow",		   color:0xFFFF28, categoria:2, hold:400, tolerancia:1, delayClick:500, delayTecla:500, cooldown:200, tct:true,  lastUsed:0, x1:49, y1:271, x2:49, y2:271 })
 pasosNormales.Push({ tipo:"pimg", nombre:"dragonyellow",		   color:0xFFFF28, categoria:2, hold:400, tolerancia:1, delayClick:500, delayTecla:500, cooldown:200, sp:true,  lastUsed:0, x1:34, y1:526, x2:34, y2:532 })
+pasosNormales.Push({ tipo:"pimg", nombre:"aangcolor",		   	   color:0x094B9C, categoria:2, hold:400, tolerancia:1, delayClick:500, delayTecla:500, cooldown:200, tct:true,  lastUsed:0, x1:34, y1:526, x2:34, y2:532 })
+
 ; ─── FASE 2: NAVEGACION ENTRE PANTALLAS (cat 3) ────────────────────
 pasosNormales.Push({ tipo:"pimg", nombre:"enteringsp1",   color:0x15171A, categoria:3, hold:200, tolerancia:1, delayClick:500, delayTecla:500, cooldown:500, sp:true, lastUsed:0, x1:465, y1:471, x2:466, y2:476 })
 pasosNormales.Push({ tipo:"pimg", nombre:"enteringsp2",   color:0x9EA9BB, categoria:3, hold:200, tolerancia:1, delayClick:500, delayTecla:500, cooldown:500, sp:true, lastUsed:0, x1:734, y1:427, x2:738, y2:429 })
@@ -7344,7 +7346,15 @@ CerrarTutorial(*) {
 ; ═══════════════════════════════════════════════════════════════
 ParchesPaginas() {
     return [
-    { ico: Chr(0x1F4CB), tit: "Parche 31.5 (actual)",
+    { ico: Chr(0x1F4CB), tit: "Parche 31.5.28 (actual)",
+      txt: "· Estabilidad: revertida la optimización de partículas que crasheaba`n"
+         . "· Resumen de sesión en el historial cada 5 min de actividad`n"
+         . "· Quitado el destrabar con 'c' cada 5s (molestaba)`n"
+         . "· Temas Gojo y Sukuna → The Honored One / King of Curses`n"
+         . "· Logros nuevos: consigue ambos temas (cada uno con su pista)`n"
+         . "· 'Expansión de Dominio' ya no aparece en el historial`n" },
+
+    { ico: Chr(0x1F4CB), tit: "Parche 31.5",
       txt: "· Personalizar: opción para NO abrir Brawlhalla al iniciar`n"
          . "· Botones y luces SIEMPRE redondos (iniciar/minimizar/tema/mini)`n"
          . "· Logo del modo mini: sombra alineada y bajado a su sitio`n"
