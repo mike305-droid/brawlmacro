@@ -25,6 +25,7 @@ global pidPath      := scriptDir "\brawlmacro_watchdog.pid"
 global configPath   := scriptDir "\brawlmacro_config.ini"
 
 global ultimoArranque := 0  ; timestamp del último restart automático (anti-loop)
+global MAX_REINTENTOS_ARRANQUE := 3  ; intentos antes de rendirse y avisar
 
 ; Escribir nuestro PID para que el macro principal sepa que estamos vivos
 try {
@@ -160,6 +161,17 @@ Relanzar(razon) {
     ; Borrar heartbeat viejo para que cuando arranque el nuevo proceso, el archivo sea fresco
     try FileDelete(heartbeatPath)
 
+    IntentarLanzar(razon, 1)
+}
+
+; Lanza el proceso y se programa para comprobar, 15s después, que de verdad
+; escribió su primer heartbeat. Antes confiábamos ciegamente en Run() — si la
+; instancia nueva moría al nacer (sin heartbeat y sin tirar nada a errores.log),
+; el watchdog se quedaba mudo para siempre porque VerificarMacro() interpreta
+; "no existe heartbeat" como "cerrado a propósito, no tocar".
+IntentarLanzar(razon, intento) {
+    global macroPath, ultimoArranque
+
     if (!FileExist(macroPath)) {
         Log("ERROR: no encuentro el script " macroPath)
         return
@@ -168,10 +180,40 @@ Relanzar(razon) {
     try {
         Run('"' macroPath '"')
         ultimoArranque := A_TickCount
-        Log("Macro relanzado. Razón: " razon)
+        Log("Macro relanzado (intento " intento "). Razón: " razon)
     } catch as e {
-        Log("ERROR al relanzar: " e.Message)
+        Log("ERROR al relanzar (intento " intento "): " e.Message)
+        ; Run() en sí falló (p. ej. ruta inválida) — reintentar igual que un
+        ; arranque silencioso fallido, sin esperar los 15s de verificación.
+        ReintentarOAvisar(razon, intento)
+        return
     }
+
+    SetTimer(() => VerificarArranque(razon, intento), -15000)
+}
+
+; A los 15s del Run(): si el heartbeat sigue sin existir, la instancia murió
+; antes de llegar a EscribirHeartbeat() (brawlmacrotct.ahk la escribe recién
+; tras montar toda la GUI). Reintentamos hasta MAX_REINTENTOS_ARRANQUE veces.
+VerificarArranque(razon, intento) {
+    global heartbeatPath
+    if (FileExist(heartbeatPath)) {
+        Log("Arranque confirmado (intento " intento ") — heartbeat presente")
+        return
+    }
+    Log("Arranque silencioso: el macro no escribió heartbeat tras 15s (intento " intento ")")
+    ReintentarOAvisar(razon, intento)
+}
+
+ReintentarOAvisar(razon, intento) {
+    global heartbeatPath, MAX_REINTENTOS_ARRANQUE
+    if (intento < MAX_REINTENTOS_ARRANQUE) {
+        try FileDelete(heartbeatPath)
+        IntentarLanzar(razon, intento + 1)
+        return
+    }
+    Log("⚠ FALLO CRÍTICO: el macro no arrancó tras " intento " intentos. Avisando y dejando de insistir.")
+    try TrayTip("BrawlMacro Watchdog", "El macro no logró arrancar tras " intento " intentos. Revisa brawlmacro_errores.log o ábrelo a mano.", 0x3)
 }
 
 ForzarReinicio() {

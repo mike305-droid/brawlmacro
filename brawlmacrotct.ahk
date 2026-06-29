@@ -52,7 +52,7 @@ configPath := A_ScriptDir "\brawlmacro_config.ini"
 global eggsBackupPath := A_ScriptDir "\brawlmacro_eggs.txt"
 global heartbeatPath := A_ScriptDir "\brawlmacro_heartbeat.txt"
 global historialLogPath := A_ScriptDir "\brawlmacro_historial.log"
-global VERSION_ACTUAL := "31.5.28"
+global VERSION_ACTUAL := "32.0.0"
 
 ; ===== TEMAS =====
 temas := [
@@ -213,7 +213,7 @@ pasosNormales.Push({ tipo:"pimg", nombre:"dragonpurple",		   color:0x8B52FF, cat
 pasosNormales.Push({ tipo:"pimg", nombre:"dragonpurple",		   color:0x8B52FF, categoria:2, hold:400, tolerancia:1, delayClick:500, delayTecla:500, cooldown:200, tct:true,  lastUsed:0, x1:49, y1:271, x2:49, y2:271 })
 pasosNormales.Push({ tipo:"pimg", nombre:"dragonyellow",		   color:0xFFFF28, categoria:2, hold:400, tolerancia:1, delayClick:500, delayTecla:500, cooldown:200, tct:true,  lastUsed:0, x1:49, y1:271, x2:49, y2:271 })
 pasosNormales.Push({ tipo:"pimg", nombre:"dragonyellow",		   color:0xFFFF28, categoria:2, hold:400, tolerancia:1, delayClick:500, delayTecla:500, cooldown:200, sp:true,  lastUsed:0, x1:34, y1:526, x2:34, y2:532 })
-pasosNormales.Push({ tipo:"pimg", nombre:"aangcolor",		   	   color:0x094B9C, categoria:2, hold:400, tolerancia:1, delayClick:500, delayTecla:500, cooldown:200, tct:true,  lastUsed:0, x1:34, y1:526, x2:34, y2:532 })
+pasosNormales.Push({ tipo:"pimg", nombre:"aangcolor",		   	   color:0x094B9C, categoria:2, hold:400, tolerancia:2, delayClick:500, delayTecla:500, cooldown:200, tct:true,  lastUsed:0, x1:49, y1:271, x2:49, y2:271 })
 
 ; ─── FASE 2: NAVEGACION ENTRE PANTALLAS (cat 3) ────────────────────
 pasosNormales.Push({ tipo:"pimg", nombre:"enteringsp1",   color:0x15171A, categoria:3, hold:200, tolerancia:1, delayClick:500, delayTecla:500, cooldown:500, sp:true, lastUsed:0, x1:465, y1:471, x2:466, y2:476 })
@@ -298,6 +298,10 @@ global frtClickY := 540
 ; Teclas que cicla automaticamente (1,2,3,4,5,6,7) — añade o quita aqui.
 global frtTeclas := ["1", "2", "3", "4", "5", "6", "7"]
 global frtIdxTecla := 1   ; indice de la tecla actual (rota automaticamente)
+; ── GTAV (perfilActivo=5) ── secuencia ciega de teclas que se repite en bucle:
+;   m, ↓×5, Enter, Enter, ←, ↓, Enter
+global gtavSecuencia := ["m", "Down", "Down", "Down", "Down", "Down", "Enter", "Enter", "Left", "Down", "Enter"]
+global gtavIdx := 1   ; indice del paso actual de la secuencia
 global histUltimoTexto := "", histUltimoCount := 0, histUltimoLongLinea := 0
 global separadorHistorial := ""
 global ultimoScrollManual := 0   ; última vez que el usuario movió la rueda en el historial
@@ -5273,7 +5277,7 @@ if (enDescanso) {
     AgregarHistorial(Chr(0x1F4A4) " Macro reiniciado durante el descanso — Brawlhalla cerrado, esperando para reanudar", "FF8800")
 }
 
-barra := miGui.Add("Text", "x0 y0 w400 h25 Background" colorBarra " Center", "MacroSmart v31")
+barra := miGui.Add("Text", "x0 y0 w400 h25 Background" colorBarra " Center", "MacroSmart v32")
 barra.SetFont("s13 c" colorTextoBarra " Bold", "Segoe UI Semibold")
 barra.OnEvent("Click", ArrastrarVentana)
 barra.OnEvent("DoubleClick", ClickTitulo)
@@ -7346,7 +7350,15 @@ CerrarTutorial(*) {
 ; ═══════════════════════════════════════════════════════════════
 ParchesPaginas() {
     return [
-    { ico: Chr(0x1F4CB), tit: "Parche 31.5.28 (actual)",
+    { ico: Chr(0x1F4CB), tit: "Parche v32 (actual)",
+      txt: "· Nuevo perfil 'gtav' (G): secuencia de teclas en bucle`n"
+         . "    m, ↓×5, Enter, Enter, ←, ↓, Enter — 60ms entre teclas`n"
+         . "· Historial: ahora registra cada acción detectada (no solo cooldowns)`n"
+         . "· Anti-AFK más rápido: cierra y reabre Brawlhalla a los 4 min`n"
+         . "· Quitado el spam de Esc/c previo al cierre`n"
+         . "· Watchdog: reintenta si el macro no arranca (ya no se queda mudo)`n" },
+
+    { ico: Chr(0x1F4CB), tit: "Parche 31.5.28",
       txt: "· Estabilidad: revertida la optimización de partículas que crasheaba`n"
          . "· Resumen de sesión en el historial cada 5 min de actividad`n"
          . "· Quitado el destrabar con 'c' cada 5s (molestaba)`n"
@@ -9349,7 +9361,7 @@ EmojiPerfil(idx := 0) {
     if (idx = 4)
         return Chr(0x2205)   ; ∅ dstv (detector circular)
     if (idx = 5)
-        return Chr(0x2464)   ; ⑤ perfil vacío extra A
+        return "G"           ; G de gtav (secuencia de teclas)
     return Chr(0x2465)        ; ⑥ perfil vacío extra B
 }
 
@@ -9367,7 +9379,7 @@ NombrePerfil(idx := 0) {
     if (idx = 4)
         return Chr(0x2205) " dstv"      ; ∅ dstv (detector circular)
     if (idx = 5)
-        return Chr(0x2464) " base 1"    ; ⑤ perfil vacío extra A (sin timers/AFK/AltF4)
+        return "gtav"                   ; gtav (secuencia ciega de teclas en bucle)
     return Chr(0x2465) " base 2"        ; ⑥ perfil vacío extra B (sin timers/AFK/AltF4)
 }
 
@@ -10915,7 +10927,7 @@ ActualizarAFK(*) {
         return
     }
     tiempo := A_TickCount - ultimoCambio
-    restante := 360000 - tiempo
+    restante := 180000 - tiempo
 
     ; Activar Modo Destruccion cuando el contador llega a 0
     if (restante <= 0 && !modoDestruccion) {
@@ -10927,7 +10939,7 @@ ActualizarAFK(*) {
 
     if (modoDestruccion) {
         ; Mostrar cuenta atras del minuto extra antes de Alt+F4
-        restanteDestru := 420000 - tiempo
+        restanteDestru := 240000 - tiempo
         if (restanteDestru < 0)
             restanteDestru := 0
         segsDestru := Round(restanteDestru / 1000, 1)
@@ -11606,6 +11618,10 @@ EjecutarMacro(*) {
             if (paso.nombre != ultimoPasoEjecutado) {
                 ultimoCambio := A_TickCount
                 ultimoPasoEjecutado := paso.nombre
+                ; Registrar el paso en el historial SOLO cuando cambia respecto al
+                ; anterior (evita inundar el panel si el mismo paso se repite tick
+                ; tras tick mientras está esperando su propio cooldown interno).
+                AgregarHistorial(paso.nombre, paso.HasProp("categoria") ? ObtenerColorCategoria(paso.categoria) : "")
             }
             ; Si el macro estaba en modo destrucción y acaba de detectar algo, salir del modo.
             ; Antes se quedaba pegado en "MODO DESTRUCCION en: Xs" para siempre si
@@ -11614,10 +11630,6 @@ EjecutarMacro(*) {
                 modoDestruccion := false
                 AgregarHistorial(Chr(0x2705) " Detección recuperada - saliendo de modo destrucción", "00CC44")
             }
-            ; NO registrar cada paso suelto en el historial (play/ingame/enteringroom...
-            ; inundaban el panel). El historial muestra SOLO los cooldowns y eventos
-            ; relevantes (-> COOLDOWN Xs, secuencias, sleep, etc.). La luz/onda siguen
-            ; dando feedback visual en vivo de cada acción detectada.
             LuzAccionFlash(paso.HasProp("categoria") ? ObtenerColorCategoria(paso.categoria) : "")
             OndaBarra()
             DespuesDeAccion(false)
@@ -11648,9 +11660,9 @@ EjecutarMacro(*) {
     ; ===== PAUSA TOTAL EN MODO DESCANSO (pero mantener PC despierta) =====
     if (!enDescanso) {
     ; ===== MODO DESTRUCCION =====
-    ; Evaluar ANTES del anti-AFK para que el reset de ultimoCambio a los 400s
-    ; no impida alcanzar los 420s necesarios para el Alt+F4.
-    if (modoDestruccion && tiempoSinCambios > 420000) {
+    ; Evaluar ANTES del anti-AFK para que el reset de ultimoCambio a los 150s
+    ; no impida alcanzar los 240s (4 min) necesarios para cerrar y relanzar.
+    if (modoDestruccion && tiempoSinCambios > 240000) {
         modoDestruccion := false
         contadorDestruccion += 1
         ActualizarDestrucciones()
@@ -11691,23 +11703,6 @@ EjecutarMacro(*) {
             return  ; no relanzar si pararon
         LanzarBrawlhallaConFoco()
         tiempoUltimoLanzamiento := A_TickCount
-    }
-
-    ; ===== ANTI-AFK (solo si NO estamos en modo destruccion) =====
-    if (!modoDestruccion && tiempoSinCambios > 400000) {
-        ultimoCambio := A_TickCount
-        Loop 1 {
-            if (!activo)
-                return
-            SendInput "{Esc}"
-            Sleep 1500
-        }
-        Loop 2 {
-            if (!activo)
-                return
-            SendInput "c"
-            Sleep 1500
-        }
     }
 
     ; ===== REINTENTO LANZAMIENTO =====
@@ -12588,9 +12583,23 @@ FrtKeyCycle() {
         frtIdxTecla := 1
 }
 
-; Activa o desactiva los timers de frt segun el estado actual.
+; GtavTick: timer que recorre gtavSecuencia paso a paso y la repite en bucle.
+; Una tecla por disparo → cadencia uniforme; al llegar al final vuelve a empezar.
+GtavTick() {
+    global activo, perfilActivo, gtavSecuencia, gtavIdx
+    if (!activo || perfilActivo != 5)
+        return
+    if (gtavIdx < 1 || gtavIdx > gtavSecuencia.Length)
+        gtavIdx := 1
+    Send "{" gtavSecuencia[gtavIdx] "}"
+    gtavIdx++
+    if (gtavIdx > gtavSecuencia.Length)
+        gtavIdx := 1
+}
+
+; Activa o desactiva los timers de frt/gtav segun el estado actual.
 ActualizarTimersFrt() {
-    global activo, perfilActivo, frtIdxTecla
+    global activo, perfilActivo, frtIdxTecla, gtavIdx
     if (activo && perfilActivo = 3) {
         frtIdxTecla := 1   ; reset al arrancar
         SetTimer(FrtClick, 50)       ; 20 clicks/seg
@@ -12598,6 +12607,14 @@ ActualizarTimersFrt() {
     } else {
         SetTimer(FrtClick, 0)
         SetTimer(FrtKeyCycle, 0)
+    }
+    ; gtav (perfil 5): secuencia ciega de teclas en bucle, 60ms entre teclas
+    if (activo && perfilActivo = 5) {
+        gtavIdx := 1   ; reset al arrancar la secuencia desde el principio
+        SetTimer(GtavTick, 60)
+        GtavTick()     ; primer disparo inmediato → la 'm' sale al instante, sin esperar 60ms
+    } else {
+        SetTimer(GtavTick, 0)
     }
 }
 
