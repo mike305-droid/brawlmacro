@@ -298,7 +298,7 @@ global frtClickY := 540
 ; Teclas que cicla automaticamente (1,2,3,4,5,6,7) — añade o quita aqui.
 global frtTeclas := ["1", "2", "3", "4", "5", "6", "7"]
 global frtIdxTecla := 1   ; indice de la tecla actual (rota automaticamente)
-; ── GTAV (perfilActivo=5) ── secuencia ciega de teclas que se repite en bucle:
+; ── GTAV (perfilActivo=5) ── secuencia ciega de teclas que se ejecuta UNA vez:
 ;   m, ↓×5, Enter, Enter, ←, ↓, Enter
 global gtavSecuencia := ["m", "Down", "Down", "Down", "Down", "Down", "Enter", "Enter", "Left", "Down", "Enter"]
 global gtavIdx := 1   ; indice del paso actual de la secuencia
@@ -7154,7 +7154,7 @@ TutorialPaginas() {
          . "• 🔒 sp — farmeo privado: crea sala en Brawlhalla y juega con un bot.`n`n"
          . "• ⚔ frt — modo fruta: farmea nivel en fruits battleground.`n`n"
          . "• ∅ dstv — generadores: Para distrito de violencia para hacer los generadores.`n`n"
-         . "• G gtav — secuencia de teclas en bucle para GTA V (m, flechas y enters)." },
+         . "• G gtav — secuencia de teclas para GTA V (m, flechas y enters), una vez por Iniciar." },
 
     { ico: Chr(0x1F3A8), tit: "Apariencia y personalización",
       txt: "• ◐ Tema: sirve para cambiar el aspecto del macro con ~65 temas (claros, oscuros, temáticos y secretos (se consiguen con los logros)).`n`n"
@@ -7352,7 +7352,7 @@ CerrarTutorial(*) {
 ParchesPaginas() {
     return [
     { ico: Chr(0x1F4CB), tit: "Parche v32 (actual)",
-      txt: "· Nuevo perfil 'gtav' (botón G): teclas en bucle`n"
+      txt: "· Nuevo perfil 'gtav' (botón G): teclas una sola vez`n"
          . "   m, ↓×5, Enter, Enter, ←, ↓, Enter (60ms)`n"
          . "· Historial: registra cada acción, no solo cooldowns`n"
          . "· Anti-AFK: cierra y reabre Brawlhalla a los 4 min`n"
@@ -12584,18 +12584,23 @@ FrtKeyCycle() {
         frtIdxTecla := 1
 }
 
-; GtavTick: timer que recorre gtavSecuencia paso a paso y la repite en bucle.
-; Una tecla por disparo → cadencia uniforme; al llegar al final vuelve a empezar.
+; GtavTick: timer que recorre gtavSecuencia paso a paso UNA sola vez.
+; Una tecla por disparo → cadencia uniforme; al terminar se apaga el timer
+; (no se repite en bucle: hay que volver a pulsar Iniciar para repetirla).
 GtavTick() {
     global activo, perfilActivo, gtavSecuencia, gtavIdx
-    if (!activo || perfilActivo != 5)
+    if (!activo || perfilActivo != 5) {
+        SetTimer(GtavTick, 0)
         return
-    if (gtavIdx < 1 || gtavIdx > gtavSecuencia.Length)
-        gtavIdx := 1
+    }
+    if (gtavIdx < 1 || gtavIdx > gtavSecuencia.Length) {
+        SetTimer(GtavTick, 0)   ; secuencia ya completada
+        return
+    }
     Send "{" gtavSecuencia[gtavIdx] "}"
     gtavIdx++
     if (gtavIdx > gtavSecuencia.Length)
-        gtavIdx := 1
+        SetTimer(GtavTick, 0)   ; era la última tecla → no repetir
 }
 
 ; Activa o desactiva los timers de frt/gtav segun el estado actual.
@@ -12609,7 +12614,7 @@ ActualizarTimersFrt() {
         SetTimer(FrtClick, 0)
         SetTimer(FrtKeyCycle, 0)
     }
-    ; gtav (perfil 5): secuencia ciega de teclas en bucle, 60ms entre teclas
+    ; gtav (perfil 5): secuencia ciega de teclas UNA vez, 60ms entre teclas
     if (activo && perfilActivo = 5) {
         gtavIdx := 1   ; reset al arrancar la secuencia desde el principio
         SetTimer(GtavTick, 60)
