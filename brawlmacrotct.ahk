@@ -7153,7 +7153,8 @@ TutorialPaginas() {
          . "• 🌐 tct — farmeo público: Juega todos contra todos en Brawlhalla.`n`n"
          . "• 🔒 sp — farmeo privado: crea sala en Brawlhalla y juega con un bot.`n`n"
          . "• ⚔ frt — modo fruta: farmea nivel en fruits battleground.`n`n"
-         . "• ∅ dstv — generadores: Para distrito de violencia para hacer los generadores." },
+         . "• ∅ dstv — generadores: Para distrito de violencia para hacer los generadores.`n`n"
+         . "• G gtav — secuencia de teclas en bucle para GTA V (m, flechas y enters)." },
 
     { ico: Chr(0x1F3A8), tit: "Apariencia y personalización",
       txt: "• ◐ Tema: sirve para cambiar el aspecto del macro con ~65 temas (claros, oscuros, temáticos y secretos (se consiguen con los logros)).`n`n"
@@ -7203,9 +7204,9 @@ TutorialPaginas() {
 
     { ico: Chr(0x1F6E1), tit: "Anti-AFK y recuperación",
       txt: "Aunque el macro se crashee, aún así se inicia de nuevo como si lo hubieras abierto:`n`n"
-         . "• Anti-AFK: cada cierto tiempo manda teclas para no quedar inactivo.`n`n"
-         . "• Modo Destrucción: si pasa demasiado sin detectar nada, cierra Brawlhalla y lo vuelve a abrir.`n`n"
-         . "• Watchdog: un vigilante externo para el macro. Si el macro se congela o se cierra solo, lo vuelve a abrir. Si estaba activo el macro, seguirá activo después de abrirse." },
+         . "• Anti-AFK: mueve el ratón 1px cada poco para que la PC no se duerma.`n`n"
+         . "• Modo Destrucción: si pasa ~4 min sin detectar nada, cierra Brawlhalla y lo vuelve a abrir.`n`n"
+         . "• Watchdog: un vigilante externo para el macro. Si se congela o se cierra solo, lo vuelve a abrir (y reintenta si no arranca a la primera). Si estaba activo, seguirá activo después." },
 
     { ico: Chr(0x1F4A4), tit: "Descanso automático",
       txt: "Para no jugar 24/7 de seguido, el juego descansa solo:`n`n"
@@ -7351,12 +7352,12 @@ CerrarTutorial(*) {
 ParchesPaginas() {
     return [
     { ico: Chr(0x1F4CB), tit: "Parche v32 (actual)",
-      txt: "· Nuevo perfil 'gtav' (G): secuencia de teclas en bucle`n"
-         . "    m, ↓×5, Enter, Enter, ←, ↓, Enter — 60ms entre teclas`n"
-         . "· Historial: ahora registra cada acción detectada (no solo cooldowns)`n"
-         . "· Anti-AFK más rápido: cierra y reabre Brawlhalla a los 4 min`n"
-         . "· Quitado el spam de Esc/c previo al cierre`n"
-         . "· Watchdog: reintenta si el macro no arranca (ya no se queda mudo)`n" },
+      txt: "· Nuevo perfil 'gtav' (botón G): teclas en bucle`n"
+         . "   m, ↓×5, Enter, Enter, ←, ↓, Enter (60ms)`n"
+         . "· Historial: registra cada acción, no solo cooldowns`n"
+         . "· Anti-AFK: cierra y reabre Brawlhalla a los 4 min`n"
+         . "· Quitado el spam de Esc/c antes del cierre`n"
+         . "· Watchdog reintenta si el macro no arranca`n" },
 
     { ico: Chr(0x1F4CB), tit: "Parche 31.5.28",
       txt: "· Estabilidad: revertida la optimización de partículas que crasheaba`n"
@@ -7383,18 +7384,18 @@ ParchesPaginas() {
          . "· Efecto de acción según el tema (lluvia, viento...)`n" },
 
     { ico: Chr(0x1F3A8), tit: "Parche 31.1 — Mejoras UI",
-      txt: "· Notificación en historial cuando el macro arranca ya cerrando Brawlhalla`n"
-         . "· Modo dormir: cierre de Brawlhalla fiable, sin despertar al instante`n"
+      txt: "· Aviso en historial al arrancar cerrando Brawlhalla`n"
+         . "· Modo dormir: cierre fiable, sin despertar al instante`n"
          . "· Relanzamiento correcto tras cancelar el descanso`n"
-         . "· Cierre directo del proceso de Brawlhalla sin Alt+F4`n"
-         . "· Modo dormir pausa acciones pero mantiene PC despierta con mov. ratón`n"
-         . "· Efectos de acción en TODOS los temas (onda glow/zoom al detectar)`n"
-         . "· Expansión de Dominio Gojo: animación completa 30 frames al hacer clic`n"
-         . "· Sistema de temas 100% personalizable: editor de colores + guardado`n"
-         . "· Perfiles 5 y 6 vacíos: sin timers ni AFK, modo base libre`n"
-         . "· Hotkeys reasignables: F1/F2/Mini configurables desde la UI`n"
-         . "· Visor en vivo: ● parpadeante muestra qué paso detecta en tiempo real`n"
-         . "· Botón 📝 abre el macro directamente en el Bloc de notas`n" },
+         . "· Cierre directo del proceso, sin Alt+F4`n"
+         . "· Modo dormir mantiene la PC despierta (mov. ratón)`n"
+         . "· Efectos de acción en TODOS los temas`n"
+         . "· Expansión de Dominio Gojo: animación de 30 frames`n"
+         . "· Temas 100% personalizables: editor de colores`n"
+         . "· Perfiles 5 y 6 vacíos: modo base libre`n"
+         . "· Hotkeys F1/F2/Mini reasignables desde la UI`n"
+         . "· Visor en vivo: ● muestra el paso detectado`n"
+         . "· Botón 📝 abre el macro en el Bloc de notas`n" },
 
     { ico: Chr(0x1F4D6), tit: "Parche 30.7.9 — Rendimiento",
       txt: "· Estimador de oro y XP en historial, Stats y webhook`n"
