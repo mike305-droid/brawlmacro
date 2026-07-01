@@ -52,7 +52,7 @@ configPath := A_ScriptDir "\brawlmacro_config.ini"
 global eggsBackupPath := A_ScriptDir "\brawlmacro_eggs.txt"
 global heartbeatPath := A_ScriptDir "\brawlmacro_heartbeat.txt"
 global historialLogPath := A_ScriptDir "\brawlmacro_historial.log"
-global VERSION_ACTUAL := "32.0.0"
+global VERSION_ACTUAL := "32.1.0"
 
 ; Oculta los archivos de datos/estado (logs, config, heartbeat, pid...) para que
 ; no ensucien la carpeta. Solo el .ahk queda visible. No afecta al funcionamiento:
@@ -524,6 +524,7 @@ global statsGuiActive := "", statsBarsData := [], statsBarsSubclassCbs := []
 ; ===== ACTUALIZADOR =====
 global GITHUB_VERSION_URL := "https://raw.githubusercontent.com/mike305-droid/brawlmacro/main/parches.txt"
 global GITHUB_SCRIPT_URL  := "https://raw.githubusercontent.com/mike305-droid/brawlmacro/main/brawlmacrotct.ahk"
+global GITHUB_PIXELFINDER_URL := "https://raw.githubusercontent.com/mike305-droid/brawlmacro/main/PixelFinder.exe"
 global updateGui := "", updateGuiVisible := false
 
 ; ===== GUARDAR STATS =====
@@ -7369,13 +7370,15 @@ CerrarTutorial(*) {
 ; ═══════════════════════════════════════════════════════════════
 ParchesPaginas() {
     return [
-    { ico: Chr(0x1F4CB), tit: "Parche v32 (actual)",
+    { ico: Chr(0x1F4CB), tit: "Parche v32.1 (actual)",
       txt: "· Nuevo perfil 'gtav' (botón G): teclas una sola vez`n"
          . "   m, ↓×5, Enter, Enter, ←, ↓, Enter (60ms)`n"
          . "· Historial: registra cada acción, no solo cooldowns`n"
          . "· Anti-AFK: cierra y reabre Brawlhalla a los 4 min`n"
          . "· Quitado el spam de Esc/c antes del cierre`n"
-         . "· Watchdog reintenta si el macro no arranca`n" },
+         . "· Watchdog reintenta si el macro no arranca`n"
+         . "· Carpeta limpia: logs y config quedan ocultos`n"
+         . "· 🔍 Pixelfinder: botón nuevo en Personalizar`n" },
 
     { ico: Chr(0x1F4CB), tit: "Parche 31.5.28",
       txt: "· Estabilidad: revertida la optimización de partículas que crasheaba`n"
@@ -13821,6 +13824,7 @@ AbrirCentroPersonalizacion(*) {
         {lbl: Chr(0x2328)  " Atajos de teclado",      fn: "hotkeys"},
         {lbl: Chr(0x2699)  " Optimización",           fn: "opt"},
         {lbl: Chr(0x26A1)  " Velocidad del macro",    fn: "vel"},
+        {lbl: Chr(0x1F50D) " Pixelfinder",            fn: "pixelfinder"},
     ]
     y := 38
     for it in items {
@@ -13854,6 +13858,7 @@ CentroPersAbrir(accion, *) {
         case "hotkeys": AbrirEditorHotkeys()
         case "opt":     AbrirPanelOptimizacion()
         case "vel":     CiclarVelocidadPasos()
+        case "pixelfinder": AbrirPixelFinder()
     }
 }
 
@@ -13871,6 +13876,46 @@ RefrescarCentroPers() {
     if (centroPersVisible) {
         AbrirCentroPersonalizacion()
         AbrirCentroPersonalizacion()
+    }
+}
+
+; Abre PixelFinder.exe (busca los píxeles/colores para configurar los pasos
+; del macro). Si el .exe no está en la carpeta (p. ej. un amigo que actualizó
+; solo el .ahk vía el botón Update, que no trae binarios), lo descarga de
+; GitHub una vez y luego lo abre — mismo mecanismo de descarga binaria que
+; ya usa el actualizador del propio macro (ADODB.Stream en modo binario).
+AbrirPixelFinder(*) {
+    global GITHUB_PIXELFINDER_URL
+    ruta := A_ScriptDir "\PixelFinder.exe"
+    if (FileExist(ruta)) {
+        try Run('"' ruta '"')
+        return
+    }
+    AgregarHistorial(Chr(0x1F50D) " Pixelfinder no está — descargando de GitHub...", "FF8800")
+    try {
+        whr := ComObject("WinHttp.WinHttpRequest.5.1")
+        whr.SetTimeouts(5000, 5000, 30000, 30000)
+        whr.Open("GET", GITHUB_PIXELFINDER_URL "?t=" A_TickCount, false)
+        whr.Send()
+        if (whr.Status != 200) {
+            AgregarHistorial(Chr(0x26A0) " No se pudo descargar Pixelfinder (HTTP " whr.Status ")", "FF4444")
+            return
+        }
+        stream := ComObject("ADODB.Stream")
+        stream.Type := 1  ; adTypeBinary
+        stream.Open()
+        stream.Write(whr.ResponseBody)
+        stream.SaveToFile(ruta, 2)  ; adSaveCreateOverWrite
+        stream.Close()
+    } catch as e {
+        AgregarHistorial(Chr(0x26A0) " Error descargando Pixelfinder: " e.Message, "FF4444")
+        return
+    }
+    if (FileExist(ruta)) {
+        AgregarHistorial(Chr(0x2705) " Pixelfinder descargado", "00CC44")
+        try Run('"' ruta '"')
+    } else {
+        AgregarHistorial(Chr(0x26A0) " Pixelfinder no se pudo guardar en disco", "FF4444")
     }
 }
 
