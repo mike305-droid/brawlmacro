@@ -33,8 +33,13 @@ try {
     if (f) {
         f.Write(ProcessExist())
         f.Close()
+        try FileSetAttrib("+H", pidPath)
     }
 }
+
+; Ocultar los archivos de datos del watchdog para que no ensucien la carpeta.
+; (El log se escribe con FileAppend, así que basta ocultarlo una vez.)
+try FileSetAttrib("+H", logPath)
 ; Limpiar al salir
 OnExit(LimpiarPidAlSalir)
 LimpiarPidAlSalir(*) {

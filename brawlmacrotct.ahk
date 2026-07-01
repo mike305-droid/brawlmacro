@@ -54,6 +54,22 @@ global heartbeatPath := A_ScriptDir "\brawlmacro_heartbeat.txt"
 global historialLogPath := A_ScriptDir "\brawlmacro_historial.log"
 global VERSION_ACTUAL := "32.0.0"
 
+; Oculta los archivos de datos/estado (logs, config, heartbeat, pid...) para que
+; no ensucien la carpeta. Solo el .ahk queda visible. No afecta al funcionamiento:
+; Windows deja leer/escribir archivos ocultos igual. Se re-aplica en cada arranque
+; y tras regenerar los que se borran/recrean (eggs, heartbeat), así se mantienen.
+OcultarArchivosDatos() {
+    for nombre in ["brawlmacro_config.ini", "brawlmacro_eggs.txt"
+                 , "brawlmacro_heartbeat.txt", "brawlmacro_historial.log"
+                 , "brawlmacro_historial.log.old", "brawlmacro_errores.log"
+                 , "brawlmacro_watchdog.log", "brawlmacro_watchdog.pid"] {
+        ruta := A_ScriptDir "\" nombre
+        if (FileExist(ruta))
+            try FileSetAttrib("+H", ruta)
+    }
+}
+OcultarArchivosDatos()
+
 ; ===== TEMAS =====
 temas := [
     ; ─────────── CLAROS (ordenados por color de boton) ───────────
@@ -2246,6 +2262,7 @@ EscribirHeartbeat() {
         if (f) {
             f.Write(A_TickCount "|" ProcessExist() "|" FormatTime(, "yyyy-MM-dd HH:mm:ss") "|" (activo ? 1 : 0))
             f.Close()
+            try FileSetAttrib("+H", heartbeatPath)   ; mantener oculto (se recrea al arrancar)
         }
     }
 }
@@ -6328,6 +6345,7 @@ GuardarEggsBackup() {
         txt .= "sukuna`n"
     try FileDelete(eggsBackupPath)
     try FileAppend(txt, eggsBackupPath, "UTF-8")
+    try FileSetAttrib("+H", eggsBackupPath)   ; mantener oculto (se recrea al guardar)
 }
 
 ; Devuelve true si el usuario puede usar este tema (no-secreto o secreto desbloqueado).
