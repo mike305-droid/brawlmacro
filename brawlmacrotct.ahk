@@ -52,23 +52,8 @@ configPath := A_ScriptDir "\brawlmacro_config.ini"
 global eggsBackupPath := A_ScriptDir "\brawlmacro_eggs.txt"
 global heartbeatPath := A_ScriptDir "\brawlmacro_heartbeat.txt"
 global historialLogPath := A_ScriptDir "\brawlmacro_historial.log"
-global VERSION_ACTUAL := "32.2.0"
+global VERSION_ACTUAL := "32.3.0"
 
-; Oculta los archivos de datos/estado (logs, config, heartbeat, pid...) para que
-; no ensucien la carpeta. Solo el .ahk queda visible. No afecta al funcionamiento:
-; Windows deja leer/escribir archivos ocultos igual. Se re-aplica en cada arranque
-; y tras regenerar los que se borran/recrean (eggs, heartbeat), así se mantienen.
-OcultarArchivosDatos() {
-    for nombre in ["brawlmacro_config.ini", "brawlmacro_eggs.txt"
-                 , "brawlmacro_heartbeat.txt", "brawlmacro_historial.log"
-                 , "brawlmacro_historial.log.old", "brawlmacro_errores.log"
-                 , "brawlmacro_watchdog.log", "brawlmacro_watchdog.pid"] {
-        ruta := A_ScriptDir "\" nombre
-        if (FileExist(ruta))
-            try FileSetAttrib("+H", ruta)
-    }
-}
-OcultarArchivosDatos()
 
 ; ===== TEMAS =====
 temas := [
@@ -2258,22 +2243,11 @@ WatchdogAFK() {
 ; relanzarlo (si estaba detectando, debe volver a detectar — no quedarse parado).
 EscribirHeartbeat() {
     global heartbeatPath, activo
-    ; Ocultar solo la PRIMERA vez que este proceso crea el archivo: reescribir
-    ; el CONTENIDO (FileOpen "w") no quita el atributo Oculto que ya tenga, así
-    ; que llamar a FileSetAttrib en cada tick (cada 5s, indefinidamente durante
-    ; toda la sesión) era puro desperdicio — y una llamada de sistema extra y
-    ; repetida sobre un archivo que se reescribe constantemente es justo el tipo
-    ; de patrón que un antivirus por comportamiento puede vigilar de más.
-    static yaOculto := false
     try {
         f := FileOpen(heartbeatPath, "w", "UTF-8")
         if (f) {
             f.Write(A_TickCount "|" ProcessExist() "|" FormatTime(, "yyyy-MM-dd HH:mm:ss") "|" (activo ? 1 : 0))
             f.Close()
-            if (!yaOculto) {
-                try FileSetAttrib("+H", heartbeatPath)
-                yaOculto := true
-            }
         }
     }
 }
@@ -6364,7 +6338,6 @@ GuardarEggsBackup() {
         txt .= "sukuna`n"
     try FileDelete(eggsBackupPath)
     try FileAppend(txt, eggsBackupPath, "UTF-8")
-    try FileSetAttrib("+H", eggsBackupPath)   ; mantener oculto (se recrea al guardar)
 }
 
 ; Devuelve true si el usuario puede usar este tema (no-secreto o secreto desbloqueado).
@@ -7388,13 +7361,17 @@ CerrarTutorial(*) {
 ; ═══════════════════════════════════════════════════════════════
 ParchesPaginas() {
     return [
-    { ico: Chr(0x1F4CB), tit: "Parche v32.2 (actual)",
+    { ico: Chr(0x1F4CB), tit: "Parche v32.3 (actual)",
+      txt: "· Revertido: los archivos de datos (logs, config...)`n"
+         . "   ya NO se ocultan — vuelven a verse en la carpeta`n"
+         . "· Ocultarlos + reescribirlos sin parar podía ser lo`n"
+         . "   que hacía que un antivirus vigilara el proceso`n" },
+
+    { ico: Chr(0x1F4CB), tit: "Parche v32.2",
       txt: "· Fix: si el macro se reiniciaba solo, a veces se`n"
          . "   quedaba parado para siempre sin volver a iniciarse`n"
          . "· Ahora la intención de Iniciar/Parar se guarda al`n"
-         . "   instante, no depende del heartbeat de cada 5s`n"
-         . "· Menos escritura de disco en el heartbeat (posible`n"
-         . "   causa de que un antivirus lo interceptara)`n" },
+         . "   instante, no depende del heartbeat de cada 5s`n" },
 
     { ico: Chr(0x1F4CB), tit: "Parche v32.1",
       txt: "· Nuevo perfil 'gtav' (botón G): teclas una sola vez`n"
