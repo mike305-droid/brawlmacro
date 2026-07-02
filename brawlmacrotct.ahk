@@ -52,7 +52,7 @@ configPath := A_ScriptDir "\brawlmacro_config.ini"
 global eggsBackupPath := A_ScriptDir "\brawlmacro_eggs.txt"
 global heartbeatPath := A_ScriptDir "\brawlmacro_heartbeat.txt"
 global historialLogPath := A_ScriptDir "\brawlmacro_historial.log"
-global VERSION_ACTUAL := "32.1.0"
+global VERSION_ACTUAL := "32.2.0"
 
 ; Oculta los archivos de datos/estado (logs, config, heartbeat, pid...) para que
 ; no ensucien la carpeta. Solo el .ahk queda visible. No afecta al funcionamiento:
@@ -235,7 +235,7 @@ pasosNormales.Push({ tipo:"pimg", nombre:"aangcolor",		   	   color:0x094B9C, ca
 pasosNormales.Push({ tipo:"pimg", nombre:"enteringsp1",   color:0x15171A, categoria:3, hold:200, tolerancia:1, delayClick:500, delayTecla:500, cooldown:500, sp:true, lastUsed:0, x1:465, y1:471, x2:466, y2:476 })
 pasosNormales.Push({ tipo:"pimg", nombre:"enteringsp2",   color:0x9EA9BB, categoria:3, hold:200, tolerancia:1, delayClick:500, delayTecla:500, cooldown:500, sp:true, lastUsed:0, x1:734, y1:427, x2:738, y2:429 })
 pasosNormales.Push({ tipo:"pimg", nombre:"enteringroom1", color:0xFF89D0, categoria:3, hold:400, tolerancia:1, delayClick:30,  delayTecla:80,  cooldown:500, tct:true, lastUsed:0, x1:262, y1:565, x2:262, y2:565 })
-pasosNormales.Push({ tipo:"pimg", nombre:"enteringroom2", color:0x3F7F96, categoria:3, hold:400, tolerancia:1, delayClick:30,  delayTecla:80,  cooldown:500, tct:true, lastUsed:0, x1:292,  y1:562, x2:292, y2:562 })
+pasosNormales.Push({ tipo:"pimg", nombre:"enteringroom2", color:0x3F7F96, categoria:3, hold:400, tolerancia:1, delayClick:30,  delayTecla:80,  cooldown:500, tct:true, lastUsed:0, x1:292,  x1:365, y1:542, x2:371, y2:551 })
 
 ; ─── FASE 3: SETUP DEL LOBBY / BOTS (cat 3) ────────────────────────
 pasosNormales.Push({ tipo:"pimg", nombre:"addrobot",      color:0x70C9D3, categoria:3, hold:200, tolerancia:1, delayClick:500, delayTecla:500, cooldown:500, sp:true, lastUsed:0, x1:31,  y1:256, x2:34,  y2:256 })
@@ -2258,12 +2258,22 @@ WatchdogAFK() {
 ; relanzarlo (si estaba detectando, debe volver a detectar — no quedarse parado).
 EscribirHeartbeat() {
     global heartbeatPath, activo
+    ; Ocultar solo la PRIMERA vez que este proceso crea el archivo: reescribir
+    ; el CONTENIDO (FileOpen "w") no quita el atributo Oculto que ya tenga, así
+    ; que llamar a FileSetAttrib en cada tick (cada 5s, indefinidamente durante
+    ; toda la sesión) era puro desperdicio — y una llamada de sistema extra y
+    ; repetida sobre un archivo que se reescribe constantemente es justo el tipo
+    ; de patrón que un antivirus por comportamiento puede vigilar de más.
+    static yaOculto := false
     try {
         f := FileOpen(heartbeatPath, "w", "UTF-8")
         if (f) {
             f.Write(A_TickCount "|" ProcessExist() "|" FormatTime(, "yyyy-MM-dd HH:mm:ss") "|" (activo ? 1 : 0))
             f.Close()
-            try FileSetAttrib("+H", heartbeatPath)   ; mantener oculto (se recrea al arrancar)
+            if (!yaOculto) {
+                try FileSetAttrib("+H", heartbeatPath)
+                yaOculto := true
+            }
         }
     }
 }
@@ -5501,10 +5511,18 @@ try {
     FileAppend("`r`n═══════ MACRO ARRANCADO v" VERSION_ACTUAL " - " FormatTime(A_Now, "yyyy-MM-dd HH:mm:ss") " ═══════`r`n", historialLogPath, "UTF-8")
 }
 
-; Si la instancia anterior se reinició por watchdog, auto-arrancar el macro.
-; Pequeño delay para que la GUI termine de asentarse antes de Iniciar().
+; Auto-arrancar el macro si el usuario lo quería activo. Dos señales, cualquiera
+; de las dos alcanza:
+;   - QuiereActivo: intención DURABLE del usuario, escrita al instante por
+;     Iniciar()/Parar()/Cerrar() (no depende del heartbeat de cada 5s). Es la
+;     fuente fiable: si el proceso se congela ANTES de que el heartbeat llegue
+;     a reflejar activo=1, esta flag ya quedó guardada en disco de todos modos.
+;   - Watchdog/AutoStart: señal de un solo uso que pone el watchdog externo
+;     cuando mata un proceso colgado (se mantiene como respaldo).
 ; El descanso solo bloquea el auto-arranque en tct/sp — en frt/dstv el ciclo no aplica.
-if ((!enDescanso || PerfilSinGestion()) && IniRead(configPath, "Watchdog", "AutoStart", "0") = "1") {
+quiereActivo := IniRead(configPath, "Estado", "QuiereActivo", "0") = "1"
+autoStartWatchdog := IniRead(configPath, "Watchdog", "AutoStart", "0") = "1"
+if ((!enDescanso || PerfilSinGestion()) && (quiereActivo || autoStartWatchdog)) {
     try IniDelete(configPath, "Watchdog", "AutoStart")  ; consumir flag (single-shot)
     SetTimer(() => Iniciar(), -1500)
 }
@@ -7370,7 +7388,15 @@ CerrarTutorial(*) {
 ; ═══════════════════════════════════════════════════════════════
 ParchesPaginas() {
     return [
-    { ico: Chr(0x1F4CB), tit: "Parche v32.1 (actual)",
+    { ico: Chr(0x1F4CB), tit: "Parche v32.2 (actual)",
+      txt: "· Fix: si el macro se reiniciaba solo, a veces se`n"
+         . "   quedaba parado para siempre sin volver a iniciarse`n"
+         . "· Ahora la intención de Iniciar/Parar se guarda al`n"
+         . "   instante, no depende del heartbeat de cada 5s`n"
+         . "· Menos escritura de disco en el heartbeat (posible`n"
+         . "   causa de que un antivirus lo interceptara)`n" },
+
+    { ico: Chr(0x1F4CB), tit: "Parche v32.1",
       txt: "· Nuevo perfil 'gtav' (botón G): teclas una sola vez`n"
          . "   m, ↓×5, Enter, Enter, ←, ↓, Enter (60ms)`n"
          . "· Historial: registra cada acción, no solo cooldowns`n"
@@ -9317,6 +9343,8 @@ Cerrar(*) {
     GuardarRGBs()
     IniWrite(historialVisible ? 1 : 0, configPath, "UI", "HistorialVisible")
     IniWrite(perfilActivo, configPath, "UI", "PerfilActivo")
+    ; Cierre intencionado por el usuario: no debe auto-arrancar la próxima vez.
+    try IniWrite(0, configPath, "Estado", "QuiereActivo")
     GuardarPosiciones()
     ; Borrar heartbeat para que el watchdog externo NO nos reinicie (cierre intencionado)
     try FileDelete(heartbeatPath)
@@ -12788,6 +12816,7 @@ Iniciar(*) {
     global histUltimoTexto
     global enDescanso, cicloInicio, descansoInicio, brawlhallaLanzado
     global abrirBrawlAlIniciar
+    global configPath
     ; Si el usuario inicia DURANTE el descanso del ciclo (solo tct/sp), manda
     ; el usuario: se cancela el descanso y arranca un ciclo nuevo de 8h.
     if (enDescanso && (perfilActivo = 1 || perfilActivo = 2)) {
@@ -12799,6 +12828,11 @@ Iniciar(*) {
         AgregarHistorial(Chr(0x23F0) " Descanso cancelado a mano — nuevo ciclo de 8h", "FF8800")
     }
     activo := true
+    ; Intención del usuario, guardada YA en disco (no depende del heartbeat de
+    ; cada 5s, que es justo lo que se congela si el proceso se traba). Así, si
+    ; el watchdog mata y relanza el macro antes de que el heartbeat refleje
+    ; activo=1, el nuevo proceso igual sabe que debe auto-arrancar.
+    try IniWrite(1, configPath, "Estado", "QuiereActivo")
     logoVelObjetivo := logoVelMax
     ultimoCambio := A_TickCount
     modoDestruccion := false
@@ -12855,7 +12889,9 @@ Parar(*) {
     global logoVelObjetivo
     global afkAlertaFlash, afkText, colorAFK, timerLabel, colorTextoPrincipal
     global circuloLockIdx
+    global configPath
     activo := false
+    try IniWrite(0, configPath, "Estado", "QuiereActivo")   ; ver nota en Iniciar()
     circuloLockIdx := 0   ; soltar el enganche del detector circular — re-detectar fresco al reiniciar
     logoVelObjetivo := 0.0
     accionEnCurso := false

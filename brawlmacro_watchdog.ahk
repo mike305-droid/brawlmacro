@@ -19,6 +19,7 @@
 
 global scriptDir    := A_ScriptDir
 global heartbeatPath := scriptDir "\brawlmacro_heartbeat.txt"
+global historialLogPath := scriptDir "\brawlmacro_historial.log"
 global macroPath    := scriptDir "\brawlmacrotct.ahk"
 global logPath      := scriptDir "\brawlmacro_watchdog.log"
 global pidPath      := scriptDir "\brawlmacro_watchdog.pid"
@@ -111,7 +112,26 @@ VerificarMacro() {
     }
 
     if (edad > 90) {
-        ; Heartbeat con >90s sin actualizar Y proceso vivo = colgado de verdad
+        ; Antes de matar el proceso: comprobar si el HISTORIAL sigue actualizándose.
+        ; Se descubrió que a veces SOLO la escritura del heartbeat.txt se traba
+        ; (posiblemente un antivirus vigilando ese archivo en concreto por su patrón
+        ; de reescritura cada 5s) mientras el macro sigue jugando con normalidad:
+        ; detectando, haciendo clicks y escribiendo en el historial sin problema.
+        ; Matarlo en ese caso interrumpe una partida que iba bien por una falsa alarma.
+        historialVivo := false
+        try {
+            if (FileExist(historialLogPath)) {
+                edadHist := DateDiff(A_Now, FileGetTime(historialLogPath, "M"), "Seconds")
+                historialVivo := (edadHist < 90)
+            }
+        }
+        if (historialVivo) {
+            Log("Heartbeat congelado (" edad "s) pero el historial sigue vivo — el macro"
+                . " funciona, NO se mata (probable bloqueo puntual solo del heartbeat.txt)")
+            return
+        }
+        ; Heartbeat con >90s sin actualizar, proceso vivo Y sin actividad en el
+        ; historial tampoco = colgado de verdad.
         Log("Heartbeat congelado (" edad "s) con PID " macroPid " vivo — matando y relanzando")
         try ProcessClose(macroPid)
         Sleep 1500
