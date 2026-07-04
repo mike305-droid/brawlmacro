@@ -14,6 +14,9 @@ brawlmacro_stats.ini
 brawlmacro_config.ini
 brawlmacro_eggs.txt
 
+# Grafo de llamadas generado por el botón 🕸 (artefacto local, se regenera)
+brawlmacro_callgraph.html
+
 # Carpetas de mockups generados (pesadas, locales)
 mockups/
 mockups_png/

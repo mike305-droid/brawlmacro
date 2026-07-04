@@ -52,7 +52,7 @@ configPath := A_ScriptDir "\brawlmacro_config.ini"
 global eggsBackupPath := A_ScriptDir "\brawlmacro_eggs.txt"
 global heartbeatPath := A_ScriptDir "\brawlmacro_heartbeat.txt"
 global historialLogPath := A_ScriptDir "\brawlmacro_historial.log"
-global VERSION_ACTUAL := "32.4.0"
+global VERSION_ACTUAL := "32.5.0"
 
 
 ; ===== TEMAS =====
@@ -7361,7 +7361,14 @@ CerrarTutorial(*) {
 ; ═══════════════════════════════════════════════════════════════
 ParchesPaginas() {
     return [
-    { ico: Chr(0x1F4CB), tit: "Parche v32.4 (actual)",
+    { ico: Chr(0x1F4CB), tit: "Parche v32.5 (actual)",
+      txt: "· 🕸 Grafo de llamadas: botón nuevo en Personalizar`n"
+         . "· Mapa interactivo de qué función llama a cuál`n"
+         . "   — se abre en el navegador, sin internet`n"
+         . "· Zoom, buscador, filtro de flujo principal y`n"
+         . "   colores por área (detección, UI, webhook...)`n" },
+
+    { ico: Chr(0x1F4CB), tit: "Parche v32.4",
       txt: "· Gtav más lento: 150ms entre teclas (antes 60ms)`n"
          . "· Fix: el total de secuencias del webhook se`n"
          . "   quedaba pegado si el macro se reiniciaba antes`n"
@@ -13853,6 +13860,7 @@ AbrirCentroPersonalizacion(*) {
         {lbl: Chr(0x2699)  " Optimización",           fn: "opt"},
         {lbl: Chr(0x26A1)  " Velocidad del macro",    fn: "vel"},
         {lbl: Chr(0x1F50D) " Pixelfinder",            fn: "pixelfinder"},
+        {lbl: Chr(0x1F578) " Grafo de llamadas",      fn: "grafo"},
     ]
     y := 38
     for it in items {
@@ -13887,6 +13895,7 @@ CentroPersAbrir(accion, *) {
         case "opt":     AbrirPanelOptimizacion()
         case "vel":     CiclarVelocidadPasos()
         case "pixelfinder": AbrirPixelFinder()
+        case "grafo":   AbrirGrafoLlamadas()
     }
 }
 
@@ -13946,6 +13955,293 @@ AbrirPixelFinder(*) {
         AgregarHistorial(Chr(0x26A0) " Pixelfinder no se pudo guardar en disco", "FF4444")
     }
 }
+
+; ═════ GRAFO DE LLAMADAS (🕸 en Personalizar) ═════
+; Analiza el propio brawlmacrotct.ahk (qué función llama a cuál), genera un
+; HTML autocontenido con el grafo interactivo (canvas + física de fuerzas,
+; sin internet ni dependencias) y lo abre en el navegador. Se regenera en
+; cada pulsación, así siempre refleja la versión actual del código.
+AbrirGrafoLlamadas(*) {
+    rutaHtml := A_ScriptDir "\brawlmacro_callgraph.html"
+    AgregarHistorial(Chr(0x1F578) " Analizando el código del macro...", "")
+    try {
+        r := GenerarGrafoLlamadas(A_ScriptFullPath, rutaHtml)
+        AgregarHistorial(Chr(0x1F578) " Grafo generado: " r.funciones " funciones, " r.enlaces " llamadas", "00AAFF")
+        try Run('"' rutaHtml '"')
+    } catch as e {
+        AgregarHistorial(Chr(0x26A0) " Error generando el grafo: " SubStr(e.Message, 1, 60), "FF4444")
+    }
+}
+
+; ==== GRAFO MOTOR INICIO ====
+; (Bloque autocontenido: no toca globals — extraíble para tests sin lanzar la GUI)
+
+; Parsea el .ahk y escribe el HTML. Devuelve {funciones, enlaces}.
+GenerarGrafoLlamadas(rutaAhk, rutaHtml) {
+    contenido := FileRead(rutaAhk, "UTF-8")
+    lineas := StrSplit(contenido, "`n", "`r")
+    nTot := lineas.Length
+
+    ; Palabras clave de AHK que el regex de definición/llamada podría confundir
+    kw := Map()
+    for k in ["if","while","for","loop","switch","return","try","catch","else","until","case","throw","static","global","local","not","and","or","in","is","contains"]
+        kw[k] := true
+
+    ; ── Pasada 1: definiciones de función en columna 0: "Nombre(args) {" ──
+    nombres := [], defLinea := Map()
+    for i, ln in lineas {
+        if RegExMatch(ln, "^([A-Za-z_]\w*)\(", &m) && !kw.Has(StrLower(m[1]))
+                && InStr(GrafoLimpiarLinea(ln), "{") && !defLinea.Has(m[1]) {
+            defLinea[m[1]] := i
+            nombres.Push(m[1])
+        }
+    }
+    idx := Map()   ; nombre -> índice 0-based (para el JSON)
+    for i, n in nombres
+        idx[n] := i - 1
+
+    ; ── Pasada 2: cuerpo de cada función (profundidad de llaves) + llamadas ──
+    vistas := Map(), aristas := []
+    ; Referencias a funciones SIN paréntesis de llamada (timers, binds, eventos)
+    patrones := ["SetTimer\(\s*([A-Za-z_]\w*)\s*[,)]"
+               , "\b([A-Za-z_]\w*)\.Bind\("
+               , "OnEvent\([^,]+,\s*([A-Za-z_]\w*)\s*\)"
+               , "^\s*return\s+([A-Za-z_]\w*)\s*$"]
+    for nombre in nombres {
+        i := defLinea[nombre]
+        depth := 0, j := i
+        while (j <= nTot) {
+            ; Red de seguridad: si aparece la siguiente definición, cortar aquí
+            if (j > i && RegExMatch(lineas[j], "^([A-Za-z_]\w*)\(", &m2)
+                    && !kw.Has(StrLower(m2[1])) && InStr(GrafoLimpiarLinea(lineas[j]), "{"))
+                break
+            lnl := GrafoLimpiarLinea(lineas[j])
+            StrReplace(lnl, "{", , , &nAbre), StrReplace(lnl, "}", , , &nCierra)
+            ; Llamadas directas: Nombre(
+            pos := 1
+            while (p := RegExMatch(lnl, "\b([A-Za-z_]\w*)\(", &mc, pos)) {
+                pos := p + StrLen(mc[1]) + 1
+                c := mc[1]
+                if (c != nombre && idx.Has(c) && !kw.Has(StrLower(c)))
+                    GrafoAddArista(vistas, aristas, nombre, c)
+            }
+            for pat in patrones {
+                pos := 1
+                while (p := RegExMatch(lnl, pat, &mc, pos)) {
+                    pos := p + 1
+                    c := mc[1]
+                    if (c != nombre && idx.Has(c))
+                        GrafoAddArista(vistas, aristas, nombre, c)
+                }
+            }
+            depth += nAbre - nCierra
+            if (depth <= 0 && j > i)
+                break
+            j += 1
+        }
+    }
+
+    ; ── JSON incrustado en el HTML ──
+    nodesJson := ""
+    for i, n in nombres
+        nodesJson .= (i > 1 ? "," : "") '{"n":"' n '","c":"' GrafoCategoria(n) '"}'
+    edgesJson := ""
+    for i, ar in aristas
+        edgesJson .= (i > 1 ? "," : "") "[" idx[ar[1]] "," idx[ar[2]] "]"
+    ; Semillas del "flujo principal": puntos de entrada reales del macro (Iniciar,
+    ; timers, watchdog...). El HTML calcula qué se alcanza desde aquí.
+    seedsJson := "", primero := true
+    for s in ["Iniciar","Parar","Cerrar","EjecutarMacro","CheckPrioridad","ActualizarAFK"
+            , "TickCicloDescanso","GtavTick","FrtClick","FrtKeyCycle","TickCirculoDetectorDstv"
+            , "WatchdogAFK","EscribirHeartbeat","LanzarWatchdogSiNoEsta","CheckBrawlhallaMinimizado"
+            , "ActualizarCooldowns"] {
+        if idx.Has(s) {
+            seedsJson .= (primero ? "" : ",") idx[s]
+            primero := false
+        }
+    }
+
+    html := GrafoConstruirHtml(nodesJson, edgesJson, seedsJson)
+    try FileDelete(rutaHtml)
+    FileAppend(html, rutaHtml, "UTF-8")
+    return {funciones: nombres.Length, enlaces: aristas.Length}
+}
+
+GrafoAddArista(vistas, aristas, a, b) {
+    k := a ">" b
+    if vistas.Has(k)
+        return
+    vistas[k] := true
+    aristas.Push([a, b])
+}
+
+; Quita literales de string ("..." y '...', respetando `" escapado) y comentarios ;
+; para que el conteo de llaves y la detección de llamadas no se confundan con
+; cosas como Send "{" accion "}" o comentarios con paréntesis.
+GrafoLimpiarLinea(ln) {
+    ln := RegExReplace(ln, '"(?:``.|[^"``])*"', '""')
+    ln := RegExReplace(ln, "'(?:``.|[^'``])*'", "''")
+    ln := RegExReplace(ln, "(^|[ `t]);.*$", "$1")
+    return ln
+}
+
+; Clasifica cada función en un subsistema (color del nodo) por su nombre.
+; Primer match gana — el orden de las listas importa.
+GrafoCategoria(n) {
+    static exactos := Map("Iniciar","nucleo", "Parar","nucleo", "EjecutarMacro","nucleo"
+        , "Cerrar","ciclo", "Reiniciar","ciclo", "AgregarHistorial","nucleo", "GuardarHistorialLog","nucleo")
+    if exactos.Has(n)
+        return exactos[n]
+    for s in ["Webhook","Milestone","Screenshot","Json","Descargar","Version","Remota","Update"]
+        if InStr(n, s)
+            return "webhook"
+    for s in ["Gtav","Frt","Dstv","Circulo","Perfil"]
+        if InStr(n, s)
+            return "perfiles"
+    for s in ["Stats","Logro","Secuencia","Estadistic","Oro","Racha","Miles","Sesion"]
+        if InStr(n, s)
+            return "stats"
+    for s in ["Gojo","Sukuna","Dominio","Tema","Toast","Particul"]
+        if InStr(n, s)
+            return "ui"
+    for s in ["Watchdog","Heartbeat","Ciclo","Descanso","Lanzar","Brawlhalla","Dormir","Minimizado","Steam"]
+        if InStr(n, s)
+            return "ciclo"
+    for s in ["Pixel","Paso","Prioridad","AFK","Destru","Detector","Bloqueo","Cadena","Deteccion","Macro"]
+        if InStr(n, s)
+            return "nucleo"
+    for s in ["Gui","Panel","Boton","Color","Hex","Lerp","Mezclar","Barra","Logo","Overlay","Deco"
+            , "Hover","Redondear","Pinta","Anima","Luz","Flash","Onda","Editor","Tutorial","Parches"
+            , "Mini","RGB","Shimmer","Pulso","Grad","Egg","Rich","Scroll","Historial","Fps","Preset"
+            , "Cooldown","Ventana","Icono","Tray","Fuente","Estilo","Click","Arrastrar","Visual"
+            , "Reveal","Subclass","Opacidad","Sombra","Perso","Hotkey","Velocidad","Emoji","Nombre"
+            , "Texto","Luces","Grafo"]
+        if InStr(n, s)
+            return "ui"
+    return "otros"
+}
+
+; HTML autocontenido: canvas con física de fuerzas, zoom/pan, buscador, panel
+; de detalles, filtro de flujo principal y leyenda con toggle por categoría.
+; Todo en JS puro con comillas dobles (sin backticks — chocarían con AHK).
+GrafoConstruirHtml(nodesJson, edgesJson, seedsJson) {
+    h := ''
+    h .= '<!DOCTYPE html>`n'
+    h .= '<html><head><meta charset="utf-8"><title>Grafo de llamadas - MacroSmart</title>`n'
+    h .= '<style>`n'
+    h .= 'body{margin:0;background:#12121c;color:#eee;font:13px "Segoe UI",sans-serif;overflow:hidden}`n'
+    h .= '#cv{display:block;cursor:grab}`n'
+    h .= '#ui{position:fixed;top:10px;left:10px;background:rgba(18,18,30,.93);border:1px solid #34344a;border-radius:10px;padding:10px 12px;width:250px}`n'
+    h .= '#info{position:fixed;top:10px;right:10px;width:280px;max-height:92vh;overflow:auto;background:rgba(18,18,30,.93);border:1px solid #34344a;border-radius:10px;padding:10px 12px;display:none}`n'
+    h .= '.lg{display:flex;align-items:center;gap:6px;margin:2px 0;cursor:pointer;user-select:none}`n'
+    h .= '.dot{width:10px;height:10px;border-radius:50%;flex:none}`n'
+    h .= '.off{opacity:.35}`n'
+    h .= '#q{width:100%;box-sizing:border-box;background:#0c0c14;border:1px solid #444;color:#eee;border-radius:6px;padding:4px 6px;margin:6px 0}`n'
+    h .= 'label{display:flex;gap:6px;align-items:center;margin:4px 0;cursor:pointer}`n'
+    h .= 'a{color:#7ab7ff;cursor:pointer;display:block;padding:1px 0;text-decoration:none}`n'
+    h .= 'a:hover{text-decoration:underline}`n'
+    h .= 'h3{margin:4px 0 6px}`n'
+    h .= '.mut{color:#8a8fa3;font-size:11px}`n'
+    h .= '</style></head><body>`n'
+    h .= '<canvas id="cv"></canvas>`n'
+    h .= '<div id="ui"><b>' Chr(0x1F578) ' Grafo de llamadas</b><div class="mut" id="stats"></div>`n'
+    h .= '<input id="q" type="text" placeholder="Buscar funcion y pulsar Enter">`n'
+    h .= '<label><input id="flujo" type="checkbox"> Solo flujo principal</label>`n'
+    h .= '<div id="leyenda"></div>`n'
+    h .= '<div class="mut">Rueda: zoom - Arrastrar fondo: mover - Clic en nodo: detalles - Doble clic o Esc: soltar</div></div>`n'
+    h .= '<div id="info"></div>`n'
+    h .= '<script>`n'
+    h .= 'const NODES=[' nodesJson '];`n'
+    h .= 'const EDGES=[' edgesJson '];`n'
+    h .= 'const SEEDS=[' seedsJson '];`n'
+    h .= 'const CATS={nucleo:["Nucleo / deteccion","#4cd964"],ciclo:["Juego / ciclo / watchdog","#ffa94d"],perfiles:["Perfiles (gtav/frt/dstv)","#ff6b6b"],webhook:["Webhook / updater","#4aa8ff"],stats:["Stats / logros","#ffd93d"],ui:["UI / temas","#b47aff"],otros:["Otros","#9aa0a6"]};`n'
+    h .= 'const N=NODES.length;const IN=[],OUT=[];`n'
+    h .= 'for(let i=0;i<N;i++){IN.push([]);OUT.push([]);}`n'
+    h .= 'EDGES.forEach(e=>{OUT[e[0]].push(e[1]);IN[e[1]].push(e[0]);});`n'
+    h .= 'const DEG=NODES.map((n,i)=>IN[i].length+OUT[i].length);`n'
+    h .= 'const REACH=new Set();{const st=SEEDS.slice();while(st.length){const v=st.pop();if(REACH.has(v))continue;REACH.add(v);for(const w of OUT[v])st.push(w);}}`n'
+    h .= 'const catOn={};for(const k in CATS)catOn[k]=true;`n'
+    h .= 'let soloFlujo=false;const visible=new Array(N).fill(true);`n'
+    h .= 'const cv=document.getElementById("cv"),ctx=cv.getContext("2d");`n'
+    h .= 'const P=NODES.map((n,i)=>({x:Math.cos(i*2.399)*(40+9*Math.sqrt(i+1)),y:Math.sin(i*2.399)*(40+9*Math.sqrt(i+1)),vx:0,vy:0}));`n'
+    h .= 'let alpha=1,scale=1,tx=0,ty=0,sel=-1,hov=-1,dragN=-1,panning=false,px=0,py=0,moved=false;`n'
+    h .= 'function reheat(){alpha=1;}`n'
+    h .= 'function resize(){cv.width=innerWidth;cv.height=innerHeight;}`n'
+    h .= 'addEventListener("resize",resize);resize();tx=innerWidth/2;ty=innerHeight/2;`n'
+    h .= 'function radius(i){return 3.5+Math.min(10,Math.sqrt(DEG[i])*1.6);}`n'
+    h .= 'function recalcVisible(){for(let i=0;i<N;i++)visible[i]=catOn[NODES[i].c]&&(!soloFlujo||REACH.has(i));reheat();refreshStats();}`n'
+    h .= 'function refreshStats(){let nv=0;for(let i=0;i<N;i++)if(visible[i])nv++;let ne=0;for(const e of EDGES)if(visible[e[0]]&&visible[e[1]])ne++;document.getElementById("stats").textContent=nv+" funciones - "+ne+" llamadas";}`n'
+    h .= 'function step(){`n'
+    h .= 'if(alpha>0.012){`n'
+    h .= 'for(let i=0;i<N;i++){if(!visible[i])continue;const a=P[i];`n'
+    h .= 'for(let j=i+1;j<N;j++){if(!visible[j])continue;const b=P[j];`n'
+    h .= 'let dx=a.x-b.x,dy=a.y-b.y,d2=dx*dx+dy*dy;if(d2<1)d2=1;if(d2>22000)continue;`n'
+    h .= 'const f=460*alpha/d2,fx=dx*f,fy=dy*f;a.vx+=fx;a.vy+=fy;b.vx-=fx;b.vy-=fy;}}`n'
+    h .= 'for(const e of EDGES){if(!visible[e[0]]||!visible[e[1]])continue;const a=P[e[0]],b=P[e[1]];`n'
+    h .= 'let dx=b.x-a.x,dy=b.y-a.y;const d=Math.sqrt(dx*dx+dy*dy)||1,f=0.02*alpha*(d-72)/d,fx=dx*f,fy=dy*f;`n'
+    h .= 'a.vx+=fx;a.vy+=fy;b.vx-=fx;b.vy-=fy;}`n'
+    h .= 'for(let i=0;i<N;i++){if(!visible[i])continue;const p=P[i];p.vx-=p.x*0.0012*alpha;p.vy-=p.y*0.0012*alpha;`n'
+    h .= 'if(i!==dragN){p.x+=p.vx;p.y+=p.vy;}p.vx*=0.6;p.vy*=0.6;}`n'
+    h .= 'alpha*=0.993;}`n'
+    h .= 'draw();requestAnimationFrame(step);}`n'
+    h .= 'function draw(){`n'
+    h .= 'ctx.setTransform(1,0,0,1,0,0);ctx.fillStyle="#12121c";ctx.fillRect(0,0,cv.width,cv.height);`n'
+    h .= 'ctx.setTransform(scale,0,0,scale,tx,ty);`n'
+    h .= 'const hl=sel>=0?sel:hov;let nb=null;`n'
+    h .= 'if(hl>=0){nb=new Set([hl]);for(const v of OUT[hl])nb.add(v);for(const v of IN[hl])nb.add(v);}`n'
+    h .= 'for(const e of EDGES){const a=e[0],b=e[1];if(!visible[a]||!visible[b])continue;`n'
+    h .= 'const on=nb!==null&&(a===hl||b===hl);`n'
+    h .= 'if(nb!==null&&!on)ctx.strokeStyle="rgba(255,255,255,0.03)";`n'
+    h .= 'else if(on)ctx.strokeStyle=(a===hl)?"rgba(110,230,140,0.9)":"rgba(120,175,255,0.9)";`n'
+    h .= 'else ctx.strokeStyle="rgba(255,255,255,0.09)";`n'
+    h .= 'ctx.lineWidth=(on?1.6:0.7)/scale;`n'
+    h .= 'const A=P[a],B=P[b];ctx.beginPath();ctx.moveTo(A.x,A.y);ctx.lineTo(B.x,B.y);ctx.stroke();`n'
+    h .= 'if(on){const dx=B.x-A.x,dy=B.y-A.y,d=Math.sqrt(dx*dx+dy*dy)||1,ux=dx/d,uy=dy/d;`n'
+    h .= 'const ex=B.x-ux*(radius(b)+3),ey=B.y-uy*(radius(b)+3),s=5/scale;`n'
+    h .= 'ctx.beginPath();ctx.moveTo(ex,ey);ctx.lineTo(ex-ux*s-uy*s*0.6,ey-uy*s+ux*s*0.6);ctx.lineTo(ex-ux*s+uy*s*0.6,ey-uy*s-ux*s*0.6);ctx.closePath();ctx.fillStyle=ctx.strokeStyle;ctx.fill();}}`n'
+    h .= 'for(let i=0;i<N;i++){if(!visible[i])continue;const p=P[i],r=radius(i),dim=nb!==null&&!nb.has(i);`n'
+    h .= 'ctx.globalAlpha=dim?0.14:1;ctx.fillStyle=CATS[NODES[i].c][1];`n'
+    h .= 'ctx.beginPath();ctx.arc(p.x,p.y,r,0,6.2832);ctx.fill();`n'
+    h .= 'if(i===sel){ctx.strokeStyle="#fff";ctx.lineWidth=2/scale;ctx.stroke();}`n'
+    h .= 'ctx.globalAlpha=1;}`n'
+    h .= 'ctx.font=(11/scale)+"px Segoe UI";ctx.fillStyle="#e6e6f0";`n'
+    h .= 'for(let i=0;i<N;i++){if(!visible[i])continue;`n'
+    h .= 'if(nb!==null){if(!nb.has(i))continue;}`n'
+    h .= 'else if(!(i===hov||scale>1.5||(DEG[i]>=14&&scale>0.55)))continue;`n'
+    h .= 'const p=P[i];ctx.fillText(NODES[i].n,p.x+radius(i)+2/scale,p.y+3.5/scale);}}`n'
+    h .= 'function toWorld(mx,my){return{x:(mx-tx)/scale,y:(my-ty)/scale};}`n'
+    h .= 'function hit(mx,my){const w=toWorld(mx,my);for(let i=N-1;i>=0;i--){if(!visible[i])continue;const p=P[i],r=radius(i)+3/scale,dx=w.x-p.x,dy=w.y-p.y;if(dx*dx+dy*dy<=r*r)return i;}return -1;}`n'
+    h .= 'cv.addEventListener("mousedown",e=>{px=e.clientX;py=e.clientY;moved=false;const t=hit(px,py);if(t>=0)dragN=t;else panning=true;cv.style.cursor="grabbing";});`n'
+    h .= 'addEventListener("mousemove",e=>{const mx=e.clientX,my=e.clientY;`n'
+    h .= 'if(dragN>=0){const w=toWorld(mx,my);P[dragN].x=w.x;P[dragN].y=w.y;P[dragN].vx=0;P[dragN].vy=0;if(alpha<0.25)alpha=0.25;moved=true;}`n'
+    h .= 'else if(panning){tx+=mx-px;ty+=my-py;px=mx;py=my;moved=true;}`n'
+    h .= 'else{hov=hit(mx,my);cv.style.cursor=hov>=0?"pointer":"grab";}});`n'
+    h .= 'addEventListener("mouseup",e=>{if(!moved){const t=hit(e.clientX,e.clientY);if(t>=0)select(t,false);}dragN=-1;panning=false;cv.style.cursor="grab";});`n'
+    h .= 'cv.addEventListener("dblclick",()=>select(-1,false));`n'
+    h .= 'addEventListener("keydown",e=>{if(e.key==="Escape")select(-1,false);});`n'
+    h .= 'cv.addEventListener("wheel",e=>{e.preventDefault();const f=e.deltaY<0?1.15:0.87,mx=e.clientX,my=e.clientY;tx=mx-(mx-tx)*f;ty=my-(my-ty)*f;scale*=f;},{passive:false});`n'
+    h .= 'const info=document.getElementById("info");`n'
+    h .= 'function linkA(i){return "<a data-i=\"" + i + "\">" + NODES[i].n + "</a>";}`n'
+    h .= 'function select(i,centrar){sel=i;if(i<0){info.style.display="none";return;}`n'
+    h .= 'const out=OUT[i],inn=IN[i];`n'
+    h .= 'info.innerHTML="<h3>"+NODES[i].n+"</h3><div class=\"mut\">"+CATS[NODES[i].c][0]+" - "+DEG[i]+" conexiones</div>"+`n'
+    h .= '"<p><b>Llama a ("+out.length+"):</b></p>"+(out.map(linkA).join("")||"<span class=\"mut\">nada</span>")+`n'
+    h .= '"<p><b>Llamado por ("+inn.length+"):</b></p>"+(inn.map(linkA).join("")||"<span class=\"mut\">nadie</span>");`n'
+    h .= 'info.style.display="block";if(centrar)center(i);}`n'
+    h .= 'info.addEventListener("click",e=>{const t=e.target.closest("a");if(t)select(parseInt(t.getAttribute("data-i"),10),true);});`n'
+    h .= 'function center(i){const p=P[i];tx=innerWidth/2-p.x*scale;ty=innerHeight/2-p.y*scale;}`n'
+    h .= 'document.getElementById("q").addEventListener("keydown",e=>{if(e.key!=="Enter")return;const q=e.target.value.toLowerCase();if(!q)return;`n'
+    h .= 'for(let i=0;i<N;i++){if(visible[i]&&NODES[i].n.toLowerCase().indexOf(q)>=0){select(i,true);break;}}});`n'
+    h .= 'document.getElementById("flujo").addEventListener("change",e=>{soloFlujo=e.target.checked;recalcVisible();});`n'
+    h .= 'const ley=document.getElementById("leyenda");`n'
+    h .= 'for(const k in CATS){const d=document.createElement("div");d.className="lg";`n'
+    h .= 'd.innerHTML="<span class=\"dot\" style=\"background:"+CATS[k][1]+"\"></span>"+CATS[k][0];`n'
+    h .= 'd.addEventListener("click",()=>{catOn[k]=!catOn[k];d.classList.toggle("off",!catOn[k]);recalcVisible();});ley.appendChild(d);}`n'
+    h .= 'recalcVisible();step();`n'
+    h .= '</script></body></html>`n'
+    return h
+}
+; ==== GRAFO MOTOR FIN ====
 
 ; ─────────────────────── (7) HOTKEYS REASIGNABLES ───────────────────────
 ; Acciones disponibles y la función que disparan.
