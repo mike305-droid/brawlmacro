@@ -52,7 +52,7 @@ configPath := A_ScriptDir "\brawlmacro_config.ini"
 global eggsBackupPath := A_ScriptDir "\brawlmacro_eggs.txt"
 global heartbeatPath := A_ScriptDir "\brawlmacro_heartbeat.txt"
 global historialLogPath := A_ScriptDir "\brawlmacro_historial.log"
-global VERSION_ACTUAL := "32.3.0"
+global VERSION_ACTUAL := "32.4.0"
 
 
 ; ===== TEMAS =====
@@ -7361,7 +7361,14 @@ CerrarTutorial(*) {
 ; ═══════════════════════════════════════════════════════════════
 ParchesPaginas() {
     return [
-    { ico: Chr(0x1F4CB), tit: "Parche v32.3 (actual)",
+    { ico: Chr(0x1F4CB), tit: "Parche v32.4 (actual)",
+      txt: "· Gtav más lento: 150ms entre teclas (antes 60ms)`n"
+         . "· Fix: el total de secuencias del webhook se`n"
+         . "   quedaba pegado si el macro se reiniciaba antes`n"
+         . "   de guardar — ahora se guarda al completar cada`n"
+         . "   secuencia, no solo cada 5 min`n" },
+
+    { ico: Chr(0x1F4CB), tit: "Parche v32.3",
       txt: "· Revertido: los archivos de datos (logs, config...)`n"
          . "   ya NO se ocultan — vuelven a verse en la carpeta`n"
          . "· Ocultarlos + reescribirlos sin parar podía ser lo`n"
@@ -11436,6 +11443,14 @@ CheckPrioridad() {
                                 if (InStr(paso.nombre, "LEAVINGGAME")) {
                                     contadorSecuencias += 1
                                     ActualizarSecuencias()
+                                    ; Persistir YA la secuencia recién completada — antes solo se
+                                    ; guardaba cada 5 min (GuardarStats con timer) o al cerrar limpio.
+                                    ; Si el macro se reiniciaba/colgaba entre medio (pasa con el
+                                    ; watchdog), esas secuencias se perdían del total guardado: el
+                                    ; webhook seguía avisando "secuencia completada" pero el Total
+                                    ; nunca subía en la práctica porque la sesión nueva partía del
+                                    ; mismo valor viejo en disco.
+                                    GuardarStats()
                                     AgregarHistorial(paso.nombre " -> COOLDOWN " Round(paso.cooldown/1000) "s | Secuencias: " contadorSecuencias, paso.HasProp("categoria") ? ObtenerColorCategoria(paso.categoria) : "")
                                     EnviarWebhookEvento("secuencia")
                                     DespuesDeAccion(true)
@@ -12640,11 +12655,11 @@ ActualizarTimersFrt() {
         SetTimer(FrtClick, 0)
         SetTimer(FrtKeyCycle, 0)
     }
-    ; gtav (perfil 5): secuencia ciega de teclas UNA vez, 60ms entre teclas
+    ; gtav (perfil 5): secuencia ciega de teclas UNA vez, 150ms entre teclas
     if (activo && perfilActivo = 5) {
         gtavIdx := 1   ; reset al arrancar la secuencia desde el principio
-        SetTimer(GtavTick, 60)
-        GtavTick()     ; primer disparo inmediato → la 'm' sale al instante, sin esperar 60ms
+        SetTimer(GtavTick, 150)
+        GtavTick()     ; primer disparo inmediato → la 'm' sale al instante, sin esperar 150ms
     } else {
         SetTimer(GtavTick, 0)
     }
