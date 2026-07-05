@@ -52,7 +52,7 @@ configPath := A_ScriptDir "\brawlmacro_config.ini"
 global eggsBackupPath := A_ScriptDir "\brawlmacro_eggs.txt"
 global heartbeatPath := A_ScriptDir "\brawlmacro_heartbeat.txt"
 global historialLogPath := A_ScriptDir "\brawlmacro_historial.log"
-global VERSION_ACTUAL := "32.6.0"
+global VERSION_ACTUAL := "32.7.0"
 
 
 ; ===== TEMAS =====
@@ -456,6 +456,14 @@ global btnPersonalizar := ""
 
 ; ── Abrir Brawlhalla automáticamente al pulsar Iniciar (toggle en Personalizar) ──
 global abrirBrawlAlIniciar := true
+
+; ── Humanización: jitter de click + variación de tiempos (toggle en Personalizar) ──
+; Sin esto, cada click cae en el pixel EXACTO y cada delay dura EXACTAMENTE lo
+; mismo, siempre — un patrón perfectamente regular que un anti-cheat por
+; comportamiento puede usar para diferenciar un script de una persona jugando.
+global humanizarActivo := true
+global HUMANIZAR_JITTER_PX := 2      ; +/- píxeles de variación en cada click
+global HUMANIZAR_TIEMPO_PCT := 18    ; +/- % de variación en delays/cooldowns visibles
 
 ; ── Efectos de acción dinámicos (fade/glow/zoom/slide cuando se detecta una acción) ──
 global efectosAccionActivos := true
@@ -5253,6 +5261,9 @@ efectosAccionActivos := Integer(IniRead(configPath, "Efectos", "Accion", "1")) =
 ; Abrir Brawlhalla al pulsar Iniciar (por defecto sí, = comportamiento de siempre)
 abrirBrawlAlIniciar := Integer(IniRead(configPath, "UI", "AbrirBrawlAlIniciar", "1")) = 1
 
+; Humanización de clicks/tiempos (por defecto activa)
+humanizarActivo := Integer(IniRead(configPath, "UI", "Humanizar", "1")) = 1
+
 ; Ciclo automático de descanso (jugar X h → Alt+F4 + descanso Y min → repetir)
 cicloActivo  := Integer(IniRead(configPath, "Ciclo", "Activo",  "1")) = 1
 CICLO_SEG    := Integer(IniRead(configPath, "Ciclo", "Horas",   "8"))  * 3600
@@ -7361,7 +7372,13 @@ CerrarTutorial(*) {
 ; ═══════════════════════════════════════════════════════════════
 ParchesPaginas() {
     return [
-    { ico: Chr(0x1F4CB), tit: "Parche v32.6 (actual)",
+    { ico: Chr(0x1F4CB), tit: "Parche v32.7 (actual)",
+      txt: "· Humanización (tct/sp): jitter en cada click y`n"
+         . "   variación en los tiempos, para no repetir`n"
+         . "   siempre el mismo patrón exacto`n"
+         . "· Toggle nuevo en Personalizar: Humanizar clicks`n" },
+
+    { ico: Chr(0x1F4CB), tit: "Parche v32.6",
       txt: "· Grafo x100: orbes con glow, estelas y minimapa`n"
          . "· Simular flujo: onda que recorre las llamadas`n"
          . "· Camino dorado desde Iniciar a cualquier función`n"
@@ -11084,6 +11101,51 @@ PasoActivoEnPerfil(paso) {
     return false
 }
 
+; ═════ HUMANIZACIÓN — jitter de click + variación de tiempos ═════
+; No cambia QUÉ hace el macro (sigue clickeando el botón correcto y pulsando
+; la tecla correcta), solo introduce variación natural en DÓNDE cae el click
+; dentro del botón y CUÁNTO duran los delays, para no dejar un patrón
+; perfectamente idéntico click tras click que un anti-cheat por
+; comportamiento pueda usar para diferenciar el macro de una persona.
+
+; Añade un pequeño desplazamiento aleatorio a una posición de click.
+HumanizarPos(&x, &y) {
+    global humanizarActivo, HUMANIZAR_JITTER_PX
+    if (!humanizarActivo || HUMANIZAR_JITTER_PX <= 0)
+        return
+    x += Random(-HUMANIZAR_JITTER_PX, HUMANIZAR_JITTER_PX)
+    y += Random(-HUMANIZAR_JITTER_PX, HUMANIZAR_JITTER_PX)
+}
+
+; Randomiza un delay en ms +/- HUMANIZAR_TIEMPO_PCT%, con suelo de 1ms para
+; no invertir el sentido del Sleep en delays ya de por sí muy cortos.
+HumanizarMs(ms) {
+    global humanizarActivo, HUMANIZAR_TIEMPO_PCT
+    if (!humanizarActivo || ms <= 0)
+        return ms
+    var := ms * HUMANIZAR_TIEMPO_PCT / 100
+    return Max(1, Round(ms + Random(-var, var)))
+}
+
+; Velocidad de MouseMove variable (antes siempre fija en 5 — un movimiento de
+; ratón que siempre tarda exactamente lo mismo es otra señal reconocible).
+HumanizarVelocidadRaton() {
+    global humanizarActivo
+    if (!humanizarActivo)
+        return 5
+    return Random(3, 9)
+}
+
+; Titubeo ocasional: una pausa cortita extra, poco frecuente, simulando el
+; medio segundo que una persona tarda alguna vez en reaccionar. Solo se llama
+; desde el loop principal (tct/sp), nunca desde frt/dstv, que necesitan
+; reacción rápida constante por diseño.
+HumanizarTitubeo() {
+    global humanizarActivo
+    if (humanizarActivo && Random(1, 100) <= 5)
+        Sleep Random(80, 260)
+}
+
 BuscarPixel(paso, &x, &y) {
     global scaleX, scaleY
     x1 := Round(paso.x1 * scaleX)
@@ -11432,7 +11494,8 @@ CheckPrioridad() {
             continue
 
         if BuscarPixel(paso, &x, &y) {
-            MouseMove(x, y, 5)
+            HumanizarPos(&x, &y)
+            MouseMove(x, y, HumanizarVelocidadRaton())
             Click
 
             if paso.HasProp("esperarA") {
@@ -11497,7 +11560,7 @@ CheckPrioridad() {
                     if paso.HasProp("accion") {
                         if paso.HasProp("hold") {
                             SendInput "{" paso.accion " down}"
-                            Sleep paso.hold
+                            Sleep HumanizarMs(paso.hold)
                             SendInput "{" paso.accion " up}"
                         } else {
                             SendInput "{" paso.accion "}"
@@ -11558,7 +11621,8 @@ EjecutarMacro(*) {
                         continue
                     encontrado := BuscarPixel(p, &x, &y)
                     if (encontrado) {
-                        MouseMove(x, y, 5)
+                        HumanizarPos(&x, &y)
+                        MouseMove(x, y, HumanizarVelocidadRaton())
                         Click
                         if p.HasProp("accion")
                             SendInput "{" p.accion "}"
@@ -11637,13 +11701,15 @@ EjecutarMacro(*) {
 
             contadorEsc := 0
             modo := paso.HasProp("modo") ? paso.modo : "click+tecla"
-            MouseMove(x, y, 5)
+            HumanizarTitubeo()
+            HumanizarPos(&x, &y)
+            MouseMove(x, y, HumanizarVelocidadRaton())
             tiempoUltimoLanzamiento := 0
 
             if (modo = "click" or modo = "click+tecla") {
                 Click
                 if paso.HasProp("delayClick")
-                    Sleep paso.delayClick
+                    Sleep HumanizarMs(paso.delayClick)
                 if (!activo) {
                     accionEnCurso := false
                     return
@@ -11654,7 +11720,7 @@ EjecutarMacro(*) {
                 if paso.HasProp("accion") {
                     if paso.HasProp("hold") {
                         SendInput "{" paso.accion " down}"
-                        Sleep paso.hold
+                        Sleep HumanizarMs(paso.hold)
                         SendInput "{" paso.accion " up}"
                         if (!activo) {
                             accionEnCurso := false
@@ -11663,7 +11729,7 @@ EjecutarMacro(*) {
                     } else {
                         SendInput "{" paso.accion "}"
                         if paso.HasProp("delayTecla")
-                            Sleep paso.delayTecla
+                            Sleep HumanizarMs(paso.delayTecla)
                         if (!activo) {
                             accionEnCurso := false
                             return
@@ -13845,9 +13911,15 @@ ToggleAbrirBrawl() {
     IniWrite(abrirBrawlAlIniciar ? 1 : 0, configPath, "UI", "AbrirBrawlAlIniciar")
 }
 
+ToggleHumanizar() {
+    global humanizarActivo, configPath
+    humanizarActivo := !humanizarActivo
+    IniWrite(humanizarActivo ? 1 : 0, configPath, "UI", "Humanizar")
+}
+
 ; ──────────────── CENTRO DE PERSONALIZACIÓN (hub) ────────────────
 AbrirCentroPersonalizacion(*) {
-    global centroPersGui, centroPersVisible, efectosAccionActivos, abrirBrawlAlIniciar
+    global centroPersGui, centroPersVisible, efectosAccionActivos, abrirBrawlAlIniciar, humanizarActivo
     global colorFondoPrincipal, colorTextoPrincipal, colorBarra, colorTextoBarra, colorBotonNormal, colorBtnTexto
     if (centroPersVisible && IsObject(centroPersGui)) {
         try LimpiarHoverGui(centroPersGui)
@@ -13889,6 +13961,14 @@ AbrirCentroPersonalizacion(*) {
     bBrawl.SetFont("s10 Bold", "Segoe UI Semibold")
     bBrawl.OnEvent("Click", (*) => (ToggleAbrirBrawl(), SetTimer(() => (CerrarCentroPersonalizacion(), AbrirCentroPersonalizacion()), -1)))
     RegistrarHover(bBrawl, () => (abrirBrawlAlIniciar ? colorBarra : colorBotonNormal))
+    y += 38
+
+    ; Toggle ON/OFF: humanización de clicks/tiempos (jitter + variación anti-patrón)
+    bHuman := centroPersGui.Add("Text", "x16 y" y " w" (W-32) " h32 +0x201 Background" (humanizarActivo ? colorBarra : colorBotonNormal) " c" colorBtnTexto " Center",
+        (humanizarActivo ? Chr(0x2714) : Chr(0x2716)) " Humanizar clicks/tiempos")
+    bHuman.SetFont("s10 Bold", "Segoe UI Semibold")
+    bHuman.OnEvent("Click", (*) => (ToggleHumanizar(), SetTimer(() => (CerrarCentroPersonalizacion(), AbrirCentroPersonalizacion()), -1)))
+    RegistrarHover(bHuman, () => (humanizarActivo ? colorBarra : colorBotonNormal))
     y += 38
 
     centroPersGui.Show("w" W " h" y " Center")
