@@ -52,7 +52,7 @@ configPath := A_ScriptDir "\brawlmacro_config.ini"
 global eggsBackupPath := A_ScriptDir "\brawlmacro_eggs.txt"
 global heartbeatPath := A_ScriptDir "\brawlmacro_heartbeat.txt"
 global historialLogPath := A_ScriptDir "\brawlmacro_historial.log"
-global VERSION_ACTUAL := "32.7.0"
+global VERSION_ACTUAL := "32.11.0"
 
 
 ; ===== TEMAS =====
@@ -206,7 +206,7 @@ pasosPrioridad.Push({ tipo:"pimg", nombre:"LEAVINGGAME2...", color:0xFFFFFF, cat
 ; ─── FASE 1: ENTRAR A PLAY (cat 2) ─────────────────────────────────
 pasosNormales.Push({ tipo:"pimg", nombre:"play",          color:0xF6F7F8, categoria:2, hold:400, tolerancia:1, delayClick:30,  delayTecla:80,  cooldown:200, tct:true, lastUsed:0, x1:37, y1:271, x2:37, y2:271 })
 pasosNormales.Push({ tipo:"pimg", nombre:"playbob",       color:0xFED511, categoria:2, hold:100, tolerancia:1, delayClick:500, delayTecla:500, cooldown:100, tct:true, lastUsed:0, x1:36, y1:264, x2:36, y2:264 })
-pasosNormales.Push({ tipo:"pimg", nombre:"playwhite",     color:0xFFFFFF, categoria:2, hold:400, tolerancia:1, delayClick:500, delayTecla:500, cooldown:200, tct:true, lastUsed:0, x1:34, y1:269, x2:34, y2:269 })
+pasosNormales.Push({ tipo:"pimg", nombre:"playwhite",     color:0xFFFFFF, categoria:2, hold:400, tolerancia:1, delayClick:500, delayTecla:500, cooldown:200, tct:true, lastUsed:0, x1:34, y1:273, x2:34, y2:273 })
 pasosNormales.Push({ tipo:"pimg", nombre:"play",          color:0xF6F7F8, categoria:2, hold:400, tolerancia:1, delayClick:30,  delayTecla:80,  cooldown:200, sp:true,  lastUsed:0, x1:34, y1:526, x2:34, y2:532 })
 pasosNormales.Push({ tipo:"pimg", nombre:"playbob",       color:0xFED511, categoria:2, hold:100, tolerancia:1, delayClick:500, delayTecla:500, cooldown:100, sp:true,  lastUsed:0, x1:34, y1:526, x2:34, y2:532 })
 pasosNormales.Push({ tipo:"pimg", nombre:"playwhite",     color:0xFFFFFF, categoria:2, hold:400, tolerancia:1, delayClick:500, delayTecla:500, cooldown:200, sp:true,  lastUsed:0, x1:34, y1:526, x2:34, y2:532 })
@@ -303,6 +303,139 @@ global frtIdxTecla := 1   ; indice de la tecla actual (rota automaticamente)
 ;   m, ↓×5, Enter, Enter, ←, ↓, Enter
 global gtavSecuencia := ["m", "Down", "Down", "Down", "Down", "Down", "Enter", "Enter", "Left", "Down", "Enter"]
 global gtavIdx := 1   ; indice del paso actual de la secuencia
+
+; ── WAR (perfilActivo=6) ── secuencia de tienda a medida, en bucle infinito.
+; Coordenadas en base a resolucion 1920x1080 (se escalan por scaleX/scaleY, igual que frt).
+; Cada paso puede llevar "bloqueoGlobal" (ms) → pausa fija DESPUES de su accion,
+; antes de pasar al siguiente paso (igual concepto que el bloqueoGlobal de tct/sp).
+; Tipos de paso:
+;   "click"        → un click en (x,y)
+;   "tecla"        → pulsa "tecla" una vez
+;   "spam_scroll"  → espera "retraso" sin hacer nada, y LUEGO clickea rapido en (x,y)
+;                    Y scrollea el doble de rapido a la vez, durante "ms"
+;   "spam_flecha"  → mantiene pulsada "flecha" mientras pulsa "tecla" en spam, durante "ms"
+global warSecuencia := [
+    { tipo: "click",       x: 645,  y: 62,               bloqueoGlobal: 1000 },  ; "Buy"
+    { tipo: "tecla",       tecla: "e",                    bloqueoGlobal: 2000 },  ; presionar e
+    { tipo: "spam_scroll", x: 1300, y: 594, retraso: 10000, ms: 20000, bloqueoGlobal: 1000 },  ; "comprarcosas": 10s de espera + 20s de spam+scroll
+    { tipo: "click",       x: 591,  y: 354,               bloqueoGlobal: 1000 },  ; "factory"
+    { tipo: "spam_scroll", x: 1300, y: 594, retraso: 10000, ms: 20000, bloqueoGlobal: 1000 },  ; "comprarcosas": 10s de espera + 20s de spam+scroll
+    { tipo: "click",       x: 1066, y: 346,               bloqueoGlobal: 1000 },  ; "militar"
+    { tipo: "click",       x: 1282, y: 59,                bloqueoGlobal: 1000 },  ; "sell click"
+    { tipo: "tecla",       tecla: "e",                    bloqueoGlobal: 2000 },  ; presionar e
+    { tipo: "click",       x: 946,  y: 416,               bloqueoGlobal: 1000 },  ; "vender click"
+    { tipo: "click",       x: 946,  y: 61,                bloqueoGlobal: 1000 },  ; "país click"
+    { tipo: "spam_flecha", tecla: "e", flecha: "Right", ms: 10000, bloqueoGlobal: 1000 },  ; spam e + flecha derecha 10s
+]
+global secIdx := 1          ; paso actual (al pasar del ultimo vuelve a 1 → bucle infinito)
+global secEstado := ""      ; "" = paso recien llegado | "correr" = fase con duracion en curso | "pausa" = bloqueoGlobal en curso
+global secFinEstado := 0    ; A_TickCount en el que termina el estado actual ("correr" o "pausa")
+global secActivoDesde := 0  ; A_TickCount desde el que spam_scroll empieza a clickear/scrollear (tras el "retraso")
+global secUltimoClick := 0  ; A_TickCount del ultimo click dentro de spam_scroll
+global secUltimoScroll := 0 ; A_TickCount del ultimo scroll dentro de spam_scroll
+global secUltimaTecla := 0  ; A_TickCount de la ultima pulsacion dentro de spam_flecha
+global secFlechaSostenida := "" ; nombre de la flecha mantenida pulsada (para soltarla si se para a mitad)
+
+; ── PERFILES PERSONALIZABLES (v32.11) ── war (6) + Custom 1/2/3 (7,8,9) comparten
+; el motor SecuenciaTick. secuenciasPerfil[idx] = array de pasos de ESE perfil;
+; que un idx esté aquí es lo único que decide si el perfil usa este motor (ver
+; ActualizarTimersFrt). Los Custom empiezan vacíos — el usuario los rellena con
+; el editor de pasos (Personalizar → Configurar → Editor de pasos).
+global secuenciasPerfil := Map()
+global PERFILES_CUSTOM_MIN := 7, PERFILES_CUSTOM_MAX := 9   ; rango de perfiles editables "en blanco"
+global PERFIL_MAX := 9                                       ; último perfil que existe (para el ciclo del botón)
+
+; Serializa un array de pasos a [Pasos<idx>] en el ini: Count + una línea
+; "tipo|x|y|tecla|flecha|ms|retraso|bloqueoGlobal" por paso (campos vacíos si no aplican).
+; Formato plano a propósito: el script no trae parser JSON de fábrica.
+GuardarSecuenciaPerfil(idx) {
+    global configPath, secuenciasPerfil
+    if (!secuenciasPerfil.Has(idx))
+        return
+    sec := secuenciasPerfil[idx]
+    seccion := "Pasos" idx
+    ; Borrar las claves de una secuencia más larga guardada anteriormente
+    viejoN := Integer(IniRead(configPath, seccion, "Count", "0"))
+    loop viejoN
+        try IniDelete(configPath, seccion, "Paso" A_Index)
+    IniWrite(sec.Length, configPath, seccion, "Count")
+    for i, p in sec {
+        linea := (p.HasProp("tipo") ? p.tipo : "") "|"
+              . (p.HasProp("x") ? p.x : "") "|"
+              . (p.HasProp("y") ? p.y : "") "|"
+              . (p.HasProp("tecla") ? p.tecla : "") "|"
+              . (p.HasProp("flecha") ? p.flecha : "") "|"
+              . (p.HasProp("ms") ? p.ms : "") "|"
+              . (p.HasProp("retraso") ? p.retraso : "") "|"
+              . (p.HasProp("bloqueoGlobal") ? p.bloqueoGlobal : "")
+        IniWrite(linea, configPath, seccion, "Paso" i)
+    }
+}
+
+; Lee [Pasos<idx>] del ini. Si la sección no existe (Count ausente), devuelve
+; `defecto` tal cual (la secuencia de fábrica de war, o [] para los Custom).
+CargarSecuenciaPerfil(idx, defecto) {
+    global configPath
+    seccion := "Pasos" idx
+    n := Integer(IniRead(configPath, seccion, "Count", "-1"))
+    if (n = -1)
+        return defecto
+    arr := []
+    loop n {
+        linea := IniRead(configPath, seccion, "Paso" A_Index, "")
+        if (linea = "")
+            continue
+        campos := StrSplit(linea, "|")
+        while (campos.Length < 8)
+            campos.Push("")
+        p := { tipo: campos[1] }
+        if (campos[2] != "")
+            p.x := Integer(campos[2])
+        if (campos[3] != "")
+            p.y := Integer(campos[3])
+        if (campos[4] != "")
+            p.tecla := campos[4]
+        if (campos[5] != "")
+            p.flecha := campos[5]
+        if (campos[6] != "")
+            p.ms := Integer(campos[6])
+        if (campos[7] != "")
+            p.retraso := Integer(campos[7])
+        if (campos[8] != "")
+            p.bloqueoGlobal := Integer(campos[8])
+        arr.Push(p)
+    }
+    return arr
+}
+
+; Carga war + los 3 Custom en secuenciasPerfil. Se llama UNA vez al arrancar.
+; war (6) es un perfil de FÁBRICA fijo, igual que frt/dstv/gtav — SIEMPRE usa
+; warSecuencia tal cual, sin leer ni permitir overrides del ini. Solo los
+; Custom 1/2/3 (7-9) son editables por el usuario (ver AbrirEditorPasos).
+CargarSecuenciasCustom() {
+    global secuenciasPerfil, warSecuencia, PERFILES_CUSTOM_MIN, PERFILES_CUSTOM_MAX
+    secuenciasPerfil[6] := warSecuencia
+    loop (PERFILES_CUSTOM_MAX - PERFILES_CUSTOM_MIN + 1) {
+        idx := PERFILES_CUSTOM_MIN + A_Index - 1
+        secuenciasPerfil[idx] := CargarSecuenciaPerfil(idx, [])
+    }
+}
+
+; Nombre legible de un perfil personalizable (7-9): "Custom 1/2/3" salvo que
+; el usuario le haya puesto nombre propio en el editor.
+NombreCustomPerfil(idx) {
+    global configPath, PERFILES_CUSTOM_MIN
+    return IniRead(configPath, "PerfilesCustom", "Nombre" idx, "Custom " (idx - PERFILES_CUSTOM_MIN + 1))
+}
+
+; ── Editor de pasos (GUI) — ver AbrirEditorPasos() ──
+global editorPasosGui := "", editorPasosVisible := false
+global editorPasosPerfil := 6      ; qué perfil (6-9) se está editando ahora mismo
+global editorPasosScroll := 0      ; primer paso visible (paginación de la lista)
+global EDITOR_PASOS_VISIBLES := 6  ; filas visibles antes de paginar
+global formPasoGui := "", formPasoVisible := false
+global formPasoPerfil := 0, formPasoEditIdx := 0   ; formPasoEditIdx=0 → paso nuevo
+global formPasoCampos := Map()      ; refs a los controles del formulario add/editar
 global histUltimoTexto := "", histUltimoCount := 0, histUltimoLongLinea := 0
 global separadorHistorial := ""
 global ultimoScrollManual := 0   ; última vez que el usuario movió la rueda en el historial
@@ -447,9 +580,44 @@ global optDecoraciones   := true   ; animaciones de los temas
 global optConfeti        := true   ; confeti en milestones
 global optTypeReveal     := true   ; revelado progresivo de texto
 global optEscena         := true   ; escena temática del borde (lo más pesado)
+global decoEscala        := 1.6    ; escala de la escena decorativa (1.0 = clásico, 1.6 = XL con presencia)
 global optGui := "", optGuiVisible := false
 global tutGui := "", tutGuiVisible := false, tutPagina := 1  ; tutorial tipo libro
 global parchesGui := "", parchesGuiVisible := false, parchesPagina := 1  ; libro de parches (📋)
+
+; ===== SONIDO RETRO (SFX procedurales — el propio script sintetiza sus .wav) =====
+; No hay archivos de audio en el repo: al primer arranque el macro genera unos
+; chiptunes cortos (onda cuadrada/seno/ruido + envolvente) en %TEMP% y de ahí
+; en adelante solo los reproduce. Volumen aparte del sistema (canal wave).
+global optSonidos     := true    ; SFX de eventos (iniciar/parar/secuencia/logro/hito...)
+global optSonidosUI   := true    ; tick sutil al pulsar botones de la GUI
+global optIntroBoot   := true    ; secuencia de arranque cinematográfica al abrir
+global sonidosVolumen := 60      ; volumen maestro 0-100 (no toca el volumen del sistema)
+global sfxDir := A_Temp "\brawlmacro_sfx_v1"   ; el _v1 permite invalidar la caché si cambian los sonidos
+global sfxListo := false         ; true cuando los .wav ya existen en sfxDir
+global sfxUltimoTick := 0        ; throttle del tick de UI (evita ametralladora al arrastrar)
+global sfxUltimoGrande := 0      ; último SFX "de evento" — el tick de UI no debe cortarlo
+global introGui := "", introRefs := 0   ; overlay + estado de la intro de arranque
+
+; ===== TRAIL DEL RATÓN (el cursor "araña" el macro — partículas por tema) =====
+; Al arrastrar el ratón SOBRE las ventanas del script (principal, historial,
+; mini, paneles), el cursor va soltando partículas del estilo elemental del
+; tema (EfectoDeTema): llamas y humo, rayos eléctricos, hojas arrancadas,
+; código matrix, estrellas fugaces... EXCLUSIVO del macro: fuera de sus
+; ventanas no se suelta nada, y el pintado se RECORTA a ellas para que ni una
+; partícula se derrame por el monitor. Sondeo por timer (sin hook global de
+; ratón — un WH_MOUSE_LL puede meter lag a TODO el sistema si el script está
+; ocupado).
+global optTrailRaton := true
+global trailGui := ""              ; overlay click-through a pantalla completa (nace y muere solo)
+global trailParticles := []        ; partículas vivas, en coordenadas de PANTALLA
+global trailSubclassCb := 0
+global trailOffX := 0, trailOffY := 0    ; origen del overlay (pantalla virtual, puede ser negativo)
+global trailUltX := -1, trailUltY := -1  ; último punto muestreado (-1 = sin referencia)
+global trailTimerOn := false
+global trailFrame := 0             ; contador de frames (parpadeo de rayos, aleteo de abejas)
+global trailVacioDesde := 0        ; tick desde que no quedan partículas (para autodestruir)
+global TRAIL_MAX := 150
 
 ; ===== MEJORAS v31.2: HOTKEYS / TEMA CUSTOM / EFECTOS =====
 global btnPersonalizar := ""
@@ -474,6 +642,18 @@ global efAccionParticulas := []   ; ráfaga temporal del efecto de acción (lluv
 global EFACCION_W := 400, EFACCION_H := 215   ; tamaño fijo del overlay principal (sin BAR_H=25)
 global efAccionOverlay := "", efAccionSubCb := 0, efAccionCx := 0, efAccionCy := 0
 
+; ── Variantes de partículas POR TEMA (v32.9) ──
+; Cada tema tiene su propia variante (forma + paleta + movimiento) — ver
+; VarianteDeTema(). partVar es la variante activa que pintan los overlays;
+; durante la transición de tema, partVarVieja pinta la "salida" (las partículas
+; del tema anterior se van barridas por el viento mientras se desvanecen) y
+; después nace la "entrada" (las nuevas brotan con fade-in + crecimiento).
+global partVar := ""          ; variante activa (objeto) — la fija InicializarParticulas/AplicarTema
+global partVarVieja := ""     ; variante saliente, solo viva durante la fase "salida"
+global partVarKey := ""       ; clave del tema cuyas partículas están inicializadas
+global partTransFase := ""    ; "" | "salida" | "entrada"
+global partTransT0 := 0       ; tick de inicio de la fase actual
+
 ; ── Hotkeys personalizables (cualquier tecla reasignable; se guardan solas) ──
 global hkIniciar := "F1", hkParar := "F2", hkMini := "", hkHistorial := "", hkTema := "", hkPerfil := ""
 global hotkeysGui := "", hotkeysGuiVisible := false, hkRegistradas := Map(), hkCapturando := ""
@@ -488,8 +668,10 @@ global temaCustomDeco := "", temaCustomAccion := ""   ; decoración (escena) y e
 global editorTemaHbmHue := 0, editorTemaHbmOsc := 0   ; HBITMAP de las tiras de gradiente (hay que liberarlos a mano)
 global editorTemaLiveArmed := false   ; throttle del preview en vivo sobre la ventana real
 
-; ── Centro de personalización (hub que abre tema/RGB/partículas/atajos/optimización) ──
+; ── Centro de personalización (hub con sidebar de 4 categorías) ──
 global centroPersGui := "", centroPersVisible := false
+global centroPersCat := 1                 ; categoría seleccionada (1=Apariencia 2=Rendimiento 3=Configurar 4=Herramientas)
+global centroPersX := "", centroPersY := ""   ; posición recordada (no salta al cambiar de pestaña)
 
 ; ===== PRESETS DE RENDIMIENTO =====
 global presetRendimiento := 4
@@ -536,7 +718,8 @@ global webhookEventos := Map(
     "destruccion", true,
     "altf4",       true,
     "milestone",   true,
-    "secuencia",   true
+    "secuencia",   true,
+    "resumen",     true
 )
 
 CargarStats() {
@@ -622,6 +805,57 @@ TickEstadisticasSesion() {
              . contadorSecuencias " secuencias · ~" oro " oro · "
              . contadorDestruccion " relanz · " contadorDestrabado " destrabes 'c'"
     AgregarHistorial(resumen, "00BCD4")
+
+    ; Resumen al webhook: cadencia más espaciada (cada 30 min de tiempo activo)
+    ; para no inundar Discord. Reutiliza el mismo tiempoSesion en tramos de 30 min.
+    static ultimoBloqueWebhook := 0
+    bloqueWeb := tiempoSesion // 1800000        ; nº de tramos completos de 30 min
+    if (bloqueWeb >= 1 && bloqueWeb != ultimoBloqueWebhook) {
+        ultimoBloqueWebhook := bloqueWeb
+        try EnviarWebhookEvento("resumen")
+    }
+}
+
+; ═════ VERIFICACIÓN DE RESOLUCIÓN / MONITOR AL ARRANCAR ═════
+; Los pasos de píxel están calibrados a 16:9 (1920x1080) y se escalan por
+; scaleX/scaleY. Si el aspecto real no es 16:9 (ultrapanorámica, 16:10...), las
+; coordenadas quedan descuadradas; y con varios monitores, Brawlhalla debe abrir
+; en el principal (A_ScreenWidth/Height son del principal). Esta función SOLO
+; avisa (historial + webhook) — no cambia nada — para explicar posibles fallos.
+VerificarResolucion() {
+    global scaleX, scaleY
+    sw := A_ScreenWidth, sh := A_ScreenHeight
+    aspecto := Round(sw / sh, 3)
+    desviacion := (scaleX = 0) ? 0 : Abs(scaleX - scaleY) / scaleX * 100
+    nMon := 1
+    try nMon := MonitorGetCount()
+
+    linea := Chr(0x1F5A5) " Pantalla: " sw "x" sh " (aspecto " aspecto ")"
+           . " · escala " Round(scaleX, 3) "x / " Round(scaleY, 3) "y"
+    if (nMon > 1)
+        linea .= " · " nMon " monitores"
+    AgregarHistorial(linea, "00BCD4")
+
+    problemas := []
+    if (desviacion > 2)
+        problemas.Push("aspecto no 16:9 (" Round(desviacion, 1) "% de desvío) — las coordenadas de píxel pueden fallar")
+    if (nMon > 1)
+        problemas.Push(nMon " monitores detectados — asegúrate de que Brawlhalla abra en el monitor principal")
+    if (sw < 1280 || sh < 720)
+        problemas.Push("resolución baja (" sw "x" sh ") — calibrada a 1920x1080")
+
+    if (problemas.Length = 0)
+        return
+
+    for p in problemas
+        AgregarHistorial(Chr(0x26A0) " Aviso resolución: " p, "FF8800")
+
+    detalle := ""
+    for p in problemas
+        detalle .= "`n• " p
+    try EnviarWebhook(Chr(0x26A0) " Aviso de resolución",
+        "Pantalla " sw "x" sh " (aspecto " aspecto ")." detalle,
+        "FF8800")
 }
 
 MostrarEstadisticas(*) {
@@ -656,84 +890,67 @@ MostrarEstadisticas(*) {
                ? Round(contadorSecuencias / (tiempoSesion/3600000), 1) : 0
     sesMin := Format("{:.1f}", horasSesion * 60)
 
+    ; ── Dashboard ancho con tarjetas (rediseño v32.8) ──
     sg := Gui("+AlwaysOnTop -Caption +ToolWindow")
     sg.BackColor := colorFondoPrincipal
     statsGuiActive := sg
-    W := 290
+    W := 460
+    sepC := MezclarHex(colorBarra, colorFondoPrincipal, 0.55)
 
     ; Barra superior (click = cerrar)
-    barraSt := sg.Add("Text", "x0 y0 w" W " h28 Background" colorBarra " Center", Chr(0x1F4CA) "  Estadísticas")
+    barraSt := sg.Add("Text", "x0 y0 w" W " h32 Background" colorBarra " Center +0x200", Chr(0x1F4CA) "  Estadísticas")
     barraSt.SetFont("s11 c" colorTextoBarra " Bold", "Segoe UI Semibold")
     barraSt.OnEvent("Click", (*) => CerrarStatsGui())
 
-    ; Tiempo total — destacado
-    lblHdr := sg.Add("Text", "x16 y38 w" (W - 32) " h14 Center BackgroundTrans c" colorTextoPrincipal, "Tiempo total")
-    lblHdr.SetFont("s8", "Segoe UI")
-    lblT := sg.Add("Text", "x16 y54 w" (W - 32) " h30 Center BackgroundTrans c" colorTextoPrincipal, horas "h " mins "m")
-    lblT.SetFont("s18 Bold", "Segoe UI Semibold")
-
-    ; Separador
-    sg.Add("Text", "x35 y92 w" (W - 70) " h1 Background" MezclarHex(colorBarra, colorFondoPrincipal, 0.55), "")
+    ; Héroe: tiempo total grande
+    lblHdr := sg.Add("Text", "x16 y42 w" (W - 32) " h14 Center BackgroundTrans c" sepC, "TIEMPO TOTAL")
+    lblHdr.SetFont("s8 Bold", "Segoe UI")
+    lblT := sg.Add("Text", "x16 y58 w" (W - 32) " h36 Center BackgroundTrans c" colorTextoPrincipal, horas "h " mins "m")
+    lblT.SetFont("s21 Bold", "Segoe UI Semibold")
 
     ; ── Estimador de oro/XP (regla de 3: 9min = 280xp/70oro → 3min por secuencia) ──
-    halfW := Round(W / 2)
     oroEst  := Round(totalS * OroPorSecuencia())
     xpEst   := Round(totalS * XpPorSecuencia())
     oroHora := Round(seqHora * OroPorSecuencia())
 
-    ; Bloque oro total estimado / oro por hora
-    lblOHdr := sg.Add("Text", "x10 y102 w" (halfW - 10) " h14 Center BackgroundTrans c" colorTextoPrincipal, "Oro total estimado")
-    lblOHdr.SetFont("s8", "Segoe UI")
-    lblO := sg.Add("Text", "x10 y118 w" (halfW - 10) " h26 Center BackgroundTrans c" colorHist2, Chr(0x1FA99) " ~" FormatearMiles(oroEst))
-    lblO.SetFont("s15 Bold", "Segoe UI Semibold")
-    lblOHHdr := sg.Add("Text", "x" halfW " y102 w" (halfW - 10) " h14 Center BackgroundTrans c" colorTextoPrincipal, "Oro / hora")
-    lblOHHdr.SetFont("s8", "Segoe UI")
-    lblOH := sg.Add("Text", "x" halfW " y118 w" (halfW - 10) " h26 Center BackgroundTrans c" colorHist2, Chr(0x1FA99) " ~" FormatearMiles(oroHora))
-    lblOH.SetFont("s15 Bold", "Segoe UI Semibold")
+    ; Rejilla 2×2 de tarjetas + tarjeta XP a lo ancho
+    cardW := 206, cardH := 58
+    tarjetas := [
+        {x: 16,  y: 104, ico: Chr(0x1FA99), val: "~" FormatearMiles(oroEst),  lbl: "Oro total estimado", col: colorHist2},
+        {x: 238, y: 104, ico: Chr(0x1FA99), val: "~" FormatearMiles(oroHora), lbl: "Oro / hora",         col: colorHist2},
+        {x: 16,  y: 170, ico: Chr(0x1F3AF), val: totalS,                      lbl: "Secuencias",         col: colorHist2},
+        {x: 238, y: 170, ico: Chr(0x1F4A5), val: totalD,                      lbl: "Destrucciones",      col: colorCooldown},
+        {x: 16,  y: 236, ico: Chr(0x2B50),  val: "~" FormatearMiles(xpEst),   lbl: "XP estimada",        col: colorHist1, w: W - 32},
+    ]
+    aCards := []
+    for tj in tarjetas {
+        cw := tj.HasProp("w") ? tj.w : cardW
+        card := sg.Add("Text", "x" tj.x " y" tj.y " w" cw " h" cardH " Background" colorBotonNormal, "")
+        v := sg.Add("Text", "x" tj.x " y" (tj.y + 7) " w" cw " h28 Center Background" colorBotonNormal " c" tj.col, tj.ico " " tj.val)
+        v.SetFont("s15 Bold", "Segoe UI Semibold")
+        e := sg.Add("Text", "x" tj.x " y" (tj.y + 37) " w" cw " h14 Center Background" colorBotonNormal " c" colorBtnTexto, tj.lbl)
+        e.SetFont("s8", "Segoe UI")
+        aCards.Push(card)
+    }
 
-    ; Separador
-    sg.Add("Text", "x35 y152 w" (W - 70) " h1 Background" MezclarHex(colorBarra, colorFondoPrincipal, 0.55), "")
-
-    ; Bloque secuencias
-    lblSHdr := sg.Add("Text", "x10 y162 w" (halfW - 10) " h14 Center BackgroundTrans c" colorTextoPrincipal, "Secuencias")
-    lblSHdr.SetFont("s8", "Segoe UI")
-    lblS := sg.Add("Text", "x10 y178 w" (halfW - 10) " h26 Center BackgroundTrans c" colorHist2, totalS)
-    lblS.SetFont("s15 Bold", "Segoe UI Semibold")
-
-    ; Bloque destrucciones
-    lblDHdr := sg.Add("Text", "x" halfW " y162 w" (halfW - 10) " h14 Center BackgroundTrans c" colorTextoPrincipal, "Destrucciones")
-    lblDHdr.SetFont("s8", "Segoe UI")
-    lblD := sg.Add("Text", "x" halfW " y178 w" (halfW - 10) " h26 Center BackgroundTrans c" colorCooldown, totalD)
-    lblD.SetFont("s15 Bold", "Segoe UI Semibold")
-
-    ; Separador
-    sg.Add("Text", "x35 y212 w" (W - 70) " h1 Background" MezclarHex(colorBarra, colorFondoPrincipal, 0.55), "")
-
-    ; XP estimada (fila completa)
-    lblXHdr := sg.Add("Text", "x16 y222 w" (W - 32) " h14 Center BackgroundTrans c" colorTextoPrincipal, "XP estimada")
-    lblXHdr.SetFont("s8", "Segoe UI")
-    lblX := sg.Add("Text", "x16 y238 w" (W - 32) " h24 Center BackgroundTrans c" colorHist1, Chr(0x2B50) " ~" FormatearMiles(xpEst))
-    lblX.SetFont("s13 Bold", "Segoe UI Semibold")
-
-    ; Separador
-    sg.Add("Text", "x35 y268 w" (W - 70) " h1 Background" MezclarHex(colorBarra, colorFondoPrincipal, 0.55), "")
-
-    ; Sesión actual (con oro estimado de la sesión)
+    ; Sesión actual (línea resumen bajo las tarjetas)
     oroSes := Round(contadorSecuencias * OroPorSecuencia())
-    lblSesHdr := sg.Add("Text", "x16 y278 w" (W - 32) " h14 Center BackgroundTrans c" colorTextoPrincipal, "Sesión actual")
-    lblSesHdr.SetFont("s8 Italic", "Segoe UI")
-    lblSes := sg.Add("Text", "x16 y294 w" (W - 32) " h20 Center BackgroundTrans c" colorTextoPrincipal,
-        Chr(0x1F4C5) " " sesMin " min  •  " contadorSecuencias " seqs  •  " seqHora "/h  •  ~" FormatearMiles(oroSes) " oro")
+    sg.Add("Text", "x16 y304 w" (W - 32) " h1 Background" sepC, "")
+    lblSes := sg.Add("Text", "x16 y312 w" (W - 32) " h18 Center BackgroundTrans c" colorTextoPrincipal,
+        Chr(0x1F4C5) " Sesión: " sesMin " min  •  " contadorSecuencias " seqs  •  " seqHora "/h  •  ~" FormatearMiles(oroSes) " oro")
     lblSes.SetFont("s9 Bold", "Segoe UI")
 
     ; Botón exportar
-    btnExp := sg.Add("Text", "x16 y326 w" (W - 32) " h32 +0x201 Background" colorBotonNormal " c" colorBtnTexto " Center", Chr(128190) "  Exportar sesión")
+    btnExp := sg.Add("Text", "x" ((W - 220) // 2) " y338 w220 h34 +0x201 Background" colorBotonNormal " c" colorBtnTexto " Center", Chr(128190) "  Exportar sesión")
     btnExp.SetFont("s10 c" colorBtnTexto " Bold", "Segoe UI Semibold")
     btnExp.OnEvent("Click", ExportarSesion)
     RegistrarHover(btnExp, () => colorBotonNormal)
 
-    sg.Show("w" W " h370 Center")
-    RedondearVentana(sg.Hwnd, 14)
+    sg.Show("w" W " h386 Center")
+    RedondearVentana(sg.Hwnd, 16)
+    for card in aCards
+        RedondearControl(card, 12)
+    RedondearControl(btnExp, 12)
     RegistrarAutoCierre(sg, CerrarStatsGui)
 }
 
@@ -1977,61 +2194,237 @@ InferirEfectoPorColor(t) {
     return "petalos"
 }
 
-InicializarParticulas(arr, w, h, n := 35) {
+; ═════ VARIANTES DE PARTÍCULAS POR TEMA (v32.9) ═════
+; Cada tema tiene una variante ÚNICA: forma de la partícula, paleta propia
+; (sacada de los acentos del tema) y personalidad de movimiento (dirección,
+; vaivén, titileo, giro, órbita, saltos...). Dos temas pueden compartir la
+; familia de movimiento (EfectoDeTema) — para el trail y la coreografía de la
+; ráfaga — pero sus partículas de fondo se ven distintas.
+; Campos: fam (familia), forma, col (paleta), vx/vy (rangos de velocidad en
+; centésimas de px/tick), tam (décimas de px), al (alpha), sway (vaivén px),
+; swf (frecuencia), tw (titileo 0-1), twv (velocidad titileo), spin (rad/frame),
+; orbit (px órbita), jitter (px saltos glitch), steps (px cuantización pixel-art),
+; mix {prob, forma, col} (segunda especie de partícula intercalada).
+HashNombre(s) {
+    h := 0
+    for ch in StrSplit(s)
+        h := Mod(h * 31 + Ord(ch), 1000000)
+    return h
+}
+
+; Clave de reinicialización: si cambia, las partículas se regeneran.
+ClaveVarianteTema(t) {
+    return t.nombre "|" (t.HasProp("efAccion") ? t.efAccion : "") "|" (t.HasProp("deco") ? t.deco : "")
+}
+
+; Variante genérica de una familia, tintada con los acentos del propio tema.
+; Se usa para el efecto elegido a mano en el editor custom y como fallback.
+VarianteDeFamilia(fam, t) {
+    switch fam {
+        case "nieve":     v := { fam:"nieve", forma:"copo6", vx:[-8,8], vy:[10,30], tam:[15,32], al:[120,210], sway:1.0, swf:0.8, tw:0.15, spin:0.02 }
+        case "brasas":    v := { fam:"brasas", forma:"circulo", vx:[-5,5], vy:[-36,-13], tam:[10,22], al:[120,220], sway:0.9, swf:1.0, tw:0.45, twv:1.6 }
+        case "estrellas": v := { fam:"estrellas", forma:"estrella4", vx:[-2,2], vy:[-2,2], tam:[8,20], al:[70,170], tw:0.6, twv:1.0 }
+        case "chispas":   v := { fam:"chispas", forma:"chispa", vx:[-2,2], vy:[-2,2], tam:[8,20], al:[70,170], tw:0.6, twv:1.5 }
+        case "lluvia":    v := { fam:"lluvia", forma:"gota", vx:[-1,1], vy:[40,80], tam:[20,38], al:[90,160] }
+        case "matrix":    v := { fam:"matrix", forma:"cuadro", vx:[0,0], vy:[30,60], tam:[14,28], al:[110,200] }
+        case "burbujas":  v := { fam:"burbujas", forma:"anillo", vx:[-3,3], vy:[-23,-8], tam:[18,40], al:[60,130], sway:1.2, swf:1.0 }
+        case "petalos":   v := { fam:"petalos", forma:"petalo", vx:[-12,12], vy:[8,23], tam:[22,42], al:[110,190], sway:1.8, swf:0.8, spin:0.04 }
+        case "hojas":     v := { fam:"hojas", forma:"ovaloV", vx:[-12,12], vy:[8,23], tam:[22,42], al:[110,190], sway:1.6, swf:1.1, spin:0.04 }
+        default:          v := { fam:"default", forma:"circulo", vx:[-20,20], vy:[-15,15], tam:[20,45], al:[45,110], sway:0.6, swf:0.5 }
+    }
+    v.col := [t.histColor2, t.histColor3]
+    return v
+}
+
+; Tabla de variantes: [substring del nombre, spec]. El orden es la prioridad
+; (Cyberpunk antes que Cyber, etc.). Cada entrada es visualmente distinta.
+ConstruirTablaVariantes() {
+    tb := []
+    ; ── claros ──
+    tb.Push(["Monocromo", { fam:"estrellas", forma:"cuadro", col:["4A4A4A","9A9A9A","1A1A1A"], vx:[8,20], vy:[8,20], tam:[10,18], al:[70,140], tw:0.25, spin:0.02 }])          ; píxeles de ajedrez en deriva diagonal
+    tb.Push(["Atardecer", { fam:"brasas", forma:"halo", col:["E0735C","D4326B","F08A6F"], vx:[-8,8], vy:[-22,-6], tam:[16,30], al:[70,140], sway:1.2, swf:0.7, tw:0.35 }])      ; motas de sol subiendo
+    tb.Push(["Melocot",   { fam:"petalos", forma:"ovalo", col:["FFAB91","D86E3C"], vx:[-14,14], vy:[10,26], tam:[18,34], al:[90,170], sway:1.6, swf:0.9, spin:0.03 }])
+    tb.Push(["Desierto",  { fam:"hojas", forma:"rayaH", col:["C88A4A","A0522D"], vx:[45,90], vy:[-4,8], tam:[14,26], al:[60,120], sway:0.4, swf:2.2 }])                          ; arena al viento
+    tb.Push(["Tropical",  { fam:"hojas", forma:"triangulo", col:["FF6F00","00ACC1"], vx:[-30,30], vy:[12,30], tam:[16,28], al:[100,180], sway:2.0, swf:1.1, spin:0.06 }])        ; confeti tropical
+    tb.Push(["Naranja",   { fam:"chispas", forma:"estrella4", col:["F28C28","CC6600"], vx:[-4,4], vy:[-10,-3], tam:[13,24], al:[90,180], tw:0.6, twv:1.3 }])                     ; chispas cítricas
+    tb.Push(["Mostaza",   { fam:"chispas", forma:"circulo", col:["D4A017","795548"], vx:[-8,8], vy:[6,16], tam:[8,16], al:[90,170], sway:0.8, tw:0.3 }])                          ; polen
+    tb.Push(["Miel",      { fam:"chispas", forma:"hex", col:["F0C040","C08520"], vx:[-6,6], vy:[8,18], tam:[16,28], al:[90,170], spin:0.02, sway:0.7 }])                          ; celditas de panal
+    tb.Push(["Vainilla",  { fam:"default", forma:"halo", col:["E8D5A0","D8B470"], vx:[-5,5], vy:[-6,6], tam:[24,44], al:[40,90], sway:0.9, swf:0.4, tw:0.2 }])                    ; motas cremosas
+    tb.Push(["Bamb",      { fam:"hojas", forma:"ovaloV", col:["98C46A","6D9840"], vx:[-20,20], vy:[20,42], tam:[14,26], al:[110,190], sway:1.8, swf:1.3, spin:0.05 }])            ; hojitas de bambú
+    tb.Push(["Verde",     { fam:"hojas", forma:"petalo", col:["66BB6A","388E3C","81C784"], vx:[-26,26], vy:[14,32], tam:[20,38], al:[110,190], sway:1.4, spin:0.04 }])
+    tb.Push(["Menta",     { fam:"burbujas", forma:"anillo", col:["81B29A","A8E6CF"], vx:[-4,4], vy:[-16,-6], tam:[12,22], al:[70,140], sway:0.8, swf:0.8 }])
+    tb.Push(["Agua",      { fam:"lluvia", forma:"gota", col:["2E9E9A","00635F"], vx:[-2,2], vy:[40,80], tam:[18,32], al:[90,160] }])
+    tb.Push(["Polar",     { fam:"nieve", forma:"copo6", col:["8ECAE6","219EBC"], vx:[-8,8], vy:[10,28], tam:[16,30], al:[120,210], sway:1.0, spin:0.02 }])
+    tb.Push(["Nube",      { fam:"default", forma:"ovalo", col:["B0BEC5","90A4AE"], vx:[8,22], vy:[-3,3], tam:[26,48], al:[50,110], sway:0.5, swf:0.3 }])                          ; nubecitas horizontales
+    tb.Push(["Hielo",     { fam:"nieve", forma:"estrella4", col:["85C1E9","2E86C1"], vx:[-6,6], vy:[8,20], tam:[14,26], al:[110,200], spin:0.05, tw:0.3 }])                       ; cristales
+    tb.Push(["Lavanda",   { fam:"petalos", forma:"petalo", col:["C8B6E2","9370DB"], vx:[-10,10], vy:[8,18], tam:[13,24], al:[90,170], sway:1.3, swf:0.7, spin:0.02 }])
+    tb.Push(["Sakura",    { fam:"petalos", forma:"petalo", col:["F48FB1","F06292","FCDDE8"], vx:[-18,18], vy:[14,30], tam:[20,38], al:[110,190], sway:2.2, swf:0.9, spin:0.05 }])
+    tb.Push(["Rosa",      { fam:"petalos", forma:"corazon", col:["E8528A","CC3366"], vx:[-6,6], vy:[-14,-5], tam:[14,26], al:[100,180], sway:1.0, swf:0.7 }])                     ; corazones que suben
+    tb.Push(["Chicle",    { fam:"burbujas", forma:"burbuja", col:["E91E63","00BFA5"], vx:[-8,8], vy:[-20,-8], tam:[18,34], al:[80,150], sway:1.6, swf:1.2 }])
+    tb.Push(["Lila",      { fam:"estrellas", forma:"rombo", col:["7B61C9","4E279E"], vx:[-6,6], vy:[-8,8], tam:[13,24], al:[80,160], spin:0.04, tw:0.35 }])
+    ; ── oscuros ──
+    tb.Push(["Noche",     { fam:"estrellas", forma:"circulo", col:["FFFFFF","AAAAAA"], vx:[-2,2], vy:[-2,2], tam:[8,18], al:[70,170], tw:0.7, twv:1.0 }])
+    tb.Push(["Ceniza",    { fam:"nieve", forma:"ovalo", col:["9E9E9E","BDBDBD","757575"], vx:[-10,10], vy:[6,16], tam:[10,20], al:[70,140], sway:1.4, swf:0.6 }])                 ; ceniza flotando
+    tb.Push(["Sangre",    { fam:"lluvia", forma:"gota", col:["CC0000","FF3322"], vx:[-1,1], vy:[26,50], tam:[20,36], al:[110,190] }])                                             ; goteo lento y grueso
+    tb.Push(["Rojo",      { fam:"brasas", forma:"circulo", col:["FF2222","DD0000"], vx:[-5,5], vy:[-35,-14], tam:[9,18], al:[120,220], tw:0.4, twv:1.6 }])                        ; ascuas rápidas
+    tb.Push(["Magma",     { fam:"brasas", forma:"halo", col:["FF6B35","FF4500","FF9A5C"], vx:[-8,8], vy:[-24,-8], tam:[14,28], al:[120,220], sway:1.3, swf:0.8, tw:0.5, twv:1.8 }])
+    tb.Push(["Cobre",     { fam:"chispas", forma:"chispa", col:["D97849","FFD700"], vx:[-22,22], vy:[-26,-4], tam:[12,22], al:[100,190], tw:0.5, twv:2.0 }])                      ; chispas de fragua
+    tb.Push(["Cafe",      { fam:"default", forma:"ovaloV", col:["F5D5A0","C8963C"], vx:[-4,4], vy:[-14,-5], tam:[22,42], al:[40,90], sway:1.1, swf:0.5 }])                        ; vapor de café
+    tb.Push(["Bosque",    { fam:"estrellas", forma:"halo", col:["C8A96E","8BC34A"], vx:[-6,6], vy:[-5,5], tam:[10,20], al:[70,160], tw:0.65, twv:0.5, sway:1.0, swf:0.4 }])       ; luciérnagas
+    tb.Push(["Dorado",    { fam:"chispas", forma:"estrella4", col:["FFD700","FFA500"], vx:[-3,3], vy:[4,12], tam:[10,20], al:[100,190], tw:0.55, twv:0.8, spin:0.015 }])          ; motas de oro
+    tb.Push(["Veneno",    { fam:"burbujas", forma:"anillo", col:["C8FF00","7FFF00"], vx:[-10,10], vy:[-18,-6], tam:[14,28], al:[80,160], sway:2.4, swf:1.5 }])                    ; burbujeo tóxico
+    tb.Push(["Neon",      { fam:"matrix", forma:"rayaH", col:["39FF14","CCFF00","00FF66"], vx:[50,100], vy:[-2,2], tam:[16,30], al:[110,200], tw:0.3, twv:2.2 }])                 ; trazos que cruzan
+    tb.Push(["Jungla",    { fam:"hojas", forma:"petalo", col:["4CAF50","2E6B3F"], vx:[-16,16], vy:[12,26], tam:[18,34], al:[100,180], sway:1.5, spin:0.03, mix:{prob:28, forma:"halo", col:"F4C430"} }]) ; hojas + luciérnagas ámbar
+    tb.Push(["Cyberpunk", { fam:"matrix", forma:"cuadro", col:["FF00AA","00FFFF","FFFF00"], vx:[-3,3], vy:[24,50], tam:[10,20], al:[110,200], jitter:1.5 }])
+    tb.Push(["Cyber",     { fam:"matrix", forma:"cuadro", col:["00FF88","00CC66"], vx:[0,0], vy:[28,55], tam:[12,22], al:[110,200] }])
+    tb.Push(["Esmeralda", { fam:"estrellas", forma:"rombo", col:["A8FFD0","FFD700","00CC66"], vx:[-5,5], vy:[6,14], tam:[14,26], al:[90,180], spin:0.05, tw:0.4 }])               ; gemas
+    tb.Push(["Tundra",    { fam:"nieve", forma:"copo6", col:["AED9E0","79EAD0"], vx:[25,55], vy:[16,34], tam:[11,21], al:[110,200], sway:0.8, swf:1.6, spin:0.04 }])              ; ventisca diagonal
+    tb.Push(["Submarino", { fam:"burbujas", forma:"burbuja", col:["7DE2D1","00BCD4"], vx:[-5,5], vy:[-14,-4], tam:[20,40], al:[70,140], sway:1.2, swf:0.7 }])                     ; burbujas grandes lentas
+    tb.Push(["Profundo",  { fam:"estrellas", forma:"halo", col:["4FC3F7","00BCD4"], vx:[-3,3], vy:[-4,4], tam:[9,17], al:[60,140], tw:0.6, twv:0.4 }])                            ; plancton bioluminiscente
+    tb.Push(["Océano",    { fam:"burbujas", forma:"anillo", col:["5EE5D6","90E0EF"], vx:[-12,12], vy:[-24,-10], tam:[9,17], al:[90,170], sway:1.8, swf:1.4 }])                    ; burbujitas rápidas
+    tb.Push(["Aurora",    { fam:"estrellas", forma:"rayaV", col:["80FFDB","AA80FF","40C4FF"], vx:[-4,4], vy:[-6,6], tam:[22,40], al:[60,130], sway:3.0, swf:0.5 }])               ; cintas tricolor
+    tb.Push(["Grafito",   { fam:"default", forma:"circulo", col:["9DD2FF","5591CC"], vx:[6,16], vy:[6,16], tam:[9,17], al:[60,120], sway:0.6 }])                                  ; polvo diagonal
+    tb.Push(["Azul",      { fam:"estrellas", forma:"estrella4", col:["00BFFF","0050D5","FFFFFF"], vx:[-4,4], vy:[5,13], tam:[13,24], al:[100,190], tw:0.5, twv:1.1 }])
+    tb.Push(["Glitch",    { fam:"matrix", forma:"cuadro", col:["00FFFF","FF00FF","FFFF00"], vx:[-2,2], vy:[14,30], tam:[10,20], al:[110,210], jitter:3.5, tw:0.45, twv:3.0 }])    ; píxeles corruptos
+    tb.Push(["Electrico", { fam:"chispas", forma:"cruz", col:["E040FB","AA00FF","CE93D8"], vx:[-14,14], vy:[-14,14], tam:[12,22], al:[110,200], tw:0.6, twv:2.6, spin:0.09 }])    ; descargas
+    tb.Push(["Abismo",    { fam:"estrellas", forma:"halo", col:["BB88FF","9966FF"], vx:[-3,3], vy:[-8,-2], tam:[20,38], al:[50,110], tw:0.5, twv:0.3, sway:0.8, swf:0.3 }])       ; orbes lentos
+    tb.Push(["Vino",      { fam:"burbujas", forma:"circulo", col:["AD1457","E8B7CC"], vx:[-2,2], vy:[-22,-10], tam:[8,15], al:[90,170], sway:0.5, swf:2.0 }])                     ; burbujas de copa
+    ; ── secretos ──
+    tb.Push(["V O I D",    { fam:"estrellas", forma:"cruz", col:["FF0000","CC0000","FFFFFF"], vx:[-6,6], vy:[-6,6], tam:[13,24], al:[90,180], spin:0.03, tw:0.4, twv:0.6 }])
+    tb.Push(["Spotify",    { fam:"estrellas", forma:"nota", col:["1DB954","1ED760"], vx:[-6,6], vy:[-14,-5], tam:[15,26], al:[100,180], sway:1.5, swf:0.8 }])                     ; notas flotando
+    tb.Push(["Sky",        { fam:"nieve", forma:"ovalo", col:["FFFFFF","F8BBD9","81D4FA"], vx:[6,18], vy:[-6,4], tam:[18,34], al:[80,150], sway:1.2, swf:0.5, tw:0.25 }])         ; plumas celestes
+    tb.Push(["N I K A",    { fam:"chispas", forma:"estrella4", col:["FFFFFF","FF2222","CC0000"], vx:[-5,5], vy:[-9,-2], tam:[16,30], al:[110,200], tw:0.65, twv:1.4, spin:0.02 }]) ; destellos del sol
+    tb.Push(["Pok",        { fam:"chispas", forma:"burbuja", col:["FF1A1A","FFC107","FFFFFF"], vx:[-10,10], vy:[8,20], tam:[14,26], al:[110,190], sway:1.0, spin:0.03 }])          ; pokébolas mini
+    tb.Push(["One Piece",  { fam:"burbujas", forma:"triangulo", col:["FFE066","FF8C42","06D6A0"], vx:[-16,16], vy:[-16,-6], tam:[14,26], al:[100,180], sway:1.6, spin:0.05 }])
+    tb.Push(["F E N I X",  { fam:"brasas", forma:"petalo", col:["FF6B00","FFD700","FFB347"], vx:[-10,10], vy:[-26,-10], tam:[16,30], al:[110,200], sway:1.8, swf:1.0, spin:0.06 }]) ; plumas de fuego ascendiendo
+    tb.Push(["Minecraft",  { fam:"hojas", forma:"cuadro", col:["7CFC00","5D8A3C","55FF55"], vx:[-6,6], vy:[12,26], tam:[12,22], al:[110,200], steps:5 }])                          ; píxeles a saltos
+    tb.Push(["Matrix",     { fam:"matrix", forma:"gota", col:["00FF00","00FF88"], vx:[0,0], vy:[34,66], tam:[16,30], al:[110,210], tw:0.2, twv:3.0 }])                             ; código con estela
+    tb.Push(["Valorant",   { fam:"chispas", forma:"triangulo", col:["FF4655","ECE8E1"], vx:[14,34], vy:[10,24], tam:[11,21], al:[100,190], spin:0.10 }])                           ; fragmentos girando
+    tb.Push(["Brawl",      { fam:"chispas", forma:"estrella4", col:["FFFFFF","00B0FF"], vx:[-6,6], vy:[-6,6], tam:[17,32], al:[110,200], tw:0.5, twv:0.9, spin:0.03 }])
+    tb.Push(["Discord",    { fam:"burbujas", forma:"ovalo", col:["5865F2","57F287","FFFFFF"], vx:[-6,6], vy:[-16,-6], tam:[16,30], al:[90,170], sway:1.1, swf:0.9, steps:4 }])     ; burbujas de chat a saltitos
+    tb.Push(["E C L I P S E", { fam:"estrellas", forma:"anillo", col:["FFB347","FFD700","FF6600"], vx:[-2,2], vy:[-3,3], tam:[16,32], al:[70,150], tw:0.5, twv:0.25 }])            ; anillos de eclipse
+    tb.Push(["C O S M O S",   { fam:"estrellas", forma:"estrella4", col:["FF69B4","BF00FF","00E5FF","FFD700"], vx:[-3,3], vy:[-3,3], tam:[10,22], al:[90,180], orbit:2.2, swf:0.6, tw:0.5, twv:0.8 }]) ; polvo estelar en órbita
+    tb.Push(["P R E M I U M", { fam:"chispas", forma:"estrella4", col:["FF00FF","00FFFF","FFFF00"], vx:[-4,4], vy:[-4,4], tam:[10,22], al:[110,200], tw:0.5, twv:1.2, spin:0.04 }])
+    tb.Push(["Retrowave",  { fam:"estrellas", forma:"rayaH", col:["FF6EC7","00E5FF","FF8A50"], vx:[-2,2], vy:[-12,-5], tam:[20,38], al:[100,180], tw:0.3, twv:1.5 }])              ; líneas synthwave
+    tb.Push(["Naruto",     { fam:"hojas", forma:"ovaloV", col:["FF9020","FF6600","4488FF"], vx:[20,44], vy:[8,20], tam:[13,25], al:[110,190], sway:2.0, swf:1.4, spin:0.08 }])     ; remolino de hojas
+    tb.Push(["King",       { fam:"brasas", forma:"rayaD", col:["FF3030","D9D5D2","B30000"], vx:[16,36], vy:[16,36], tam:[16,30], al:[110,200], tw:0.55, twv:2.4 }])                ; cortes del Rey
+    tb.Push(["Honored",    { fam:"estrellas", forma:"halo", col:["8A2BE2","4FC3F7","E8DEC4"], vx:[-3,3], vy:[-3,3], tam:[12,24], al:[80,170], orbit:2.8, swf:0.45, tw:0.4, twv:0.5 }]) ; infinito orbitando
+    return tb
+}
+
+; Resuelve la variante de partículas de un tema: efAccion manual → tabla por
+; nombre → fallback tintado por color + jitter por hash (temas custom siempre
+; salen distintos entre sí aunque no estén en la tabla).
+VarianteDeTema(t) {
+    if (t.HasProp("efAccion") && t.efAccion != "") {
+        v := VarianteDeFamilia(t.efAccion, t)
+        v.dec := DecoDeTema(t)
+        return v
+    }
+    static tabla := ""
+    if !IsObject(tabla)
+        tabla := ConstruirTablaVariantes()
+    n := t.nombre
+    for par in tabla {
+        if InStr(n, par[1]) {
+            v := par[2]
+            if !v.HasProp("dec")
+                v.dec := DecoDeTema(t)
+            return v
+        }
+    }
+    v := VarianteDeFamilia(EfectoDeTema(t), t)
+    hm := HashNombre(n)
+    formas := ["circulo","halo","anillo","rombo","estrella4","cuadro","ovalo","cruz"]
+    v.forma := formas[Mod(hm, formas.Length) + 1]
+    v.sway := Mod(hm // 8, 25) / 10.0
+    v.tw := Mod(hm // 3, 60) / 100.0
+    v.dec := DecoDeTema(t)
+    return v
+}
+
+InicializarParticulas(arr, w, h, n := 35, entrada := false, tema := "") {
     global particulasCantidad, particulasVelocidad, particulasTamano, particulasOpacidad
-    global temas, temaActual
+    global temas, temaActual, partVar
     while (arr.Length > 0)
         arr.Pop()
-    ef := EfectoDeTema(temas[temaActual])
+    if !IsObject(tema)
+        tema := temas[temaActual]
+    v := VarianteDeTema(tema)
+    partVar := v
     realN := Max(0, Round(n * particulasCantidad / 100))
-    factorVel := particulasVelocidad / 100
-    factorTam := particulasTamano / 100
-    factorAlpha := particulasOpacidad / 100
+    factorVel := particulasVelocidad / 100.0
+    factorTam := particulasTamano / 100.0
+    factorAlpha := particulasOpacidad / 100.0
+    vxR := v.HasProp("vx") ? v.vx : [-20, 20]
+    vyR := v.HasProp("vy") ? v.vy : [10, 40]
+    tamR := v.HasProp("tam") ? v.tam : [15, 32]
+    alR := v.HasProp("al") ? v.al : [80, 160]
+    spin := v.HasProp("spin") ? v.spin : 0
+    mixP := v.HasProp("mix") ? v.mix.prob : 0
+    nCol := Max(1, v.HasProp("col") ? v.col.Length : 1)
     loop realN {
-        ; Defaults (efecto "default" — flotación suave en cualquier dirección)
-        vx := (Random(-100, 100) / 500.0) * factorVel
-        vy := (Random(-100, 100) / 650.0) * factorVel
-        rr := (Random(20, 45) / 10.0) * factorTam
-        al := Min(255, Round(Random(45, 110) * factorAlpha))
-        switch ef {
-            case "nieve":
-                vx := (Random(-40, 40) / 500.0) * factorVel
-                vy := (Random(30, 90) / 300.0) * factorVel       ; cae despacio
-                rr := (Random(15, 35) / 10.0) * factorTam
-                al := Min(255, Round(Random(120, 210) * factorAlpha))
-            case "brasas":
-                vx := (Random(-30, 30) / 600.0) * factorVel
-                vy := -(Random(40, 110) / 300.0) * factorVel      ; sube
-                rr := (Random(10, 24) / 10.0) * factorTam
-                al := Min(255, Round(Random(120, 220) * factorAlpha))
-            case "estrellas", "chispas":
-                vx := (Random(-15, 15) / 900.0) * factorVel       ; casi quietas (titilan)
-                vy := (Random(-15, 15) / 900.0) * factorVel
-                rr := (Random(8, 20) / 10.0) * factorTam
-                al := Min(255, Round(Random(70, 170) * factorAlpha))
-            case "lluvia":
-                vx := 0.0
-                vy := (Random(120, 240) / 300.0) * factorVel      ; cae rápido
-                rr := (Random(20, 38) / 10.0) * factorTam         ; r = largo del trazo
-                al := Min(255, Round(Random(90, 160) * factorAlpha))
-            case "matrix":
-                vx := 0.0
-                vy := (Random(90, 180) / 300.0) * factorVel
-                rr := (Random(14, 28) / 10.0) * factorTam
-                al := Min(255, Round(Random(110, 200) * factorAlpha))
-            case "burbujas":
-                vx := (Random(-20, 20) / 700.0) * factorVel
-                vy := -(Random(25, 70) / 300.0) * factorVel       ; sube
-                rr := (Random(18, 40) / 10.0) * factorTam
-                al := Min(255, Round(Random(60, 130) * factorAlpha))
-            case "petalos", "hojas":
-                vx := (Random(-60, 60) / 500.0) * factorVel       ; deriva lateral
-                vy := (Random(25, 70) / 300.0) * factorVel        ; cae suave
-                rr := (Random(22, 42) / 10.0) * factorTam
-                al := Min(255, Round(Random(110, 190) * factorAlpha))
-        }
+        alF := Min(255, Round(Random(alR[1], alR[2]) * factorAlpha))
         arr.Push({ x: Random(0.0, w * 1.0), y: Random(0.0, h * 1.0),
-                   vx: vx, vy: vy, r: rr, alpha: al, ph: Random(0.0, 6.2831) })
+                   vx: Random(vxR[1], vxR[2]) / 100.0 * factorVel,
+                   vy: Random(vyR[1], vyR[2]) / 100.0 * factorVel,
+                   r: Random(tamR[1], tamR[2]) / 10.0 * factorTam,
+                   alpha: entrada ? 0 : alF, alF: alF,
+                   esc: entrada ? 0.25 : 1.0,
+                   ph: Random(0.0, 6.2831), ci: Random(1, nCol),
+                   rot: Random(0.0, 6.2831),
+                   vrot: spin ? Random(-100, 100) / 100.0 * spin : 0.0,
+                   mx: (mixP > 0 && Random(1, 100) <= mixP) })
+    }
+}
+
+; ── Transición de partículas entre temas ──
+; Salida: las partículas del tema viejo reciben un golpe de viento (su propia
+; velocidad amplificada + ráfaga lateral y hacia arriba) y se desvanecen.
+; Entrada: se generan las del tema nuevo con alpha 0 y escala reducida, y en
+; ~0.9s crecen y aparecen. El pintado usa partVarVieja durante la salida.
+ParticulasTransSalida() {
+    global partVar, partVarVieja, partTransFase, partTransT0
+    global particulasMain, particulasHist, particulasMini, particulasActivas, presetParticulas
+    if (!particulasActivas || presetParticulas <= 0 || !IsObject(partVar))
+        return
+    partVarVieja := partVar
+    partTransFase := "salida"
+    partTransT0 := A_TickCount
+    dir := Random(0, 1) ? 1 : -1   ; la ráfaga sopla toda hacia el mismo lado
+    for arr in [particulasMain, particulasHist, particulasMini] {
+        if !IsObject(arr)
+            continue
+        for p in arr {
+            p.vx := p.vx * 4 + Random(60, 150) / 100.0 * dir
+            p.vy := p.vy * 4 - Random(20, 90) / 100.0
+        }
+    }
+}
+
+ParticulasTransEntrada() {
+    global partTransFase, partTransT0, partVarKey
+    global particulasMain, particulasHist, particulasMini
+    global miGui, historialGui, modoMini, temas, temaActual
+    global temaEnTransicion, temaTransTema
+    static BAR_H := 25
+    partTransFase := "entrada"
+    partTransT0 := A_TickCount
+    ; El tema definitivo: durante la transición manda temaTransTema (el caller
+    ; puede no haber actualizado temaActual todavía).
+    tgt := (temaEnTransicion && IsObject(temaTransTema)) ? temaTransTema : temas[temaActual]
+    partVarKey := ClaveVarianteTema(tgt)
+    try {
+        if (IsObject(miGui)) {
+            miGui.GetPos(,, &rw, &rh)
+            InicializarParticulas(particulasMain, rw, rh - BAR_H, 32, true, tgt)
+        }
+        if (IsObject(historialGui)) {
+            historialGui.GetPos(,, &rhw, &rhh)
+            InicializarParticulas(particulasHist, rhw, rhh - BAR_H, 40, true, tgt)
+        }
+        if (modoMini && IsObject(particulasMini))
+            InicializarParticulas(particulasMini, 120, 100, 15, true, tgt)
     }
 }
 
@@ -2113,18 +2506,52 @@ ActualizarParticulas() {
     global overlayPartMain, overlayPartHist
     global temaEnTransicion, particulasActivas
     global temas, temaActual, modoMini, particulasMini
-    if (!particulasInited || temaEnTransicion || !particulasActivas)
+    global partTransFase, partTransT0, partVar, partVarVieja, partVarKey
+    if (!particulasInited || !particulasActivas)
+        return
+    ; Durante la transición de tema SÍ seguimos pintando si hay coreografía de
+    ; salida/entrada en marcha; si no la hay (p. ej. mini mode), congelar como antes.
+    if (temaEnTransicion && partTransFase = "")
         return
 
     static BAR_H := 25  ; alto de la barra de título excluida del overlay
     static MINI_OVL_H := 85  ; alto del overlay mini (deja hueco a los 3 botones de abajo)
 
-    ; ── Si cambió el EFECTO del tema, re-inicializar las partículas para que
-    ;    adopten la nueva dirección/forma (nieve cae, brasas suben, etc.) ──
-    static lastEf := ""
-    efAhora := EfectoDeTema(temas[temaActual])
-    if (efAhora != lastEf) {
-        lastEf := efAhora
+    ; ── Fases de la transición de partículas ──
+    if (partTransFase = "salida") {
+        salEl := A_TickCount - partTransT0
+        if ((!temaEnTransicion && salEl > 80) || salEl > 640) {
+            ParticulasTransEntrada()   ; el barrido terminó → nacen las del tema nuevo
+        } else {
+            for arr in [particulasMain, particulasHist, particulasMini] {
+                if !IsObject(arr)
+                    continue
+                for p in arr {
+                    p.alpha *= 0.86   ; se desvanecen mientras el viento se las lleva
+                    p.r *= 0.99
+                }
+            }
+        }
+    } else if (partTransFase = "entrada") {
+        fin := (A_TickCount - partTransT0 > 900)
+        for arr in [particulasMain, particulasHist, particulasMini] {
+            if !IsObject(arr)
+                continue
+            for p in arr {
+                p.alpha := fin ? p.alF : Min(p.alF, p.alpha + Max(6, p.alF * 0.10))
+                p.esc := fin ? 1.0 : Min(1.0, p.esc + 0.055)
+            }
+        }
+        if (fin)
+            partTransFase := ""
+    }
+
+    ; ── Si cambió el TEMA (o su efecto/deco custom), re-inicializar las
+    ;    partículas para que adopten su nueva variante — salvo en plena
+    ;    transición, que ya gestiona su propio reinit en la entrada ──
+    kAhora := ClaveVarianteTema(temas[temaActual])
+    if (kAhora != partVarKey && partTransFase = "" && !temaEnTransicion) {
+        partVarKey := kAhora
         try {
             if (IsObject(miGui)) {
                 miGui.GetPos(,, &rw, &rh)
@@ -2138,6 +2565,9 @@ ActualizarParticulas() {
                 InicializarParticulas(particulasMini, 120, 100, 15)
         }
     }
+
+    ; Variante con la que se pinta este frame: la vieja durante la salida.
+    vPaint := (partTransFase = "salida" && IsObject(partVarVieja)) ? partVarVieja : partVar
     ; Sincronizar overlay con la ventana padre (sigue el drag) y repintar.
     ; Saltar actualización si el padre está minimizado — GetPos devolvería coords
     ; basura del estado minimizado y las partículas se apiñarían ahí.
@@ -2162,7 +2592,7 @@ ActualizarParticulas() {
             else if (p.y > targetH + 8)
                 p.y := -8
         }
-        PintarOverlayParticulas(overlayPartMain.Hwnd, mw, targetH, particulasMain, "", true)
+        PintarOverlayParticulas(overlayPartMain.Hwnd, mw, targetH, particulasMain, "", true, vPaint)
     }
     try if (!modoMini && IsObject(historialGui) && IsObject(overlayPartHist) && historialVisible
         && !DllCall("IsIconic", "Ptr", historialGui.Hwnd, "Int")) {
@@ -2186,7 +2616,7 @@ ActualizarParticulas() {
         }
         ; conEscena=true: el historial también lleva la decoración del tema.
         ; (Sin excludeRect: el scrollbar custom se quitó y ya no hay nada que esquivar.)
-        PintarOverlayParticulas(overlayPartHist.Hwnd, hw, targetH, particulasHist, "", true)
+        PintarOverlayParticulas(overlayPartHist.Hwnd, hw, targetH, particulasHist, "", true, vPaint)
     }
 
     ; ── Partículas + decoraciones del mini mode ──
@@ -2210,7 +2640,7 @@ ActualizarParticulas() {
             else if (p.y > tgtH + 8)
                 p.y := -8
         }
-        PintarOverlayParticulas(overlayPartMini.Hwnd, mnw, tgtH, particulasMini, "", true)
+        PintarOverlayParticulas(overlayPartMini.Hwnd, mnw, tgtH, particulasMini, "", true, vPaint)
     }
     ; Reposicionar overlay deco mini
     try if (modoMini && IsObject(miniGui) && IsObject(overlayDecoMini)) {
@@ -2283,9 +2713,9 @@ LanzarWatchdogSiNoEsta() {
 ; Pinta partículas con alpha por píxel (PARGB) sobre la overlay layered y las muestra
 ; vía UpdateLayeredWindow. Así cada partícula se mezcla contra los píxeles reales que
 ; hay detrás (sin halo y respetando el fondo), no contra una color-key negra.
-PintarOverlayParticulas(overlayHwnd, w, h, particulas, excludeRect := "", conEscena := false) {
+PintarOverlayParticulas(overlayHwnd, w, h, particulas, excludeRect := "", conEscena := false, variante := "") {
     global colorLogoMacro, colorFondoPrincipal, temaPremiumActivo, rgbBarraHue
-    global temas, temaActual, optEscena
+    global temas, temaActual, optEscena, partVar
 
     if (w <= 0 || h <= 0)
         return
@@ -2333,88 +2763,113 @@ PintarOverlayParticulas(overlayHwnd, w, h, particulas, excludeRect := "", conEsc
         bC := (bC + 255) // 2
     }
 
-    ; Efecto del tema actual (premium ignora el efecto: mantiene su arcoíris)
-    ef := temaPremiumActivo ? "premium" : EfectoDeTema(temas[temaActual])
+    ; Variante del tema con la que pintar (premium ignora la variante: arcoíris).
+    ; Si no llega por parámetro se usa la activa; si aún no existe, se resuelve.
+    v := IsObject(variante) ? variante : partVar
+    if !IsObject(v) {
+        v := VarianteDeTema(temas[temaActual])
+        partVar := v
+    }
     tNow := A_TickCount
 
     ; Escena temática en el borde inferior (solo ventana principal). Se pinta
     ; ANTES que las partículas para que estas floten por delante. La decoración
     ; es ESPECÍFICA por tema (bambú→cañas, miel→panal...), no por categoría.
     if (conEscena && optEscena) {
-        deco := temaPremiumActivo ? "premium" : DecoDeTema(temas[temaActual])
+        deco := temaPremiumActivo ? "premium" : (v.HasProp("dec") ? v.dec : DecoDeTema(temas[temaActual]))
         if (deco != "") {
             TestTrace("ES> " deco " w=" w " h=" h)
-            PintarEscenaTema(g, w, h, deco, rC, gC, bC, fondoClaro)
+            ; Escala XL (v32.8): se renderiza la escena como si la ventana fuera
+            ; más pequeña y se amplía el lienzo con la transformación de mundo de
+            ; GDI+ — árboles, iglús, montañas, olas... crecen TODOS proporcionalmente,
+            ; el anclaje a los bordes se conserva y nada se sale del overlay.
+            ; Ajustable en el ini: [UI] EscenaEscala (100 = tamaño clásico).
+            if (decoEscala > 1.01) {
+                DllCall("gdiplus\GdipScaleWorldTransform", "Ptr", g, "Float", decoEscala, "Float", decoEscala, "Int", 0)
+                PintarEscenaTema(g, w / decoEscala, h / decoEscala, deco, rC, gC, bC, fondoClaro)
+                DllCall("gdiplus\GdipResetWorldTransform", "Ptr", g)
+            } else {
+                PintarEscenaTema(g, w, h, deco, rC, gC, bC, fondoClaro)
+            }
             TestTrace("ES ok")
         }
     }
 
+    ; ── Paleta y modificadores de la variante, precalculados una vez ──
+    cols := []
+    if (v.HasProp("col")) {
+        for cHex in v.col
+            cols.Push([Integer("0x" SubStr(cHex, 1, 2)), Integer("0x" SubStr(cHex, 3, 2)), Integer("0x" SubStr(cHex, 5, 2))])
+    }
+    if (cols.Length = 0)
+        cols.Push([rC, gC, bC])
+    mixC := "", mixForma := ""
+    if (v.HasProp("mix")) {
+        mh := v.mix.col
+        mixC := [Integer("0x" SubStr(mh, 1, 2)), Integer("0x" SubStr(mh, 3, 2)), Integer("0x" SubStr(mh, 5, 2))]
+        mixForma := v.mix.forma
+    }
+    sway  := v.HasProp("sway")   ? v.sway   : 0
+    swf   := v.HasProp("swf")    ? v.swf    : 1.0
+    twA   := v.HasProp("tw")     ? v.tw     : 0
+    twV   := v.HasProp("twv")    ? v.twv    : 1.0
+    orbit := v.HasProp("orbit")  ? v.orbit  : 0
+    jit   := v.HasProp("jitter") ? v.jitter : 0
+    steps := v.HasProp("steps")  ? v.steps  : 0
+    formaV := v.HasProp("forma") ? v.forma  : "circulo"
+
     for i, p in particulas {
         ph := p.HasProp("ph") ? p.ph : 0.0
-        if (ef = "premium") {
+        esc := p.HasProp("esc") ? p.esc : 1.0
+        if (temaPremiumActivo) {
             huePart := Mod(rgbBarraHue * 3 + i * 25, 360)
             cHex := HSVaHex(huePart, 1.0, 1.0)
             pr := Integer("0x" SubStr(cHex, 1, 2))
             pg := Integer("0x" SubStr(cHex, 3, 2))
             pb := Integer("0x" SubStr(cHex, 5, 2))
-            a  := Min(255, p.alpha + 50)
-        } else {
-            ; Color característico por efecto (los que tienen identidad fuerte usan
-            ; color fijo; el resto usa el tinte del tema ya aclarado para fondos claros).
-            a := p.alpha
-            switch ef {
-                case "nieve":     pr := fondoClaro ? 130 : 235, pg := fondoClaro ? 165 : 245, pb := fondoClaro ? 210 : 255
-                case "estrellas": pr := fondoClaro ? 120 : 255, pg := fondoClaro ? 130 : 255, pb := fondoClaro ? 200 : 255
-                case "chispas":   pr := fondoClaro ? 210 : 255, pg := fondoClaro ? 160 : 224, pb := fondoClaro ? 40  : 130
-                case "matrix":    pr := fondoClaro ? 20  : 40,  pg := fondoClaro ? 160 : 255, pb := fondoClaro ? 70  : 110
-                case "petalos":   pr := fondoClaro ? 225 : 255, pg := fondoClaro ? 90  : 150, pb := fondoClaro ? 150 : 195
-                case "hojas":     pr := fondoClaro ? 80  : 130, pg := fondoClaro ? 150 : 190, pb := fondoClaro ? 40  : 70
-                case "brasas":
-                    fl := 0.5 + 0.5 * Sin(tNow / 160.0 + ph)
-                    pr := fondoClaro ? 220 : 255, pg := Round((fondoClaro ? 40 : 70) + 130 * fl), pb := 30
-                default:          pr := rC,  pg := gC,  pb := bC   ; lluvia, burbujas, default
-            }
-            ; Titileo para estrellas y chispas
-            if (ef = "estrellas" || ef = "chispas") {
-                tw := 0.30 + 0.70 * (0.5 + 0.5 * Sin(tNow / 280.0 + ph))
-                a := Round(p.alpha * tw)
-            }
+            a  := Min(255, Round((p.alpha + 50) * (esc < 1.0 ? esc : 1.0)))
+            if (a < 4)
+                continue
+            argb := (a << 24) | (pr << 16) | (pg << 8) | pb
+            brush := 0
+            DllCall("gdiplus\GdipCreateSolidFill", "UInt", argb, "Ptr*", &brush)
+            DllCall("gdiplus\GdipFillEllipse", "Ptr", g, "Ptr", brush,
+                    "Float", p.x - p.r, "Float", p.y - p.r, "Float", p.r * 2, "Float", p.r * 2)
+            DllCall("gdiplus\GdipDeleteBrush", "Ptr", brush)
+            continue
         }
+        ; Color de la paleta (o del mix si esta partícula es de la 2ª especie)
+        esMix := p.HasProp("mx") && p.mx && IsObject(mixC)
+        c := esMix ? mixC : cols[Mod((p.HasProp("ci") ? p.ci : 1) - 1, cols.Length) + 1]
+        forma := esMix ? mixForma : formaV
+        a := p.alpha
+        if (twA > 0)
+            a := a * (1 - twA + twA * (0.5 + 0.5 * Sin(tNow / 280.0 * twV + ph)))
+        a := Round(a)
         if (a < 4)
             continue
-        argb := (a << 24) | (pr << 16) | (pg << 8) | pb
-
-        ; ── Burbujas: anillo hueco (pen), no relleno ──
-        if (ef = "burbujas") {
-            pen := 0
-            DllCall("gdiplus\GdipCreatePen1", "UInt", argb, "Float", 1.4, "Int", 2, "Ptr*", &pen)
-            DllCall("gdiplus\GdipDrawEllipse", "Ptr", g, "Ptr", pen,
-                    "Float", p.x - p.r, "Float", p.y - p.r, "Float", p.r * 2, "Float", p.r * 2)
-            DllCall("gdiplus\GdipDeletePen", "Ptr", pen)
+        a := Min(255, a)
+        argb := (a << 24) | (c[1] << 16) | (c[2] << 8) | c[3]
+        rr := p.r * esc
+        if (rr < 0.4)
             continue
+        ; Desplazamientos de personalidad (solo al pintar, no tocan la física)
+        px := p.x, py := p.y
+        if (sway > 0)
+            px += Sin(tNow / 620.0 * swf + ph) * sway
+        if (orbit > 0) {
+            px += Sin(tNow / 700.0 * swf + ph) * orbit
+            py += Cos(tNow / 700.0 * swf + ph) * orbit
         }
-
-        brush := 0
-        DllCall("gdiplus\GdipCreateSolidFill", "UInt", argb, "Ptr*", &brush)
-        switch ef {
-            case "lluvia":
-                ; trazo vertical fino (gota alargada)
-                DllCall("gdiplus\GdipFillRectangle", "Ptr", g, "Ptr", brush,
-                        "Float", p.x - 0.8, "Float", p.y, "Float", 1.6, "Float", p.r * 4)
-            case "matrix":
-                ; cuadrito de "código"
-                DllCall("gdiplus\GdipFillRectangle", "Ptr", g, "Ptr", brush,
-                        "Float", p.x - p.r, "Float", p.y - p.r, "Float", p.r * 2, "Float", p.r * 2)
-            case "petalos", "hojas":
-                ; óvalo (más ancho que alto)
-                DllCall("gdiplus\GdipFillEllipse", "Ptr", g, "Ptr", brush,
-                        "Float", p.x - p.r * 1.2, "Float", p.y - p.r * 0.7, "Float", p.r * 2.4, "Float", p.r * 1.4)
-            default:
-                ; círculo (nieve, brasas, estrellas, chispas, default)
-                DllCall("gdiplus\GdipFillEllipse", "Ptr", g, "Ptr", brush,
-                        "Float", p.x - p.r, "Float", p.y - p.r, "Float", p.r * 2, "Float", p.r * 2)
+        if (jit > 0) {
+            px += Sin(Floor(tNow / 90) * 7.13 + ph * 5) * jit
+            py += Sin(Floor(tNow / 90) * 3.71 + ph * 9) * jit * 0.6
         }
-        DllCall("gdiplus\GdipDeleteBrush", "Ptr", brush)
+        if (steps > 0)
+            py := Floor(py / steps) * steps
+        if (p.HasProp("vrot") && p.vrot != 0)
+            p.rot := p.rot + p.vrot
+        PintarFormaParticula(g, forma, px, py, rr, p.HasProp("rot") ? p.rot : 0.0, argb, a)
     }
 
     DllCall("gdiplus\GdipDeleteGraphics", "Ptr", g)
@@ -2510,6 +2965,91 @@ EscenaLinea(g, argb, x1, y1, x2, y2, grosor) {
     DllCall("gdiplus\GdipCreatePen1", "UInt", argb, "Float", grosor, "Int", 2, "Ptr*", &pen)
     DllCall("gdiplus\GdipDrawLine", "Ptr", g, "Ptr", pen, "Float", x1, "Float", y1, "Float", x2, "Float", y2)
     DllCall("gdiplus\GdipDeletePen", "Ptr", pen)
+}
+
+; Dibuja UNA partícula con la forma de su variante de tema (v32.9).
+; rot en radianes: solo lo usan las formas direccionales (petalo, triangulo,
+; rombo, hex, copo6, estrella4, cruz, cuadro girado).
+PintarFormaParticula(g, forma, x, y, r, rot, argb, a) {
+    switch forma {
+        case "halo":
+            ; núcleo + aureola tenue
+            EscenaElipse(g, argb, x - r, y - r, r * 2, r * 2)
+            haloA := Max(8, a // 4)
+            EscenaElipse(g, (haloA << 24) | (argb & 0xFFFFFF), x - r * 1.9, y - r * 1.9, r * 3.8, r * 3.8)
+        case "anillo":
+            EscenaAnillo(g, argb, x - r, y - r, r * 2, 1.4)
+        case "burbuja":
+            EscenaAnillo(g, argb, x - r, y - r, r * 2, 1.4)
+            briA := Min(255, a + 50)
+            EscenaElipse(g, (briA << 24) | (argb & 0xFFFFFF), x - r * 0.45, y - r * 0.55, r * 0.5, r * 0.5)
+        case "ovalo":
+            EscenaElipse(g, argb, x - r * 1.2, y - r * 0.65, r * 2.4, r * 1.3)
+        case "ovaloV":
+            EscenaElipse(g, argb, x - r * 0.6, y - r * 1.3, r * 1.2, r * 2.6)
+        case "gota":
+            EscenaRect(g, argb, x - 0.8, y, 1.6, r * 3.5)
+        case "rayaH":
+            EscenaRect(g, argb, x - r * 2, y - 0.9, r * 4, 1.8)
+        case "rayaV":
+            EscenaRect(g, argb, x - 0.9, y - r * 2, 1.8, r * 4)
+        case "rayaD":
+            EscenaLinea(g, argb, x - r, y - r, x + r, y + r, 1.6)
+        case "cuadro":
+            EscenaRect(g, argb, x - r, y - r, r * 2, r * 2)
+        case "rombo":
+            cs := Cos(rot), sn := Sin(rot)
+            EscenaPoligono(g, argb, [[x + cs*r, y + sn*r], [x - sn*r, y + cs*r], [x - cs*r, y - sn*r], [x + sn*r, y - cs*r]])
+        case "triangulo":
+            pts := []
+            loop 3 {
+                ag := rot + (A_Index - 1) * 2.0944
+                pts.Push([x + Cos(ag) * r, y + Sin(ag) * r])
+            }
+            EscenaPoligono(g, argb, pts)
+        case "hex":
+            pts := []
+            loop 6 {
+                ag := rot + (A_Index - 1) * 1.0472
+                pts.Push([x + Cos(ag) * r, y + Sin(ag) * r])
+            }
+            EscenaPoligono(g, argb, pts)
+        case "copo6":
+            loop 3 {
+                ag := rot + (A_Index - 1) * 1.0472
+                EscenaLinea(g, argb, x - Cos(ag) * r, y - Sin(ag) * r, x + Cos(ag) * r, y + Sin(ag) * r, 1.2)
+            }
+        case "estrella4":
+            cs := Cos(rot), sn := Sin(rot)
+            EscenaLinea(g, argb, x - cs*r, y - sn*r, x + cs*r, y + sn*r, 1.3)
+            EscenaLinea(g, argb, x + sn*r, y - cs*r, x - sn*r, y + cs*r, 1.3)
+            EscenaElipse(g, argb, x - r * 0.28, y - r * 0.28, r * 0.56, r * 0.56)
+        case "cruz":
+            cs := Cos(rot), sn := Sin(rot)
+            EscenaLinea(g, argb, x - cs*r, y - sn*r, x + cs*r, y + sn*r, 1.8)
+            EscenaLinea(g, argb, x + sn*r, y - cs*r, x - sn*r, y + cs*r, 1.8)
+        case "chispa":
+            loop 3 {
+                ag := rot + (A_Index - 1) * 2.0944
+                EscenaLinea(g, argb, x, y, x + Cos(ag) * r, y + Sin(ag) * r, 1.2)
+            }
+        case "corazon":
+            EscenaElipse(g, argb, x - r * 0.9, y - r * 0.75, r, r)
+            EscenaElipse(g, argb, x - r * 0.1, y - r * 0.75, r, r)
+            EscenaPoligono(g, argb, [[x - r * 0.85, y - r * 0.15], [x + r * 0.85, y - r * 0.15], [x, y + r * 0.95]])
+        case "nota":
+            EscenaElipse(g, argb, x - r * 0.55, y - r * 0.4, r * 1.1, r * 0.8)
+            EscenaLinea(g, argb, x + r * 0.5, y, x + r * 0.5, y - r * 2.1, 1.3)
+        case "petalo":
+            ; elipse rotada (transformación de mundo puntual)
+            DllCall("gdiplus\GdipTranslateWorldTransform", "Ptr", g, "Float", x, "Float", y, "Int", 0)
+            DllCall("gdiplus\GdipRotateWorldTransform", "Ptr", g, "Float", rot * 57.2958, "Int", 0)
+            EscenaElipse(g, argb, -r * 1.2, -r * 0.55, r * 2.4, r * 1.1)
+            DllCall("gdiplus\GdipResetWorldTransform", "Ptr", g)
+        default:
+            ; "circulo" y cualquier forma desconocida
+            EscenaElipse(g, argb, x - r, y - r, r * 2, r * 2)
+    }
 }
 
 ; Decoración ESPECÍFICA por tema (según su nombre), con respaldo a la categoría
@@ -4805,6 +5345,878 @@ InstalarSubclassParticulas() {
     particulasInited := true
 }
 
+; ===== SFX RETRO PROCEDURAL =====
+; Sintetizador minúsculo: cada sonido es una lista de notas {f, ms, w, v, dec}
+; (frecuencia Hz, duración, onda seno/cuadrada/ruido, volumen 0-1, decaimiento
+; exponencial). f2 opcional hace glissando de f a f2 dentro de la nota. Se
+; renderizan a WAV PCM 16-bit mono 22050 Hz una sola vez y quedan en %TEMP%.
+
+; Catálogo de sonidos. Estética chiptune: cuadrada para "energía", seno para
+; "brillo", ruido para pops. Volúmenes ya equilibrados entre sí — el maestro
+; se aplica aparte con waveOutSetVolume (no pisa el volumen del sistema).
+SfxSonidosDef() {
+    return Map(
+        ; power-up ascendente al arrancar el macro (Do-Mi-Sol-Do)
+        "inicio", [ {f: 262, ms: 55,  w: "cuadrada", v: 0.30, dec: 0.8},
+                    {f: 330, ms: 55,  w: "cuadrada", v: 0.30, dec: 0.8},
+                    {f: 392, ms: 55,  w: "cuadrada", v: 0.30, dec: 0.8},
+                    {f: 523, ms: 230, w: "cuadrada", v: 0.30, dec: 3.2} ],
+        ; power-down descendente al parar
+        "parar",  [ {f: 523, ms: 70,  w: "cuadrada", v: 0.26, dec: 0.8},
+                    {f: 392, ms: 70,  w: "cuadrada", v: 0.26, dec: 0.8},
+                    {f: 262, ms: 240, w: "cuadrada", v: 0.26, dec: 3.5} ],
+        ; moneda clásica (Si5→Mi6) — secuencia completada
+        "secuencia", [ {f: 988,  ms: 45,  w: "seno", v: 0.38, dec: 0.4},
+                       {f: 1319, ms: 190, w: "seno", v: 0.38, dec: 3.8} ],
+        ; arpegio brillante + campana — logro desbloqueado
+        "logro",  [ {f: 523,  ms: 42,  w: "cuadrada", v: 0.26, dec: 0.5},
+                    {f: 659,  ms: 42,  w: "cuadrada", v: 0.26, dec: 0.5},
+                    {f: 784,  ms: 42,  w: "cuadrada", v: 0.26, dec: 0.5},
+                    {f: 1047, ms: 42,  w: "cuadrada", v: 0.26, dec: 0.5},
+                    {f: 1319, ms: 260, w: "seno",     v: 0.34, dec: 3.0} ],
+        ; fanfarria corta — hito de secuencias (50/100/250...)
+        "milestone", [ {f: 392, ms: 95,  w: "cuadrada", v: 0.30, dec: 0.6},
+                       {f: 523, ms: 95,  w: "cuadrada", v: 0.30, dec: 0.6},
+                       {f: 659, ms: 95,  w: "cuadrada", v: 0.30, dec: 0.6},
+                       {f: 784, ms: 170, w: "cuadrada", v: 0.32, dec: 1.2},
+                       {f: 659, ms: 85,  w: "cuadrada", v: 0.28, dec: 0.8},
+                       {f: 784, ms: 300, w: "cuadrada", v: 0.32, dec: 2.6} ],
+        ; ding-ding agudo — crítico (1%)
+        "critico", [ {f: 1319, ms: 40,  w: "seno", v: 0.40, dec: 0.5},
+                     {f: 1976, ms: 150, w: "seno", v: 0.40, dec: 4.5} ],
+        ; pop + fizz de cañón de confeti
+        "confeti", [ {f: 0, ms: 28,  w: "ruido", v: 0.45, dec: 1.5},
+                     {f: 0, ms: 170, w: "ruido", v: 0.22, dec: 5.5} ],
+        ; whoosh (glissando sube-baja) — cambio de tema
+        "tema",   [ {f: 290, f2: 880, ms: 120, w: "seno", v: 0.22, dec: 0.3},
+                    {f: 880, f2: 470, ms: 170, w: "seno", v: 0.20, dec: 3.2} ],
+        ; zumbido grave descendente — destrabe / error
+        "error",  [ {f: 110, ms: 90,  w: "cuadrada", v: 0.35, dec: 0.6},
+                    {f: 92,  ms: 190, w: "cuadrada", v: 0.33, dec: 3.0} ],
+        ; tick minúsculo de UI (muy bajito a propósito)
+        "click",  [ {f: 1750, ms: 16, w: "seno", v: 0.16, dec: 5.0} ],
+        ; campanita suave de la intro de arranque
+        "boot",   [ {f: 523,  ms: 45,  w: "seno", v: 0.26, dec: 0.4},
+                    {f: 784,  ms: 45,  w: "seno", v: 0.26, dec: 0.4},
+                    {f: 1047, ms: 420, w: "seno", v: 0.30, dec: 2.6} ],
+        ; despertar del descanso (arpegio suave ascendente)
+        "despertar", [ {f: 392, ms: 60,  w: "seno", v: 0.28, dec: 0.5},
+                       {f: 523, ms: 60,  w: "seno", v: 0.28, dec: 0.5},
+                       {f: 659, ms: 180, w: "seno", v: 0.28, dec: 3.0} ]
+    )
+}
+
+; Renderiza una lista de notas a un WAV PCM 16-bit mono en `ruta`.
+SfxSintetizar(ruta, notas, rate := 22050) {
+    total := 0
+    for n in notas
+        total += Round(n.ms * rate / 1000)
+    buf := Buffer(44 + total * 2, 0)
+
+    ; Cabecera RIFF/WAVE (PCM mono 16-bit)
+    SfxPonTag(buf, 0, "RIFF"), NumPut("UInt", 36 + total * 2, buf, 4)
+    SfxPonTag(buf, 8, "WAVE"), SfxPonTag(buf, 12, "fmt ")
+    NumPut("UInt", 16, buf, 16), NumPut("UShort", 1, buf, 20), NumPut("UShort", 1, buf, 22)
+    NumPut("UInt", rate, buf, 24), NumPut("UInt", rate * 2, buf, 28)
+    NumPut("UShort", 2, buf, 32), NumPut("UShort", 16, buf, 34)
+    SfxPonTag(buf, 36, "data"), NumPut("UInt", total * 2, buf, 40)
+
+    pos := 44
+    fase := 0.0
+    k := 6.283185307 / rate
+    for n in notas {
+        cnt := Round(n.ms * rate / 1000)
+        if (cnt <= 0)
+            continue
+        invCnt := 1.0 / cnt
+        v   := n.HasProp("v")   ? n.v   : 0.30
+        dec := n.HasProp("dec") ? n.dec : 1.0
+        f   := n.f
+        df  := n.HasProp("f2") ? (n.f2 - n.f) : 0
+        ; código de onda para no comparar strings 22050 veces por segundo
+        wc  := (n.w = "seno") ? 1 : (n.w = "ruido") ? 2 : 0
+        loop cnt {
+            t := (A_Index - 1) * invCnt
+            fase += k * (f + df * t)
+            if (wc = 1)
+                s := Sin(fase)
+            else if (wc = 2)
+                s := Random(-1000, 1000) / 1000.0
+            else
+                s := (Sin(fase) >= 0) ? 1.0 : -1.0
+            env := Exp(-dec * t) * v
+            if (A_Index < 48)
+                env *= A_Index / 48.0   ; ataque corto: evita el "pop" al empezar la nota
+            NumPut("Short", Round(s * env * 32000), buf, pos)
+            pos += 2
+        }
+    }
+    fh := FileOpen(ruta, "w")
+    fh.RawWrite(buf, buf.Size)
+    fh.Close()
+}
+
+SfxPonTag(buf, off, tag) {
+    loop StrLen(tag)
+        NumPut("UChar", Ord(SubStr(tag, A_Index, 1)), buf, off + A_Index - 1)
+}
+
+; Genera los .wav si faltan (primer arranque o %TEMP% limpiado) y aplica volumen.
+; Diferido tras el Show de la GUI — la primera generación tarda unas décimas.
+SfxInit() {
+    global sfxDir, sfxListo
+    try DirCreate(sfxDir)
+    defs := SfxSonidosDef()
+    faltan := false
+    for nombre in defs {
+        if (!FileExist(sfxDir "\" nombre ".wav")) {
+            faltan := true
+            break
+        }
+    }
+    if (faltan) {
+        t0 := A_TickCount
+        try {
+            for nombre, notas in defs
+                SfxSintetizar(sfxDir "\" nombre ".wav", notas)
+            AgregarHistorial(Chr(0x1F50A) " Sonidos retro sintetizados en " (A_TickCount - t0) " ms — toggles en Optimización", "00AAFF")
+        } catch as e {
+            AgregarHistorial(Chr(0x26A0) " No se pudieron generar los sonidos: " SubStr(e.Message, 1, 50), "FF8800")
+            return
+        }
+    }
+    sfxListo := true
+    SfxAplicarVolumen()
+}
+
+; Volumen 0-100 → canal wave del PROCESO (per-app en el mezclador de Windows).
+SfxAplicarVolumen() {
+    global sonidosVolumen
+    v := Round(Max(0, Min(100, sonidosVolumen)) * 655.35)
+    try DllCall("winmm\waveOutSetVolume", "Ptr", 0, "UInt", (v << 16) | v)
+}
+
+; Reproduce un SFX (asíncrono, no bloquea nada). Un sonido corta al anterior
+; (limitación de PlaySound) — con clips de <1s no se nota.
+SfxPlay(nombre) {
+    global optSonidos, sfxListo, sfxDir, sfxUltimoGrande
+    if (!optSonidos || !sfxListo)
+        return
+    if (nombre != "click")
+        sfxUltimoGrande := A_TickCount
+    ; SND_FILENAME | SND_ASYNC | SND_NODEFAULT (si falta el .wav, silencio — no el ding del sistema)
+    try DllCall("winmm\PlaySound", "Str", sfxDir "\" nombre ".wav", "Ptr", 0, "UInt", 0x20003)
+}
+
+SfxDetener() {
+    try DllCall("winmm\PlaySound", "Ptr", 0, "Ptr", 0, "UInt", 0)
+}
+
+; Tick de UI: suena en cualquier WM_LBUTTONDOWN sobre ventanas del script.
+; Throttle doble: 80ms entre ticks, y nunca pisar un SFX de evento reciente.
+SfxTickUI() {
+    global optSonidosUI, sfxUltimoTick, sfxUltimoGrande
+    if (!optSonidosUI)
+        return
+    if (A_TickCount - sfxUltimoTick < 80 || A_TickCount - sfxUltimoGrande < 600)
+        return
+    sfxUltimoTick := A_TickCount
+    SfxPlay("click")
+}
+
+SfxClickMsg(wParam, lParam, msg, hwnd) {
+    SfxTickUI()
+}
+
+ToggleSonidos() {
+    global optSonidos, configPath
+    optSonidos := !optSonidos
+    IniWrite(optSonidos ? 1 : 0, configPath, "Optimizacion", "Sonidos")
+    if (optSonidos)
+        SfxPlay("secuencia")   ; confirmación audible al reactivar
+    else
+        SfxDetener()
+}
+
+; Cicla el volumen maestro 20→40→60→80→100→20 y suena de muestra.
+CiclarVolumenSfx() {
+    global sonidosVolumen, configPath
+    sonidosVolumen := (sonidosVolumen >= 100) ? 20 : Min(100, sonidosVolumen + 20)
+    IniWrite(sonidosVolumen, configPath, "Sonido", "Volumen")
+    SfxAplicarVolumen()
+    SfxPlay("secuencia")
+}
+
+; ===== INTRO DE ARRANQUE (boot cinematográfico sobre la ventana principal) =====
+; Overlay oscuro del tamaño exacto de la GUI: teclea el título, va soltando
+; líneas de "sistema" con su tick, llena una barra de progreso y se desvanece
+; revelando la interfaz real. Solo en arranques manuales fríos — nunca cuando
+; el watchdog relanza, en descansos del ciclo, en mini mode ni en tests.
+MostrarIntroBoot() {
+    global introGui, introRefs, miGui, colorBarra, VERSION_ACTUAL, temas, logros, scaleX
+    if (IsObject(introGui) || !IsObject(miGui))
+        return
+    miGui.GetPos(&mx, &my, &mw, &mh)
+    introGui := Gui("+AlwaysOnTop -Caption +ToolWindow +Owner" miGui.Hwnd)
+    introGui.BackColor := "0A0E14"   ; noche fija: la intro es cine, no depende del tema
+
+    lg := introGui.Add("Text", "x0 y16 w" mw " h62 Center BackgroundTrans c" colorBarra, Chr(9881))
+    lg.SetFont("s38 Bold", "Segoe UI Symbol")
+    tt := introGui.Add("Text", "x0 y84 w" mw " h24 Center BackgroundTrans cE8F0FF", "")
+    tt.SetFont("s12 Bold", "Consolas")
+
+    msjs := [
+        "> nucleo GDI+ ............. OK",
+        "> " temas.Length " temas + particulas ... OK",
+        "> " logros.Length " logros ............. cargados",
+        "> watchdog ................ enlazado",
+        "> escala " Round(scaleX, 2) "x ............ calibrada"
+    ]
+    lineas := []
+    loop msjs.Length {
+        l := introGui.Add("Text", "x40 y" (116 + (A_Index - 1) * 16) " w" (mw - 80) " h14 BackgroundTrans c9AA7B8", "")
+        l.SetFont("s8", "Consolas")
+        lineas.Push(l)
+    }
+
+    introGui.Add("Text", "x40 y" (mh - 30) " w" (mw - 80) " h6 Background1A2230", "")   ; pista
+    bar := introGui.Add("Text", "x40 y" (mh - 30) " w1 h6 Background" colorBarra, "")
+
+    ; capa invisible por encima: cualquier click salta la intro
+    skip := introGui.Add("Text", "x0 y0 w" mw " h" mh " BackgroundTrans", "")
+    skip.OnEvent("Click", (*) => IntroBootTerminar(true))
+
+    introRefs := {frame: 0, tt: tt, lineas: lineas, bar: bar, mostradas: 0,
+        titulo: "MACROSMART v" VERSION_ACTUAL, msjs: msjs, barW: mw - 80}
+    introGui.Show("x" mx " y" my " w" mw " h" mh " NoActivate")
+    RedondearVentana(introGui.Hwnd, 20)
+    SfxPlay("boot")
+    SetTimer(IntroBootTick, 33)
+}
+
+IntroBootTick() {
+    global introGui, introRefs
+    if (!IsObject(introGui) || !IsObject(introRefs)) {
+        SetTimer(IntroBootTick, 0)
+        return
+    }
+    r := introRefs
+    r.frame += 1
+    f := r.frame
+
+    ; título tecleado con cursor
+    lt := StrLen(r.titulo)
+    if (f <= lt + 2) {
+        n := Min(lt, f)
+        try r.tt.Text := SubStr(r.titulo, 1, n) . (n < lt ? Chr(0x258C) : "")
+    }
+
+    ; líneas de boot: una cada 7 frames a partir del 16, con su tick
+    if (f >= 16 && r.mostradas < r.msjs.Length && Mod(f - 16, 7) = 0) {
+        r.mostradas += 1
+        try r.lineas[r.mostradas].Text := r.msjs[r.mostradas]
+        SfxPlay("click")
+    }
+
+    ; barra de progreso con easing in/out
+    T := 68
+    t := Min(1.0, f / T)
+    t2 := (t < 0.5) ? 2 * t * t : 1 - 2 * (1 - t) * (1 - t)
+    try r.bar.Move(,, Max(1, Round(r.barW * t2)))
+
+    if (f >= T)
+        IntroBootTerminar(false)
+}
+
+IntroBootTerminar(saltada := false) {
+    global introGui, introRefs
+    SetTimer(IntroBootTick, 0)
+    if (!IsObject(introGui))
+        return
+    g := introGui
+    introGui := ""     ; reentradas (doble click / frame final) ven "ya cerrado"
+    introRefs := 0
+    if (!saltada) {
+        loop 8 {       ; fade-out revelando la GUI real
+            try WinSetTransparent(255 - A_Index * 30, g)
+            Sleep(20)
+        }
+    }
+    try g.Destroy()
+}
+
+; ===== TRAIL DEL RATÓN — el cursor araña las ventanas del macro =====
+; Sondeo del cursor a 20ms (mismo presupuesto que el hover). El overlay cubre
+; la pantalla virtual (click-through, color-key como el confeti) pero el
+; pintado se recorta a las ventanas del script: nada se dibuja fuera del
+; macro. Las partículas viven en coordenadas de pantalla absolutas.
+
+TrailPoll() {
+    global optTrailRaton, trailUltX, trailUltY, trailGui, trailTimerOn
+    if (!optTrailRaton)
+        return
+    CoordMode("Mouse", "Screen")   ; thread-local: no toca los clicks del macro
+    MouseGetPos(&mx, &my)
+    if (trailUltX < 0) {
+        trailUltX := mx, trailUltY := my   ; primera muestra: solo referencia
+        return
+    }
+    dx := mx - trailUltX, dy := my - trailUltY
+    dist := Sqrt(dx*dx + dy*dy)
+    if (dist < 3)   ; casi quieto — sin arrastre no hay arañazo
+        return
+    x0 := trailUltX, y0 := trailUltY
+    trailUltX := mx, trailUltY := my
+    ; Solo arañar sobre ventanas del PROPIO script: el trail es del macro, no
+    ; del monitor entero. (De paso, con el macro activo las partículas nunca
+    ; ensucian los píxeles del juego que PixelGetColor vigila.)
+    if (!TrailCursorSobreScript(mx, my))
+        return
+    if (dist > 300)   ; salto de cursor (click programático), no un arrastre real
+        return
+    TrailAsegurarOverlay()
+    if (!IsObject(trailGui))
+        return
+    TrailSpawn(x0, y0, mx, my, dx / dist, dy / dist, dist)
+    if (!trailTimerOn) {
+        trailTimerOn := true
+        SetTimer(ActualizarTrail, 25)
+    }
+}
+
+; ¿El punto (pantalla) cae sobre una ventana de ESTE script? El overlay del
+; trail es WS_EX_TRANSPARENT, así que WindowFromPoint lo salta solo.
+TrailCursorSobreScript(mx, my) {
+    hw := DllCall("WindowFromPoint", "Int64", (my << 32) | (mx & 0xFFFFFFFF), "Ptr")
+    if (!hw)
+        return false
+    pid := 0
+    DllCall("GetWindowThreadProcessId", "Ptr", hw, "UInt*", &pid)
+    return pid = DllCall("GetCurrentProcessId")
+}
+
+; Región (HRGN) = unión de las ventanas VISIBLES del script, en coordenadas
+; del overlay. Se saltan los overlays click-through (WS_EX_TRANSPARENT: el
+; propio trail, confeti, decoraciones...) — solo cuentan las ventanas de
+; verdad. Respeta la forma redondeada (GetWindowRgn) si la ventana la tiene.
+; El que la recibe es responsable de liberarla con DeleteObject.
+TrailRegionVentanas(offX, offY) {
+    rgn := DllCall("CreateRectRgn", "Int", 0, "Int", 0, "Int", 0, "Int", 0, "Ptr")
+    for hw in WinGetList("ahk_pid " DllCall("GetCurrentProcessId")) {
+        try {
+            if (WinGetExStyle(hw) & 0x20)   ; WS_EX_TRANSPARENT → overlay, fuera
+                continue
+            WinGetPos(&wx, &wy, &ww, &wh, hw)
+            tmp := DllCall("CreateRectRgn", "Int", 0, "Int", 0, "Int", ww, "Int", wh, "Ptr")
+            if (DllCall("GetWindowRgn", "Ptr", hw, "Ptr", tmp) < 2)   ; sin forma propia → rect entero
+                DllCall("SetRectRgn", "Ptr", tmp, "Int", 0, "Int", 0, "Int", ww, "Int", wh)
+            DllCall("OffsetRgn", "Ptr", tmp, "Int", wx - offX, "Int", wy - offY)
+            DllCall("CombineRgn", "Ptr", rgn, "Ptr", rgn, "Ptr", tmp, "Int", 2)   ; RGN_OR
+            DllCall("DeleteObject", "Ptr", tmp)
+        }
+    }
+    return rgn
+}
+
+; Crea el overlay a pantalla virtual completa (o lo recoloca si cambian monitores).
+TrailAsegurarOverlay() {
+    global trailGui, trailOffX, trailOffY, trailVacioDesde
+    vx := SysGet(76), vy := SysGet(77), vw := SysGet(78), vh := SysGet(79)   ; SM_*VIRTUALSCREEN
+    if (vw < 100 || vh < 100)
+        return
+    if (!IsObject(trailGui)) {
+        trailGui := Gui("+AlwaysOnTop -Caption +ToolWindow +E0x80020")   ; layered + click-through
+        trailGui.BackColor := "010203"
+        try WinSetTransColor("010203", trailGui)
+        trailGui.Show("x" vx " y" vy " w" vw " h" vh " NoActivate")
+        InstalarSubclassTrail()
+        trailOffX := vx, trailOffY := vy
+        trailVacioDesde := 0
+        return
+    }
+    if (vx != trailOffX || vy != trailOffY) {
+        try trailGui.Move(vx, vy, vw, vh)
+        trailOffX := vx, trailOffY := vy
+    }
+}
+
+TrailDestruirOverlay() {
+    global trailGui, trailSubclassCb
+    if (IsObject(trailGui)) {
+        if (trailSubclassCb) {
+            try DllCall("Comctl32.dll\RemoveWindowSubclass", "Ptr", trailGui.Hwnd, "Ptr", trailSubclassCb, "Ptr", 37)
+            try CallbackFree(trailSubclassCb)
+            trailSubclassCb := 0
+        }
+        try trailGui.Destroy()
+    }
+    trailGui := ""
+}
+
+; Apagado total inmediato (toggle OFF / Todo OFF): timer, partículas y overlay.
+TrailApagar() {
+    global trailParticles, trailTimerOn, trailUltX, trailUltY
+    SetTimer(ActualizarTrail, 0)
+    trailTimerOn := false
+    trailParticles := []
+    trailUltX := -1, trailUltY := -1
+    TrailDestruirOverlay()
+}
+
+InstalarSubclassTrail() {
+    global trailGui, trailSubclassCb
+    if (!IsObject(trailGui))
+        return
+    if (trailSubclassCb) {
+        try CallbackFree(trailSubclassCb)
+        trailSubclassCb := 0
+    }
+    trailSubclassCb := CallbackCreate(TrailSubclassProc, "F", 6)
+    DllCall("Comctl32.dll\SetWindowSubclass", "Ptr", trailGui.Hwnd, "Ptr", trailSubclassCb, "Ptr", 37, "Ptr", 0)
+}
+
+TrailSubclassProc(hWnd, uMsg, wParam, lParam, idSubclass, refData) {
+    static WM_PAINT := 0x000F, WM_ERASEBKGND := 0x0014
+    if (uMsg = WM_ERASEBKGND)
+        return 1
+    if (uMsg = WM_PAINT) {
+        ps := Buffer(72, 0)
+        hdc := DllCall("BeginPaint", "Ptr", hWnd, "Ptr", ps, "Ptr")
+        if (hdc) {
+            rc := Buffer(16, 0)
+            DllCall("GetClientRect", "Ptr", hWnd, "Ptr", rc)
+            PintarTrail(hdc, NumGet(rc, 8, "Int"), NumGet(rc, 12, "Int"))
+            DllCall("EndPaint", "Ptr", hWnd, "Ptr", ps)
+        }
+        return 0
+    }
+    return DllCall("Comctl32.dll\DefSubclassProc", "Ptr", hWnd, "UInt", uMsg, "Ptr", wParam, "Ptr", lParam, "Ptr")
+}
+
+; Arañazo entre (x0,y0) y (x1,y1): interpola puntos a lo largo del arrastre para
+; que la herida sea CONTINUA (no goterones sueltos). (ux,uy) = dirección normalizada.
+TrailSpawn(x0, y0, x1, y1, ux, uy, dist) {
+    global trailParticles, TRAIL_MAX, temas, temaActual
+    k := Min(4, 1 + Floor(dist / 26))          ; arrastre rápido → más puntos de herida
+    lleno := trailParticles.Length > TRAIL_MAX
+    if (lleno)
+        k := 1
+    tema := temas[temaActual]
+    estilo := EfectoDeTema(tema)
+    ; Overrides ESPECÍFICOS del tema — Gojo distorsiona el espacio (Ilimitado) y
+    ; Sukuna lanza cortes de katana en vez de la familia genérica; Premium/Miel
+    ; recuperan su estilo propio (antes caían en "chispas" por EfectoDeTema).
+    if (tema.HasProp("unlock")) {
+        if (tema.unlock = "gojo")
+            estilo := "gojo"
+        else if (tema.unlock = "sukuna")
+            estilo := "sukuna"
+        else if (tema.unlock = "premium")
+            estilo := "premium"
+    }
+    if (InStr(tema.nombre, "Miel"))
+        estilo := "abejas"
+    base := HexToBGR(tema.barra)
+    firma := TrailFirmaTema(tema)
+    loop k {
+        t := A_Index / (k * 1.0)
+        px := x0 + (x1 - x0) * t + Random(-4, 4)
+        py := y0 + (y1 - y0) * t + Random(-4, 4)
+        TrailSpawnUna(estilo, base, px * 1.0, py * 1.0, ux, uy, lleno, firma)
+    }
+}
+
+; ── Firma de arrastre por tema (v32.10): CADA tema tiene su propia velocidad,
+; tamaño, aspecto de hoja/pétalo, nº de brazos del copo y paleta de colores
+; (reutiliza VarianteDeTema, la misma que las partículas de fondo) — así dos
+; temas de la MISMA familia (p. ej. "hojas": Naruto/Bosque/Jungla/Bambú/Verde/
+; Minecraft) ya no se ven idénticos en el arrastre del cursor.
+TrailFirmaTema(tema) {
+    hm := HashNombre(tema.nombre)
+    v := VarianteDeTema(tema)
+    cols := (v.HasProp("col") && v.col.Length > 0) ? v.col : [tema.barra]
+    return { cols: cols,
+        fVel:   0.75 + Mod(hm, 51) / 100.0,          ; 0.75 – 1.25
+        fTam:   0.78 + Mod(hm // 7, 45) / 100.0,     ; 0.78 – 1.22
+        ratio:  0.32 + Mod(hm // 3, 55) / 100.0,     ; 0.32 – 0.86 (aspecto hoja/pétalo)
+        spikes: 2 + Mod(hm // 11, 3),                ; 2 – 4 (brazos extra del copo)
+        segLen: 4 + Mod(hm // 5, 4) }                ; 4 – 7 (paso de columna matrix)
+}
+
+; Color BGR de una partícula: cicla por la paleta ÚNICA del tema (2-3 tonos)
+; en vez de un solo color fijo — refuerza la distinción entre temas.
+TrailColorFirma(firma) {
+    return HexToBGR(firma.cols[Random(1, firma.cols.Length)])
+}
+
+; Una partícula (o dos) del estilo en (px,py). Los restos salen expulsados HACIA
+; ATRÁS del arrastre. ~1 de cada 6 es un "acento": una pieza GRANDE y vistosa
+; (llamarada, rayo eléctrico, estrella fugaz, columna matrix, hoja XL...).
+; `firma` (TrailFirmaTema) escala velocidad/tamaño y cicla la paleta ÚNICA del
+; tema — sin ella, dos temas de la misma familia se verían idénticos.
+TrailSpawnUna(estilo, base, px, py, ux, uy, lleno, firma) {
+    global trailParticles
+    fVel := firma.fVel, fTam := firma.fTam
+    bvx := (-ux * Random(6, 22)/10.0 + Random(-14, 14)/10.0) * fVel
+    bvy := (-uy * Random(6, 22)/10.0 + Random(-14, 14)/10.0) * fVel
+    acento := !lleno && Random(1, 6) = 1
+    switch estilo {
+        case "gojo":      ; ⚡ Ilimitado: motas succionadas en espiral hacia el punto
+                          ; + ondas de espacio distorsionado (anillos azul/púrpura)
+            trailParticles.Push({ tipo:"gojoShard", cx:px, cy:py, x:px, y:py,
+                ang:Random(0.0, 6.28), rad:Random(14, 34)*fTam, spin:Random(14, 26)/100.0,
+                r:Random(8, 16)/10.0*fTam, life:1.0, dec:Random(30, 46)/1000.0,
+                bgr:HexToBGR(Random(1,2)=1 ? "4FC3F7" : "8A2BE2") })
+            if (acento)
+                trailParticles.Push({ tipo:"gojoOrbe", x:px, y:py, rad:2.0,
+                    life:1.0, dec:Random(45, 65)/1000.0, bgr:HexToBGR("4FC3F7") })
+        case "sukuna":    ; ⛩ cortes de katana: filo blanco + halo rojo a lo largo del arrastre
+            ang := (ux != 0 || uy != 0) ? (ATan2Segura(uy, ux) + Random(-35, 35)/100.0) : Random(0.0, 6.28)
+            trailParticles.Push({ tipo:"corteSukuna", x:px, y:py, ang:ang,
+                len:((acento ? Random(20, 30) : Random(10, 18)) * fTam),
+                life:1.0, dec:Random(55, 85)/1000.0, bgr:0xFFFFFF })
+        case "brasas":    ; brasas + llamaradas que suben + volutas de humo
+            if (acento && Random(1, 2) = 1)
+                trailParticles.Push({ tipo:"llama", x:px, y:py, vy:-Random(12, 24)/10.0*fVel,
+                    r:Random(40, 70)/10.0*fTam, life:1.0, dec:Random(26, 38)/1000.0, bgr:TrailColorFirma(firma) })
+            else if (acento)
+                trailParticles.Push({ tipo:"humo", x:px, y:py, vy:-Random(5, 12)/10.0*fVel, ph:Random(0.0, 6.28),
+                    r:Random(25, 40)/10.0*fTam, grow:Random(10, 20)/100.0, life:1.0, dec:Random(14, 22)/1000.0, bgr:0x8A8A8A })
+            else
+                trailParticles.Push({ tipo:"ember", x:px, y:py, vx:bvx*1.4, vy:bvy - Random(6, 18)/10.0*fVel,
+                    r:Random(20, 45)/10.0*fTam, life:1.0, dec:Random(22, 40)/1000.0, bgr:TrailColorFirma(firma) })
+        case "chispas":   ; chispas veloces + RAYOS eléctricos quebrados de verdad
+            if (acento)
+                trailParticles.Push({ tipo:"rayo", x:px, y:py, ang:Random(0.0, 6.28), segs:Random(4, 6),
+                    paso:Random(6, 11), seed:Random(0, 3), life:1.0, dec:Random(80, 120)/1000.0, bgr:TrailColorFirma(firma) })
+            trailParticles.Push({ tipo:"chispa", x:px, y:py, vx:bvx*3.0, vy:bvy*3.0,
+                life:1.0, dec:Random(45, 75)/1000.0, bgr:TrailColorFirma(firma) })
+        case "hojas":     ; hojas arrancadas con vena central, alguna XL (aspecto propio del tema)
+            trailParticles.Push({ tipo:"hoja", x:px, y:py, vx:bvx, vy:Random(3, 10)/10.0*fVel,
+                rot:Random(0.0, 6.28), vrot:Random(-35, 35)/100.0, ratio:firma.ratio,
+                r:(acento ? Random(80, 110) : Random(40, 75))/10.0*fTam,
+                life:1.0, dec:Random(15, 26)/1000.0, bgr:TrailColorFirma(firma) })
+        case "petalos":   ; pétalos grandes meciéndose con brillo central (aspecto propio del tema)
+            trailParticles.Push({ tipo:"petalo", x:px, y:py, vx:bvx*0.6, vy:Random(4, 9)/10.0*fVel,
+                ph:Random(0.0, 6.28), rot:Random(0.0, 6.28), vrot:Random(-15, 15)/100.0, ratio:firma.ratio,
+                r:(acento ? Random(70, 90) : Random(35, 65))/10.0*fTam,
+                life:1.0, dec:Random(13, 22)/1000.0, bgr:TrailColorFirma(firma) })
+        case "nieve":     ; copos con nº de brazos propio del tema, algunos XL
+            trailParticles.Push({ tipo:"copo", x:px, y:py, vx:bvx*0.4, vy:Random(3, 8)/10.0*fVel,
+                ph:Random(0.0, 6.28), rot:Random(0.0, 6.28), spikes:firma.spikes,
+                r:(acento ? Random(65, 90) : Random(25, 55))/10.0*fTam,
+                life:1.0, dec:Random(13, 24)/1000.0, bgr:TrailColorFirma(firma) })
+        case "matrix":    ; la pantalla sangra código; columnas altas de acento
+            trailParticles.Push({ tipo:"codigo", x:px, y:py,
+                vy:(acento ? Random(50, 70) : Random(25, 45))/10.0*fVel,
+                segs:(acento ? Random(9, 12) : Random(4, 8)), paso:firma.segLen,
+                life:1.0, dec:Random(22, 38)/1000.0, bgr:TrailColorFirma(firma) })
+        case "burbujas":  ; burbujas con brillo que estallan en anillo + gotitas
+            trailParticles.Push({ tipo:"burbuja", x:px, y:py, vx:bvx*0.5, vy:-Random(5, 14)/10.0*fVel,
+                ph:Random(0.0, 6.28), r:(acento ? Random(80, 120) : Random(25, 65))/10.0*fTam,
+                life:1.0, dec:Random(18, 32)/1000.0, bgr:TrailColorFirma(firma) })
+        case "lluvia":    ; chorros que caen y salpican en corona
+            trailParticles.Push({ tipo:"gota", x:px, y:py, vy:Random(40, 70)/10.0*fVel,
+                len:(acento ? Random(16, 24) : Random(8, 16))*fTam, life:1.0, dec:Random(28, 48)/1000.0, bgr:TrailColorFirma(firma) })
+        case "abejas":    ; abejas grandes aleteando que huyen en zigzag
+            trailParticles.Push({ tipo:"abeja", x:px, y:py, vx:bvx*2.0 + Random(-10, 10)/10.0,
+                vy:bvy*2.0 + Random(-10, 10)/10.0, wob:Random(0.0, 6.28), r:Random(25, 40)/10.0*fTam,
+                life:1.0, dec:Random(16, 28)/1000.0, bgr:TrailColorFirma(firma) })
+            if (acento)   ; el acento es OTRA abeja — enjambre
+                trailParticles.Push({ tipo:"abeja", x:px + Random(-6, 6), y:py + Random(-6, 6),
+                    vx:bvx*1.6, vy:bvy*1.6, wob:Random(0.0, 6.28), r:Random(25, 40)/10.0*fTam,
+                    life:1.0, dec:Random(16, 28)/1000.0, bgr:TrailColorFirma(firma) })
+        case "premium":   ; confeti arcoíris + serpentinas onduladas
+            if (acento)
+                trailParticles.Push({ tipo:"cinta", x:px, y:py, vx:bvx, vy:bvy - 0.5,
+                    rot:Random(0.0, 6.28), vrot:Random(-25, 25)/100.0,
+                    life:1.0, dec:Random(16, 26)/1000.0, bgr:HexToBGR(HSVaHex(Random(0, 359), 1.0, 1.0)) })
+            trailParticles.Push({ tipo:"papelito", x:px, y:py, vx:bvx, vy:bvy - 0.6,
+                rot:Random(0.0, 6.28), vrot:Random(-30, 30)/100.0, w:Random(20, 40)/10.0, h:Random(40, 70)/10.0,
+                life:1.0, dec:Random(17, 28)/1000.0, bgr:HexToBGR(HSVaHex(Random(0, 359), 1.0, 1.0)) })
+        default:          ; "estrellas": polvo de 8 puntas + ESTRELLAS FUGACES
+            if (acento)
+                trailParticles.Push({ tipo:"fugaz", x:px, y:py,
+                    vx:ux * Random(70, 120)/10.0*fVel + Random(-15, 15)/10.0,
+                    vy:uy * Random(70, 120)/10.0*fVel + Random(-15, 15)/10.0,
+                    r:Random(20, 35)/10.0*fTam, life:1.0, dec:Random(28, 42)/1000.0, bgr:TrailColorFirma(firma) })
+            else
+                trailParticles.Push({ tipo:"polvo", x:px, y:py, vx:bvx*0.5, vy:bvy*0.5,
+                    ph:Random(0.0, 6.28), sp:Random(20, 45)/100.0, r:Random(30, 60)/10.0*fTam,
+                    life:1.0, dec:Random(16, 30)/1000.0, bgr:TrailColorFirma(firma) })
+    }
+}
+
+; Atan2 sin depender de que AHK lo traiga incorporado (algunas versiones no
+; exponen ATan2 como built-in) — devuelve el ángulo de (y,x) en radianes.
+ATan2Segura(y, x) {
+    if (x > 0)
+        return ATan(y / x)
+    if (x < 0 && y >= 0)
+        return ATan(y / x) + 3.14159265
+    if (x < 0 && y < 0)
+        return ATan(y / x) - 3.14159265
+    if (y > 0)
+        return 1.5707963
+    if (y < 0)
+        return -1.5707963
+    return 0.0
+}
+
+; Física + vida. Se apaga solo: sin partículas durante 1.5s → overlay fuera.
+ActualizarTrail() {
+    global trailParticles, trailGui, trailTimerOn, trailVacioDesde, trailUltX, trailUltY, trailFrame
+    if (!IsObject(trailGui)) {
+        SetTimer(ActualizarTrail, 0)
+        trailTimerOn := false
+        trailParticles := []
+        return
+    }
+    trailFrame += 1
+    vivos := []
+    for p in trailParticles {
+        switch p.tipo {
+            case "gojoShard":   ; succionada en espiral hacia el punto de origen (espacio colapsando)
+                p.ang += p.spin, p.rad *= 0.90
+                p.x := p.cx + Cos(p.ang) * p.rad
+                p.y := p.cy + Sin(p.ang) * p.rad
+            case "gojoOrbe":    ; onda de espacio distorsionado que se expande
+                p.rad += 2.2
+            case "corteSukuna":
+                ; estático — el filo solo se desvanece (ver PintarTrail)
+            case "ember":
+                p.x += p.vx, p.y += p.vy, p.vy += 0.18, p.vx *= 0.96
+            case "llama":
+                p.y += p.vy, p.vy *= 0.97, p.r *= 0.965
+            case "humo":
+                p.ph += 0.1, p.x += Sin(p.ph)*0.3, p.y += p.vy, p.r += p.grow
+            case "chispa":
+                p.x += p.vx, p.y += p.vy, p.vx *= 0.90, p.vy := p.vy*0.90 + 0.25
+            case "rayo":
+                ; estático — parpadea y tiembla en el dibujo
+            case "hoja":
+                p.x += p.vx, p.y += p.vy, p.vy := Min(p.vy + 0.10, 2.2), p.vx *= 0.97, p.rot += p.vrot
+            case "petalo":
+                p.ph += 0.18, p.x += p.vx + Sin(p.ph)*1.4, p.y += p.vy, p.rot += p.vrot
+            case "copo":
+                p.ph += 0.14, p.x += p.vx + Sin(p.ph)*0.6, p.y += p.vy
+            case "codigo":
+                p.y += p.vy
+            case "burbuja":
+                p.ph += 0.2, p.x += p.vx + Sin(p.ph)*0.5, p.y += p.vy
+            case "gota":
+                p.y += p.vy, p.vy += 0.35
+            case "abeja":
+                p.wob += 0.5, p.x += p.vx + Sin(p.wob)*0.9, p.y += p.vy + Cos(p.wob*1.3)*0.7, p.vx *= 0.97, p.vy *= 0.97
+            case "papelito", "cinta":
+                p.x += p.vx, p.y += p.vy, p.vy += 0.12, p.rot += p.vrot
+            case "fugaz":
+                p.x += p.vx, p.y += p.vy
+            default:   ; polvo estelar
+                p.ph += p.sp, p.x += p.vx, p.y += p.vy
+        }
+        p.life -= p.dec
+        if (p.life > 0)
+            vivos.Push(p)
+    }
+    trailParticles := vivos
+    if (trailParticles.Length = 0) {
+        if (!trailVacioDesde) {
+            trailVacioDesde := A_TickCount
+        } else if (A_TickCount - trailVacioDesde > 1500) {
+            SetTimer(ActualizarTrail, 0)
+            trailTimerOn := false
+            TrailDestruirOverlay()
+            trailUltX := -1, trailUltY := -1
+            return
+        }
+    } else {
+        trailVacioDesde := 0
+    }
+    try DllCall("InvalidateRect", "Ptr", trailGui.Hwnd, "Ptr", 0, "Int", 0)
+}
+
+; Pintor (doble búfer + color clave, mismo patrón que el confeti). GDI plano,
+; reutiliza las primitivas de la ráfaga (bola/línea/anillo/polígono).
+PintarTrail(hdc0, w, h) {
+    global trailParticles, trailOffX, trailOffY
+    memDC := DllCall("CreateCompatibleDC", "Ptr", hdc0, "Ptr")
+    hbm := DllCall("CreateCompatibleBitmap", "Ptr", hdc0, "Int", w, "Int", h, "Ptr")
+    oldBmp := DllCall("SelectObject", "Ptr", memDC, "Ptr", hbm, "Ptr")
+    brushBg := DllCall("CreateSolidBrush", "UInt", 0x030201, "Ptr")
+    rc := Buffer(16, 0)
+    NumPut("Int", 0, rc, 0), NumPut("Int", 0, rc, 4), NumPut("Int", w, rc, 8), NumPut("Int", h, rc, 12)
+    DllCall("FillRect", "Ptr", memDC, "Ptr", rc, "Ptr", brushBg)
+    DllCall("DeleteObject", "Ptr", brushBg)
+
+    ; Recorte a las ventanas del script: las partículas que vuelan más allá del
+    ; borde del macro no dejan ni un píxel sobre el resto del monitor.
+    rgnClip := TrailRegionVentanas(trailOffX, trailOffY)
+    DllCall("SelectClipRgn", "Ptr", memDC, "Ptr", rgnClip)
+
+    nullBrush := DllCall("GetStockObject", "Int", 5, "Ptr")
+    global trailFrame
+    for p in trailParticles {
+        x := p.x - trailOffX, y := p.y - trailOffY
+        if (x < -40 || y < -40 || x > w + 40 || y > h + 40)
+            continue   ; fuera de la pantalla — se recorta
+        fade := p.life
+        bgr := EscalarBGR(p.bgr, 0.35 + 0.65*fade)
+        bright := AclararBGR(p.bgr, 0.55)
+
+        switch p.tipo {
+            case "gojoShard":   ; mota succionada + estela hacia el punto de colapso
+                cxs := p.cx - trailOffX, cys := p.cy - trailOffY
+                LineaGDI(memDC, x, y, x + (cxs - x)*0.35, y + (cys - y)*0.35, 1, EscalarBGR(bgr, 0.5))
+                DibujarBolaSolida(memDC, x, y, Max(0.5, p.r*fade), bright, nullBrush)
+
+            case "gojoOrbe":    ; onda de espacio distorsionado (anillo doble azul/púrpura)
+                AnilloGDI(memDC, x, y, Max(1, p.rad), 1.6, bgr)
+                AnilloGDI(memDC, x, y, Max(1, p.rad*0.62), 1.0, EscalarBGR(HexToBGR("8A2BE2"), fade))
+
+            case "corteSukuna": ; filo blanco incandescente + halo rojo (marca del corte)
+                dx := Cos(p.ang) * p.len, dy := Sin(p.ang) * p.len
+                haloC := EscalarBGR(HexToBGR("FF2A2A"), 0.5 + 0.5*fade)
+                coreC := EscalarBGR(0xFFFFFF, 0.6 + 0.4*fade)
+                LineaGDI(memDC, x - dx, y - dy, x + dx, y + dy, Max(1, Round(3.2*fade)), haloC)
+                LineaGDI(memDC, x - dx*0.85, y - dy*0.85, x + dx*0.85, y + dy*0.85, Max(1, Round(1.6*fade)), coreC)
+
+            case "ember":
+                DibujarBolaSolida(memDC, x, y, Max(0.7, p.r*fade), bgr, nullBrush)
+                if (fade > 0.5)
+                    DibujarBolaSolida(memDC, x, y, Max(0.5, p.r*fade*0.45), bright, nullBrush)
+
+            case "llama":   ; lengua de fuego: cuerpo + núcleo claro + punta
+                DibujarBolaSolida(memDC, x, y, Max(0.8, p.r*fade), bgr, nullBrush)
+                DibujarBolaSolida(memDC, x, y - p.r*0.55, Max(0.6, p.r*0.55*fade), bright, nullBrush)
+                LineaGDI(memDC, x, y - p.r*1.7, x, y - p.r*0.7, Max(1, Round(2*fade)), bright)
+
+            case "humo":    ; voluta gris que se expande y disipa
+                AnilloGDI(memDC, x, y, Max(1, p.r), 1, EscalarBGR(p.bgr, 0.55*fade))
+                DibujarBolaSolida(memDC, x, y, Max(0.7, p.r*0.55), EscalarBGR(p.bgr, 0.35*fade), nullBrush)
+
+            case "chispa":
+                LineaGDI(memDC, x - p.vx*2.0, y - p.vy*2.0, x, y, Max(1, Round(2*fade)), bgr)
+                if (fade > 0.6)
+                    DibujarBolaSolida(memDC, x, y, 0.9, bright, nullBrush)
+
+            case "rayo":    ; relámpago quebrado: tiembla cada frame y parpadea
+                if (Mod(trailFrame + p.seed, 4) = 0)
+                    continue
+                px0 := x, py0 := y
+                loop p.segs {
+                    px1 := px0 + Cos(p.ang)*p.paso + Random(-4, 4)
+                    py1 := py0 + Sin(p.ang)*p.paso + Random(-4, 4)
+                    LineaGDI(memDC, px0, py0, px1, py1, 2, bright)
+                    LineaGDI(memDC, px0 + 1, py0 + 1, px1 + 1, py1 + 1, 1, bgr)
+                    px0 := px1, py0 := py1
+                }
+
+            case "hoja", "petalo":
+                ; Aspecto propio del tema si viene en la partícula (firma); si no,
+                ; el clásico por tipo (compatibilidad con partículas ya en vuelo).
+                ratio := p.HasProp("ratio") ? p.ratio : ((p.tipo = "petalo") ? 0.7 : 0.45)
+                dx  := Cos(p.rot)*p.r,             dy  := Sin(p.rot)*p.r
+                dx2 := Cos(p.rot + 1.5708)*(p.r*ratio), dy2 := Sin(p.rot + 1.5708)*(p.r*ratio)
+                PoligonoGDI(memDC, [[x+dx, y+dy], [x+dx2, y+dy2], [x-dx, y-dy], [x-dx2, y-dy2]], bgr)
+                if (p.tipo = "hoja")
+                    LineaGDI(memDC, x - dx, y - dy, x + dx, y + dy, 1, EscalarBGR(p.bgr, 0.35*fade))
+                else
+                    DibujarBolaSolida(memDC, x, y, Max(0.5, p.r*0.16*fade), bright, nullBrush)
+
+            case "copo":    ; copo con nº de brazos propio del tema (firma) + puntas laterales
+                brazos := p.HasProp("spikes") ? p.spikes : 3
+                loop brazos {
+                    a := p.rot + (A_Index - 1) * (3.14159265 / brazos)
+                    ca := Cos(a)*p.r*fade, sa := Sin(a)*p.r*fade
+                    LineaGDI(memDC, x - ca, y - sa, x + ca, y + sa, 1, bgr)
+                    if (p.r >= 3.5) {
+                        LineaGDI(memDC, x + ca*0.55, y + sa*0.55, x + ca*0.55 - sa*0.28, y + sa*0.55 + ca*0.28, 1, bgr)
+                        LineaGDI(memDC, x - ca*0.55, y - sa*0.55, x - ca*0.55 + sa*0.28, y - sa*0.55 - ca*0.28, 1, bgr)
+                    }
+                }
+                DibujarBolaSolida(memDC, x, y, Max(0.6, p.r*0.18*fade), bright, nullBrush)
+
+            case "codigo":  ; columna matrix: cabeza brillante + estela degradada (paso propio del tema)
+                pasoCol := p.HasProp("paso") ? p.paso : 5
+                loop p.segs {
+                    sy := y - (A_Index - 1) * pasoCol
+                    col := (A_Index = 1) ? bright : EscalarBGR(p.bgr, (0.9 - A_Index*0.11) * fade)
+                    LineaGDI(memDC, x, sy, x, sy - 3, (A_Index = 1) ? 2 : 1, col)
+                }
+
+            case "burbuja":
+                if (fade > 0.3) {
+                    AnilloGDI(memDC, x, y, Max(1, p.r*(0.6 + 0.4*fade)), 1, bgr)
+                    DibujarBolaSolida(memDC, x - p.r*0.3, y - p.r*0.3, Max(0.5, p.r*0.15), bright, nullBrush)
+                } else {   ; pop: anillo en expansión + 4 gotitas
+                    er := p.r + (0.3 - fade)*22
+                    AnilloGDI(memDC, x, y, er, 1, EscalarBGR(p.bgr, fade*2.5))
+                    loop 4 {
+                        a := (A_Index/4.0) * 6.2831853
+                        DibujarBolaSolida(memDC, x + Cos(a)*er*0.85, y + Sin(a)*er*0.85, 0.8, bgr, nullBrush)
+                    }
+                }
+
+            case "gota":
+                LineaGDI(memDC, x, y - p.len*fade, x, y, Max(1, Round(2*fade)), bgr)
+                if (fade < 0.3) {   ; corona de salpicadura
+                    cr := 2 + (0.3 - fade)*16
+                    AnilloGDI(memDC, x, y, cr, 1, EscalarBGR(p.bgr, fade*2.5))
+                    DibujarBolaSolida(memDC, x - cr*0.7, y - cr*0.5, 0.8, bgr, nullBrush)
+                    DibujarBolaSolida(memDC, x + cr*0.7, y - cr*0.5, 0.8, bgr, nullBrush)
+                }
+
+            case "abeja":   ; abeja con raya y alas que ALETEAN
+                DibujarBolaSolida(memDC, x, y, Max(0.8, p.r*fade), bgr, nullBrush)
+                LineaGDI(memDC, x - p.r*0.7, y, x + p.r*0.7, y, 1, 0x000000)
+                up := Mod(trailFrame, 2) ? 1.0 : 0.45
+                LineaGDI(memDC, x - 1, y - 1, x - p.r - 0.5, y - p.r*up - 1, 1, bright)
+                LineaGDI(memDC, x + 1, y - 1, x + p.r + 0.5, y - p.r*up - 1, 1, bright)
+
+            case "papelito":
+                hw := p.w/2, hh := p.h/2
+                ca := Cos(p.rot), sa := Sin(p.rot)
+                PoligonoGDI(memDC, [
+                    [x + (-hw*ca + hh*sa), y + (-hw*sa - hh*ca)],
+                    [x + ( hw*ca + hh*sa), y + ( hw*sa - hh*ca)],
+                    [x + ( hw*ca - hh*sa), y + ( hw*sa + hh*ca)],
+                    [x + (-hw*ca - hh*sa), y + (-hw*sa + hh*ca)]], bgr)
+
+            case "cinta":   ; serpentina ondulada de 3 tramos
+                x1 := x + Cos(p.rot)*5,           y1 := y + Sin(p.rot)*5
+                x2 := x1 + Cos(p.rot + 0.9)*5,    y2 := y1 + Sin(p.rot + 0.9)*5
+                x3 := x2 + Cos(p.rot + 1.8)*5,    y3 := y2 + Sin(p.rot + 1.8)*5
+                LineaGDI(memDC, x, y, x1, y1, 2, bgr)
+                LineaGDI(memDC, x1, y1, x2, y2, 2, bright)
+                LineaGDI(memDC, x2, y2, x3, y3, 2, bgr)
+
+            case "fugaz":   ; estrella fugaz: estela doble degradada + cabeza viva
+                LineaGDI(memDC, x - p.vx*2.4, y - p.vy*2.4, x, y, 1, EscalarBGR(p.bgr, 0.30*fade + 0.10))
+                LineaGDI(memDC, x - p.vx*1.2, y - p.vy*1.2, x, y, 2, bgr)
+                DibujarBolaSolida(memDC, x, y, Max(1.0, p.r*fade), bright, nullBrush)
+
+            default:   ; polvo estelar de 8 puntas que titila
+                s := p.r * fade * (0.4 + 0.6*(0.5 + 0.5*Sin(p.ph)))
+                if (s >= 0.6) {
+                    LineaGDI(memDC, x - s, y, x + s, y, 1, bgr)
+                    LineaGDI(memDC, x, y - s, x, y + s, 1, bgr)
+                    d := s*0.55
+                    LineaGDI(memDC, x - d, y - d, x + d, y + d, 1, EscalarBGR(p.bgr, 0.45*fade))
+                    LineaGDI(memDC, x - d, y + d, x + d, y - d, 1, EscalarBGR(p.bgr, 0.45*fade))
+                    DibujarBolaSolida(memDC, x, y, Max(0.7, s*0.3), bright, nullBrush)
+                }
+        }
+    }
+
+    DllCall("SelectClipRgn", "Ptr", memDC, "Ptr", 0)
+    DllCall("DeleteObject", "Ptr", rgnClip)
+    DllCall("BitBlt", "Ptr", hdc0, "Int", 0, "Int", 0, "Int", w, "Int", h, "Ptr", memDC, "Int", 0, "Int", 0, "UInt", 0x00CC0020)
+    DllCall("SelectObject", "Ptr", memDC, "Ptr", oldBmp)
+    DllCall("DeleteObject", "Ptr", hbm)
+    DllCall("DeleteDC", "Ptr", memDC)
+}
+
 ; ===== TRAY ICON DINAMICO =====
 global trayIconCache := Map()
 global trayLastColor := ""
@@ -5213,10 +6625,11 @@ historialVisible := Integer(IniRead(configPath, "UI", "HistorialVisible", "1")) 
 if (!historialVisible)
     historialGui.Hide()
 
-; Restaurar perfil activo guardado (1=tct, 2=sp, 3=frt, 4=dstv, 5/6=vacíos extra)
+; Restaurar perfil activo guardado (1=tct, 2=sp, 3=frt, 4=dstv, 5=gtav, 6=war, 7-9=Custom)
 perfilActivo := Integer(IniRead(configPath, "UI", "PerfilActivo", "1"))
-if (perfilActivo < 1 || perfilActivo > 6)
+if (perfilActivo < 1 || perfilActivo > PERFIL_MAX)
     perfilActivo := 1
+CargarSecuenciasCustom()   ; war + Custom 1/2/3: carga lo guardado o la secuencia de fábrica
 
 ; Restaurar velocidad de pasos (1=lento, 2=medio, 3=rápido)
 ; El botón 🐢/🚶/⚡ ya existe (se creó arriba con el valor por defecto) →
@@ -5254,6 +6667,19 @@ optDecoraciones  := Integer(IniRead(configPath, "Optimizacion", "Decoraciones", 
 optConfeti       := Integer(IniRead(configPath, "Optimizacion", "Confeti",       "1")) = 1
 optTypeReveal    := Integer(IniRead(configPath, "Optimizacion", "TypeReveal",    "1")) = 1
 optEscena        := Integer(IniRead(configPath, "Optimizacion", "Escena",        "1")) = 1
+
+; Cargar sonido retro / intro de arranque (toggles en [Optimizacion] como el resto)
+optSonidos   := Integer(IniRead(configPath, "Optimizacion", "Sonidos",   "1")) = 1
+optSonidosUI := Integer(IniRead(configPath, "Optimizacion", "SonidosUI", "1")) = 1
+optIntroBoot := Integer(IniRead(configPath, "Optimizacion", "IntroBoot", "1")) = 1
+optTrailRaton := Integer(IniRead(configPath, "Optimizacion", "TrailRaton", "1")) = 1
+sonidosVolumen := Integer(IniRead(configPath, "Sonido", "Volumen", "60"))
+; Escala de la escena decorativa (160 = 1.6x). Ajustable a mano en el ini.
+decoEscala := Integer(IniRead(configPath, "UI", "EscenaEscala", "160")) / 100.0
+if (decoEscala < 1.0 || decoEscala > 2.2)
+    decoEscala := 1.6
+if (sonidosVolumen < 0 || sonidosVolumen > 100)
+    sonidosVolumen := 60
 
 ; Cargar configuración de efectos de acción
 efectosAccionActivos := Integer(IniRead(configPath, "Efectos", "Accion", "1")) = 1
@@ -5496,6 +6922,10 @@ try {
     FileAppend("`r`n═══════ MACRO ARRANCADO v" VERSION_ACTUAL " - " FormatTime(A_Now, "yyyy-MM-dd HH:mm:ss") " ═══════`r`n", historialLogPath, "UTF-8")
 }
 
+; Verificar resolución/monitor y avisar si algo puede descuadrar las coordenadas.
+; Deferido para que la GUI/historial ya estén listos y el aviso se lea claro.
+SetTimer(VerificarResolucion, -2500)
+
 ; Auto-arrancar el macro si el usuario lo quería activo. Dos señales, cualquiera
 ; de las dos alcanza:
 ;   - QuiereActivo: intención DURABLE del usuario, escrita al instante por
@@ -5511,6 +6941,21 @@ if ((!enDescanso || PerfilSinGestion()) && (quiereActivo || autoStartWatchdog)) 
     try IniDelete(configPath, "Watchdog", "AutoStart")  ; consumir flag (single-shot)
     SetTimer(() => Iniciar(), -1500)
 }
+
+; Sonido retro: sintetizar los .wav si faltan (una sola vez — quedan cacheados
+; en %TEMP%) y aplicar volumen. Diferido para no retrasar el Show de la GUI.
+SetTimer(SfxInit, -120)
+OnMessage(0x0201, SfxClickMsg)   ; tick sutil de UI en cualquier click sobre el script
+SetTimer(TrailPoll, 20)          ; trail de arañazo: sondeo del cursor (solo suelta sobre el macro)
+
+; Intro de arranque cinematográfica — solo en arranques manuales "fríos":
+; en relanzamientos del watchdog/auto-start taparía la GUI justo cuando
+; Iniciar() va a trabajar; en descanso y en mini mode no pinta nada; y en el
+; test automatizado de temas contaminaría los tiempos.
+if (optIntroBoot && !quiereActivo && !autoStartWatchdog && !enDescanso
+    && Integer(IniRead(configPath, "UI", "MiniMode", "0")) != 1
+    && !(A_Args.Length && A_Args[1] = "testtemas"))
+    MostrarIntroBoot()
 
 ; Restaurar el modo mini si estaba activo cuando se cerró el macro
 if (Integer(IniRead(configPath, "UI", "MiniMode", "0")) = 1) {
@@ -6600,7 +8045,7 @@ EnviarWebhookConFotoSync(titulo, mensaje, colorHex) {
 
 EnviarWebhookEvento(tipo) {
     global webhookEnabled, webhookEventos, webhookURL
-    global contadorSecuencias, contadorDestruccion
+    global contadorSecuencias, contadorDestruccion, contadorDestrabado
     global totalSecuenciasGuardadas, totalDestruccionGuardada
     global tiempoAcumulado, tiempoInicio, timerActivo
     if (!webhookEnabled || webhookURL = "")
@@ -6639,6 +8084,13 @@ EnviarWebhookEvento(tipo) {
                 "Secuencia completada: " contadorSecuencias " (sesión)`nTotal: " secs
                 . "`nEstimado total: ~" FormatearMiles(Round(secs * OroPorSecuencia())) " oro · ~" FormatearMiles(Round(secs * XpPorSecuencia())) " XP",
                 "00AAFF")
+        case "resumen":
+            EnviarWebhook(Chr(0x1F4CA) " Resumen de sesión",
+                Chr(0x1F552) " Activo: " durStr
+                . "`n" Chr(0x2705) " Secuencias: " contadorSecuencias " (sesión) · " secs " total"
+                . "`n" Chr(0x1FA99) " ~" FormatearMiles(Round(secs * OroPorSecuencia())) " oro · " Chr(0x2B50) " ~" FormatearMiles(Round(secs * XpPorSecuencia())) " XP (estimado total)"
+                . "`n" Chr(0x267B) " Relanzamientos: " contadorDestruccion " · Destrabes 'c': " contadorDestrabado,
+                "00BCD4")
     }
 }
 
@@ -6693,15 +8145,16 @@ AbrirPanelWebhook(*) {
     cbAlt  := wg.Add("CheckBox", "x22 y184 w" (W - 34) " h18 c" colorTextoPrincipal " Background" colorFondoPrincipal " Checked" (webhookEventos["altf4"] ? 1 : 0), " " Chr(0x1F480) " Alt+F4 ejecutado")
     cbMile := wg.Add("CheckBox", "x22 y202 w" (W - 34) " h18 c" colorTextoPrincipal " Background" colorFondoPrincipal " Checked" (webhookEventos["milestone"] ? 1 : 0), " " Chr(0x1F3C6) " Hitos de secuencias")
     cbSeq  := wg.Add("CheckBox", "x22 y220 w" (W - 34) " h18 c" colorTextoPrincipal " Background" colorFondoPrincipal " Checked" (webhookEventos["secuencia"] ? 1 : 0), " " Chr(0x2705) " Cada secuencia completada")
-    for cb in [cbInic, cbPar, cbDest, cbAlt, cbMile, cbSeq]
+    cbRes  := wg.Add("CheckBox", "x22 y238 w" (W - 34) " h18 c" colorTextoPrincipal " Background" colorFondoPrincipal " Checked" (webhookEventos["resumen"] ? 1 : 0), " " Chr(0x1F4CA) " Resumen periódico (cada 30 min)")
+    for cb in [cbInic, cbPar, cbDest, cbAlt, cbMile, cbSeq, cbRes]
         cb.SetFont("s9", "Segoe UI")
 
-    lblStatus := wg.Add("Text", "x12 y244 w" (W - 24) " h16 c" colorTextoPrincipal " Background" colorFondoPrincipal, "")
+    lblStatus := wg.Add("Text", "x12 y262 w" (W - 24) " h16 c" colorTextoPrincipal " Background" colorFondoPrincipal, "")
     lblStatus.SetFont("s9 Italic", "Segoe UI")
 
     btnW := Round((W - 36) / 2)
-    btnTest := wg.Add("Text", "x12 y266 w" btnW " h28 +0x201 Background" colorBotonNormal " c" colorBtnTexto " Center", Chr(0x1F9EA) " Probar")
-    btnSave := wg.Add("Text", "x" (24 + btnW) " y266 w" btnW " h28 +0x201 Background" colorBotonNormal " c" colorBtnTexto " Center", Chr(0x1F4BE) " Guardar")
+    btnTest := wg.Add("Text", "x12 y284 w" btnW " h28 +0x201 Background" colorBotonNormal " c" colorBtnTexto " Center", Chr(0x1F9EA) " Probar")
+    btnSave := wg.Add("Text", "x" (24 + btnW) " y284 w" btnW " h28 +0x201 Background" colorBotonNormal " c" colorBtnTexto " Center", Chr(0x1F4BE) " Guardar")
     for b in [btnTest, btnSave]
         b.SetFont("s10 c" colorBtnTexto " Bold", "Segoe UI")
 
@@ -6714,6 +8167,7 @@ AbrirPanelWebhook(*) {
         webhookEventos["altf4"]      := cbAlt.Value,
         webhookEventos["milestone"]  := cbMile.Value,
         webhookEventos["secuencia"]  := cbSeq.Value,
+        webhookEventos["resumen"]    := cbRes.Value,
         GuardarWebhook(),
         AgregarHistorial(Chr(0x1F514) " Webhook guardado — "
             (webhookURL = "" ? "SIN URL" : (webhookEnabled ? "activado" : "DESACTIVADO")),
@@ -6732,7 +8186,7 @@ AbrirPanelWebhook(*) {
     RegistrarHover(btnTest, () => colorBotonNormal)
     RegistrarHover(btnSave, () => colorBotonNormal)
 
-    wg.Show("w" W " h306 Center")
+    wg.Show("w" W " h324 Center")
     RedondearVentana(wg.Hwnd, 14)
     RegistrarAutoCierre(wg, (*) => (LimpiarHoverGui(wg), wg.Destroy(), webhookGuiRef := ""))
 }
@@ -6986,15 +8440,13 @@ AbrirPanelOptimizacion(*) {
 
     optGui := Gui("+AlwaysOnTop -Caption +ToolWindow")
     optGui.BackColor := colorFondoPrincipal
-    W := 270
+    W := 500   ; dos columnas: panel ancho y compacto en vez de torre de 660px
 
     barr := optGui.Add("Text", "x0 y0 w" W " h28 Background" colorBarra " Center +0x200",
                        "  " Chr(0x2699) "  Optimización")
     barr.SetFont("s10 c" colorTextoBarra " Bold", "Segoe UI Semibold")
     barr.OnEvent("Click", (*) => PostMessage(0xA1, 2,,, "ahk_id " optGui.Hwnd))
     barr.OnEvent("DoubleClick", (*) => CerrarPanelOptimizacion())
-
-    y := 38
 
     toggles := [
         {var: "optHoverAccent",   label: "Hover Accent",         desc: "Colores de efecto de los botones"},
@@ -7006,34 +8458,40 @@ AbrirPanelOptimizacion(*) {
         {var: "optDecoraciones",  label: "Decoraciones",         desc: "Efectos los temas"},
         {var: "optConfeti",       label: "Confeti",              desc: "Confeti en milestones"},
         {var: "optTypeReveal",    label: "Type Reveal",          desc: "Revelado progresivo de texto"},
-        {var: "optEscena",        label: "Decoración del tema",   desc: "Decorado del borde por tema. Se mantiene aunque las partículas/Eco estén apagadas"},
+        {var: "optEscena",        label: "Decoración del tema",   desc: "Decorado del borde según el tema"},
+        {var: "optSonidos",       label: "Sonidos retro",        desc: "SFX retro de eventos del macro"},
+        {var: "optSonidosUI",     label: "Sonido de botones",    desc: "Tick sutil al pulsar botones"},
+        {var: "optIntroBoot",     label: "Intro de arranque",    desc: "Secuencia de arranque al abrir"},
+        {var: "optTrailRaton",    label: "Arañazo del ratón",    desc: "Partículas al arrastrar el cursor por el macro"},
     ]
 
-    for t in toggles {
+    ; Rejilla 2 columnas × N filas (checkbox + descripción debajo)
+    for i, t in toggles {
         val := OptGetValor(t.var)
-        chk := optGui.Add("CheckBox", "x16 y" y " w" (W - 32) " h20 c" colorTextoPrincipal " Background" colorFondoPrincipal,
+        tx := 16 + Mod(i - 1, 2) * 242
+        ty := 38 + ((i - 1) // 2) * 42
+        chk := optGui.Add("CheckBox", "x" tx " y" ty " w226 h20 c" colorTextoPrincipal " Background" colorFondoPrincipal,
                           " " t.label)
         chk.SetFont("s9 Bold", "Segoe UI")
         chk.Value := val ? 1 : 0
         varName := t.var
         chk.OnEvent("Click", OptToggleCallback.Bind(varName))
 
-        optGui.Add("Text", "x32 y" (y + 20) " w" (W - 48) " h14 c" colorBarra " Background" colorFondoPrincipal, t.desc)
+        optGui.Add("Text", "x" (tx + 16) " y" (ty + 20) " w210 h14 c" colorBarra " Background" colorFondoPrincipal, t.desc)
             .SetFont("s7", "Segoe UI")
-        y += 38
     }
+    y := 38 + ((toggles.Length + 1) // 2) * 42 + 4
 
-    y += 4
     sep := optGui.Add("Text", "x16 y" y " w" (W - 32) " h1 Background" colorBarra, "")
     y += 8
 
-    btnTodoOn := optGui.Add("Text", "x16 y" y " w110 h28 +0x201 Background" colorBotonNormal " c" colorBtnTexto " Center",
+    btnTodoOn := optGui.Add("Text", "x16 y" y " w150 h28 +0x201 Background" colorBotonNormal " c" colorBtnTexto " Center",
                             Chr(0x2714) " Todo ON")
     btnTodoOn.SetFont("s9 Bold", "Segoe UI Semibold")
     btnTodoOn.OnEvent("Click", OptTodoOn)
     RegistrarHover(btnTodoOn, () => colorBotonNormal)
 
-    btnTodoOff := optGui.Add("Text", "x" (W - 16 - 110) " y" y " w110 h28 +0x201 Background" colorBotonNormal " c" colorBtnTexto " Center",
+    btnTodoOff := optGui.Add("Text", "x" (W - 16 - 150) " y" y " w150 h28 +0x201 Background" colorBotonNormal " c" colorBtnTexto " Center",
                              Chr(0x2716) " Todo OFF")
     btnTodoOff.SetFont("s9 Bold", "Segoe UI Semibold")
     btnTodoOff.OnEvent("Click", OptTodoOff)
@@ -7059,6 +8517,7 @@ AbrirPanelOptimizacion(*) {
 OptGetValor(varName) {
     global optHoverAccent, optHoverBreath, optShimmerBarra, optPulsoBarra
     global optPulsoLogo, optLogoGiratorio, optDecoraciones, optConfeti, optTypeReveal, optEscena
+    global optSonidos, optSonidosUI, optIntroBoot, optTrailRaton
     switch varName {
         case "optHoverAccent":      return optHoverAccent
         case "optHoverBreath":      return optHoverBreath
@@ -7070,6 +8529,10 @@ OptGetValor(varName) {
         case "optConfeti":          return optConfeti
         case "optTypeReveal":       return optTypeReveal
         case "optEscena":           return optEscena
+        case "optSonidos":          return optSonidos
+        case "optSonidosUI":        return optSonidosUI
+        case "optIntroBoot":        return optIntroBoot
+        case "optTrailRaton":       return optTrailRaton
     }
     return false
 }
@@ -7079,6 +8542,7 @@ OptToggleCallback(varName, ctrl, *) {
     global configPath
     global optHoverAccent, optHoverBreath, optShimmerBarra, optPulsoBarra
     global optPulsoLogo, optLogoGiratorio, optDecoraciones, optConfeti, optTypeReveal
+    global optSonidos, optSonidosUI, optIntroBoot, optTrailRaton
     val := ctrl.Value = 1
     switch varName {
         case "optHoverAccent":      optHoverAccent      := val
@@ -7091,17 +8555,28 @@ OptToggleCallback(varName, ctrl, *) {
         case "optConfeti":          optConfeti          := val
         case "optTypeReveal":       optTypeReveal       := val
         case "optEscena":           optEscena           := val
+        case "optSonidos":          optSonidos          := val
+        case "optSonidosUI":        optSonidosUI        := val
+        case "optIntroBoot":        optIntroBoot        := val
+        case "optTrailRaton":       optTrailRaton       := val
     }
     iniKey := StrReplace(varName, "opt", "")
     IniWrite(val ? 1 : 0, configPath, "Optimizacion", iniKey)
     if (varName = "optEscena")
         RefrescarTimersVisuales()   ; encender/apagar la escena al instante (incluso en Eco)
+    if (varName = "optSonidos")
+        val ? SfxPlay("secuencia") : SfxDetener()   ; confirmación audible / silencio inmediato
+    else if (varName = "optSonidosUI" && val)
+        SfxPlay("click")
+    else if (varName = "optTrailRaton" && !val)
+        TrailApagar()   ; overlay y partículas fuera al instante
 }
 
 OptSetTodos(val) {
     global configPath
     global optHoverAccent, optHoverBreath, optShimmerBarra, optPulsoBarra
     global optPulsoLogo, optLogoGiratorio, optDecoraciones, optConfeti, optTypeReveal, optEscena
+    global optSonidos, optSonidosUI, optIntroBoot, optTrailRaton
     optHoverAccent   := val
     optHoverBreath   := val
     optShimmerBarra  := val
@@ -7112,6 +8587,14 @@ OptSetTodos(val) {
     optConfeti       := val
     optTypeReveal    := val
     optEscena        := val
+    optSonidos       := val
+    optSonidosUI     := val
+    optIntroBoot     := val
+    optTrailRaton    := val
+    if (!val) {
+        SfxDetener()
+        TrailApagar()
+    }
     v := val ? 1 : 0
     IniWrite(v, configPath, "Optimizacion", "HoverAccent")
     IniWrite(v, configPath, "Optimizacion", "HoverBreath")
@@ -7123,6 +8606,10 @@ OptSetTodos(val) {
     IniWrite(v, configPath, "Optimizacion", "Confeti")
     IniWrite(v, configPath, "Optimizacion", "TypeReveal")
     IniWrite(v, configPath, "Optimizacion", "Escena")
+    IniWrite(v, configPath, "Optimizacion", "Sonidos")
+    IniWrite(v, configPath, "Optimizacion", "SonidosUI")
+    IniWrite(v, configPath, "Optimizacion", "IntroBoot")
+    IniWrite(v, configPath, "Optimizacion", "TrailRaton")
 }
 
 OptTodoOn(*) {
@@ -7175,7 +8662,9 @@ TutorialPaginas() {
          . "• 🔒 sp — farmeo privado: crea sala en Brawlhalla y juega con un bot.`n`n"
          . "• ⚔ frt — modo fruta: farmea nivel en fruits battleground.`n`n"
          . "• ∅ dstv — generadores: Para distrito de violencia para hacer los generadores.`n`n"
-         . "• G gtav — secuencia de teclas para GTA V (m, flechas y enters), una vez por Iniciar." },
+         . "• G gtav — secuencia de teclas para GTA V (m, flechas y enters), una vez por Iniciar.`n`n"
+         . "• " Chr(0x1FA96) " war — secuencia de tienda a medida (compra, factory, militar, venta, país...), en bucle infinito.`n`n"
+         . "• " Chr(0x2699) " Custom 1/2/3 — perfiles en blanco: crea tu propio macro paso a paso en Personalizar → Configurar → Editor de pasos." },
 
     { ico: Chr(0x1F3A8), tit: "Apariencia y personalización",
       txt: "• ◐ Tema: sirve para cambiar el aspecto del macro con ~65 temas (claros, oscuros, temáticos y secretos (se consiguen con los logros)).`n`n"
@@ -7372,7 +8861,46 @@ CerrarTutorial(*) {
 ; ═══════════════════════════════════════════════════════════════
 ParchesPaginas() {
     return [
-    { ico: Chr(0x1F4CB), tit: "Parche v32.7 (actual)",
+    { ico: Chr(0x1F9E9), tit: "Parche v32.11 (actual)",
+      txt: "· NUEVO: Editor de pasos — crea tu propio macro sin`n"
+         . "   tocar código (Personalizar → Configurar macro)`n"
+         . "· 3 perfiles Custom en blanco (7,8,9), renombrables,`n"
+         . "   con click/tecla/spam+scroll/spam+flecha`n"
+         . "· Capturador de posición: un click en pantalla rellena`n"
+         . "   las coordenadas del paso, sin adivinar números`n"
+         . "· Reordenar, borrar y pausas configurables por paso`n"
+         . "· Todo se guarda solo, al instante, en el config`n" },
+
+    { ico: Chr(0x2728), tit: "Parche v32.10",
+      txt: "· El arañazo del cursor ya no se repite entre`n"
+         . "   temas de la misma familia: cada tema tiene su`n"
+         . "   propia velocidad, tamaño, aspecto y paleta`n"
+         . "· ♾ Gojo distorsiona el espacio: motas succionadas`n"
+         . "   en espiral + ondas de Ilimitado azul/púrpura`n"
+         . "· ⛩ Sukuna araña con cortes de katana: filo blanco`n"
+         . "   incandescente y halo rojo siguiendo el arrastre`n"
+         . "· Fix: Premium y Miel recuperaban su confeti/abejas`n"
+         . "   en el arrastre (antes caían en chispas genéricas)`n" },
+
+    { ico: Chr(0x2728), tit: "Parche v32.9",
+      txt: "· Cada tema tiene ahora SUS partículas: forma,`n"
+         . "   colores y movimiento propios (¡ninguno repite!)`n"
+         . "· La ráfaga al detectar también lleva el sello del`n"
+         . "   tema: su silueta, su paleta y su ritmo`n"
+         . "· Transición de tema nueva: el viento barre las`n"
+         . "   partículas viejas y las nuevas brotan creciendo`n"
+         . "· Perfil " Chr(0x1FA96) " war: secuencia de tienda en bucle`n" },
+
+    { ico: Chr(0x1F50A), tit: "Parche v32.8",
+      txt: "· ¡SUENA! SFX chiptune sintetizados por el script`n"
+         . "· Intro de arranque estilo consola retro`n"
+         . "· El ratón araña la pantalla: partículas del tema`n"
+         . "· Personalizar rediseñado: 4 categorías con sidebar`n"
+         . "· Paneles más amplios: Logros, Stats, Optimización`n"
+         . "· Decoración del tema a lo GRANDE (escala 160%)`n"
+         . "· Toggles nuevos en Optimización + volumen SFX`n" },
+
+    { ico: Chr(0x1F4CB), tit: "Parche v32.7",
       txt: "· Humanización (tct/sp): jitter en cada click y`n"
          . "   variación en los tiempos, para no repetir`n"
          . "   siempre el mismo patrón exacto`n"
@@ -8532,6 +10060,8 @@ TransicionTema(tema, guardar := true) {
     if (temaEnTransicion)
         return
 
+    SfxPlay("tema")   ; whoosh — solo llega aquí en cambios manuales de tema
+
     ; Si estamos en mini mode, aplicar tema al mini sin tocar el macro principal
     if (modoMini) {
         AplicarTemaAlMini(tema)
@@ -8559,6 +10089,11 @@ TransicionTema(tema, guardar := true) {
         histColor2: colorHist2,
         histColor3: colorHist3
     }
+
+    ; Coreografía de partículas: barrer las del tema viejo (viento + fade) y,
+    ; a mitad de transición, hacer brotar las del nuevo. Debe arrancar ANTES de
+    ; poner temaEnTransicion para capturar la variante saliente.
+    ParticulasTransSalida()
 
     temaEnTransicion := true
     temaTransInicio  := A_TickCount
@@ -8831,9 +10366,12 @@ AplicarTema(tema, guardar := true, fromTrans := false) {
     ; que las partículas de fondo (EfectoDeTema), para que la ráfaga al
     ; detectar "represente" al tema (agua→lluvia, verde→viento de hojas...)
     ; en vez de una forma geométrica genérica sin relación con el tema.
-    global efAccionEstilo
+    global efAccionEstilo, partVar
     efAccionEstilo := InStr(tema.nombre, "P R E M I U M") ? "premium"
         : InStr(tema.nombre, "Miel") ? "abejas" : EfectoDeTema(tema)
+    ; Variante de partículas del tema (v32.9): también sella la ráfaga de acción
+    ; aunque las partículas de fondo estén apagadas.
+    partVar := VarianteDeTema(tema)
 
     ; ── Detección del tema PREMIUM (multi-hue RGB en todo) ──
     temaPremiumActivo := InStr(tema.nombre, "P R E M I U M") > 0
@@ -9407,8 +10945,9 @@ AbrirCodigo(*) {
 }
 
 ; Perfiles que NO gestionan Brawlhalla: sin anti-AFK, sin modo destrucción,
-; sin ciclo de descanso, sin relanzamientos ni Alt+F4. Son frt(3), dstv(4) y
-; los dos perfiles vacíos extra (5 y 6, "macro base lista para configurar").
+; sin ciclo de descanso, sin relanzamientos ni Alt+F4. Son frt(3), dstv(4),
+; gtav(5, secuencia de teclas), war(6) y Custom 1/2/3(7-9) — estos 3 últimos
+; comparten el motor SecuenciaTick, ver [[secuenciasPerfil]].
 PerfilSinGestion(idx := 0) {
     global perfilActivo
     if (idx = 0)
@@ -9431,7 +10970,9 @@ EmojiPerfil(idx := 0) {
         return Chr(0x2205)   ; ∅ dstv (detector circular)
     if (idx = 5)
         return "G"           ; G de gtav (secuencia de teclas)
-    return Chr(0x2465)        ; ⑥ perfil vacío extra B
+    if (idx = 6)
+        return Chr(0x1FA96)  ; 🪖 war (secuencia de tienda)
+    return Chr(0x2699)        ; ⚙ Custom 1/2/3 (7,8,9 — perfiles editables por el usuario)
 }
 
 ; Devuelve el nombre legible completo (emoji + nombre) para el historial.
@@ -9449,14 +10990,16 @@ NombrePerfil(idx := 0) {
         return Chr(0x2205) " dstv"      ; ∅ dstv (detector circular)
     if (idx = 5)
         return "gtav"                   ; gtav (secuencia ciega de teclas en bucle)
-    return Chr(0x2465) " base 2"        ; ⑥ perfil vacío extra B (sin timers/AFK/AltF4)
+    if (idx = 6)
+        return Chr(0x1FA96) " war"      ; 🪖 war (secuencia de tienda en bucle)
+    return Chr(0x2699) " " NombreCustomPerfil(idx)   ; ⚙ Custom 1/2/3 (7-9), o el nombre que le puso el usuario
 }
 
-; Cicla 1 → 2 → 3 → 4 → 5 → 6 → 1 → ...
+; Cicla 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 9 → 1 → ...
 CambiarPerfil(*) {
-    global perfilActivo, btnPerfil, configPath, brawlhallaLanzado
+    global perfilActivo, btnPerfil, configPath, brawlhallaLanzado, PERFIL_MAX
     global ultimoCambio, modoDestruccion, tiempoUltimoLanzamiento, ultimoPasoEjecutado
-    perfilActivo := (perfilActivo >= 6) ? 1 : perfilActivo + 1
+    perfilActivo := (perfilActivo >= PERFIL_MAX) ? 1 : perfilActivo + 1
     btnPerfil.Value := EmojiPerfil()
     DllCall("InvalidateRect", "Ptr", btnPerfil.Hwnd, "Ptr", 0, "Int", 1)
     DllCall("UpdateWindow",   "Ptr", btnPerfil.Hwnd)
@@ -11886,6 +13429,11 @@ TickCicloDescanso() {
             ; se salta (quedó en true de la sesión anterior) y el juego no se
             ; reabre hasta el respaldo de 7 min.
             brawlhallaLanzado := false
+            ; Al despertar: dentro de 1 min 30 s pulsar 'c' dos veces. Para
+            ; entonces el juego ya cargó y suele estar en el popup de noticias
+            ; con el que Brawlhalla reabre; las dos pulsaciones lo cierran de
+            ; forma fiable (además del destrabado reactivo de TickDestrabarC).
+            SetTimer(PulsarCDobleTrasDespertar, -90000)
             if (activo) {
                 ; El macro siguió encendido durante la hora de descanso → los
                 ; contadores llevan 1h congelados: resetearlos para que el
@@ -12090,6 +13638,7 @@ VerificarMilestone(n) {
             }
             if (!yaVisto) {
                 milestonesVistos.Push(m)
+                SfxPlay("milestone")
                 MostrarToast(Chr(0x1F3C6) "  ¡" m " secuencias — hito!", 3500)
                 EnviarWebhookMilestone(m)
             }
@@ -12137,6 +13686,10 @@ DespuesDeAccion(esSecuencia := false) {
         LanzarConfeti()
     }
 
+    ; ── Sonido: moneda por secuencia; en las múltiplos de 5, pop de confeti ──
+    if (esSecuencia)
+        SfxPlay((contadorSecuencias > 0 && Mod(contadorSecuencias, 5) = 0) ? "confeti" : "secuencia")
+
     ; ── Confeti cada 5 secuencias ──
     if (esSecuencia && contadorSecuencias > 0 && Mod(contadorSecuencias, 5) = 0)
         LanzarConfeti()
@@ -12146,6 +13699,7 @@ DespuesDeAccion(esSecuencia := false) {
 
 MostrarToastCritico() {
     global miGui
+    SfxPlay("critico")
     miGui.GetPos(&mx, &my, &mw, &mh)
     tGui := Gui("+AlwaysOnTop -Caption +ToolWindow")
     tGui.BackColor := "000000"
@@ -12410,6 +13964,7 @@ VerificarLogros() {
         if (!l.desbloqueado && cumplidos.Has(l.id) && cumplidos[l.id]) {
             l.desbloqueado := true
             GuardarLogro(l.id)
+            SfxPlay("logro")
             MostrarToast(Chr(0x1F3C5) "  LOGRO: " l.nombre, 4000, "FFD700", "1A1A00")
         }
     }
@@ -12450,15 +14005,15 @@ MostrarPaginaLogrosGrid(pagina) {
     paginas := ["🎨 TEMAS", "🌐 TCT & 🔒 SP", "⚔ FRT", "∅ DSTV"]
     nombrePagina := paginas[pagina + 1]
 
-    ; Tamaño FIJO como el libro de parches
-    W := 400
-    H := 328
+    ; Rediseño v32.8: celdas más grandes y legibles (antes la descripción iba a s5)
+    W := 464
+    H := 404
 
     cols    := 3
-    cellW   := 129
-    cellH   := 40
-    gap     := 2
-    padding := 4
+    cellW   := 148
+    cellH   := 54
+    gap     := 4
+    padding := 6
 
     logrosGui := Gui("+AlwaysOnTop -Caption +ToolWindow")
     logrosGui.BackColor := colorFondoPrincipal
@@ -12468,13 +14023,14 @@ MostrarPaginaLogrosGrid(pagina) {
         if (l.desbloqueado)
             desbloqueadosCount += 1
 
-    barr := logrosGui.Add("Text", "x0 y0 w" W " h30 Background" colorBarra " Center +0x200", Chr(0x1F3C5) "  " nombrePagina "  " Chr(0x2022) "  " desbloqueadosCount "/" logrosEnPagina.Length)
+    barr := logrosGui.Add("Text", "x0 y0 w" W " h32 Background" colorBarra " Center +0x200", Chr(0x1F3C5) "  " nombrePagina "  " Chr(0x2022) "  " desbloqueadosCount "/" logrosEnPagina.Length)
     barr.SetFont("s10 c" colorTextoBarra " Bold", "Segoe UI Semibold")
     barr.OnEvent("Click", (*) => (LimpiarHoverGui(logrosGui), logrosGui.Destroy(), logrosGuiVisible := false))
 
-    ; Layout en grid 3×N compacto — cabe en altura fija
-    startY := 30 + padding
-    contentH := H - 30 - padding - 40  ; altura disponible para logros
+    ; Layout en grid 3×N — cabe en altura fija
+    startY := 32 + padding
+    contentH := H - 32 - padding - 46  ; altura disponible para logros
+    aCeldas := []
     for i, l in logrosEnPagina {
         col := Mod(i - 1, cols)
         row := (i - 1) // cols
@@ -12495,26 +14051,27 @@ MostrarPaginaLogrosGrid(pagina) {
             iconC := "666666"
         }
         cell := logrosGui.Add("Text", "x" cx " y" cy " w" cellW " h" cellH " Background" cBg, "")
-        lblIcon := logrosGui.Add("Text", "x" (cx + 3) " y" (cy + 3) " w20 h" (cellH - 6) " Center Background" cBg " c" iconC, l.icono)
-        lblIcon.SetFont("s11", "Segoe UI Emoji")
-        lblName := logrosGui.Add("Text", "x" (cx + 25) " y" (cy + 2) " w" (cellW - 28) " h12 Background" cBg " c" cFg, l.nombre)
-        lblName.SetFont("s7 Bold", "Segoe UI Semibold")
-        lblDesc := logrosGui.Add("Text", "x" (cx + 25) " y" (cy + 16) " w" (cellW - 28) " h18 Background" cBg " c" cFg, l.desc)
-        lblDesc.SetFont("s5 Italic", "Segoe UI")
+        aCeldas.Push(cell)
+        lblIcon := logrosGui.Add("Text", "x" (cx + 4) " y" (cy + 4) " w26 h" (cellH - 8) " Center Background" cBg " c" iconC, l.icono)
+        lblIcon.SetFont("s14", "Segoe UI Emoji")
+        lblName := logrosGui.Add("Text", "x" (cx + 34) " y" (cy + 5) " w" (cellW - 38) " h15 Background" cBg " c" cFg, l.nombre)
+        lblName.SetFont("s8 Bold", "Segoe UI Semibold")
+        lblDesc := logrosGui.Add("Text", "x" (cx + 34) " y" (cy + 22) " w" (cellW - 38) " h28 Background" cBg " c" cFg, l.desc)
+        lblDesc.SetFont("s7", "Segoe UI")
     }
 
     ; Botones de navegación (como el libro de parches)
-    btnPrev := logrosGui.Add("Text", "x20 y286 w120 h30 +0x201 Background" colorBotonNormal " c" colorBtnTexto " Center",
+    btnPrev := logrosGui.Add("Text", "x20 y" (H - 42) " w130 h32 +0x201 Background" colorBotonNormal " c" colorBtnTexto " Center",
                           Chr(0x25C0) "  Anterior")
     btnPrev.SetFont("s10 Bold", "Segoe UI Semibold")
     btnPrev.OnEvent("Click", (*) => CambiarPaginaLogrosGrid(pagina - 1))
     RegistrarHover(btnPrev, () => colorBotonNormal)
 
-    lblCount := logrosGui.Add("Text", "x140 y292 w" (W - 280) " h20 +0x201 Background" colorFondoPrincipal " c" colorTextoPrincipal " Center")
+    lblCount := logrosGui.Add("Text", "x150 y" (H - 36) " w" (W - 300) " h20 +0x201 Background" colorFondoPrincipal " c" colorTextoPrincipal " Center")
     lblCount.SetFont("s10 Bold", "Segoe UI")
     lblCount.Value := (pagina + 1) " / 4"
 
-    btnNext := logrosGui.Add("Text", "x" (W - 20 - 120) " y286 w120 h30 +0x201 Background" colorBotonNormal " c" colorBtnTexto " Center",
+    btnNext := logrosGui.Add("Text", "x" (W - 20 - 130) " y" (H - 42) " w130 h32 +0x201 Background" colorBotonNormal " c" colorBtnTexto " Center",
                           "Siguiente  " Chr(0x25B6))
     btnNext.SetFont("s10 Bold", "Segoe UI Semibold")
     btnNext.OnEvent("Click", (*) => CambiarPaginaLogrosGrid(pagina + 1))
@@ -12530,6 +14087,9 @@ MostrarPaginaLogrosGrid(pagina) {
 
     logrosGui.Show("w" W " h" H " Center")
     try RedondearVentana(logrosGui.Hwnd, 14)
+    for c in aCeldas
+        RedondearControl(c, 10)
+    RedondearControl(btnPrev, 12), RedondearControl(btnNext, 12)
     logrosGuiVisible := true
     logrosPagina := pagina
     RegistrarAutoCierre(logrosGui, (*) => (LimpiarHoverGui(logrosGui), logrosGui.Destroy(), logrosGuiVisible := false))
@@ -12728,9 +14288,108 @@ GtavTick() {
         SetTimer(GtavTick, 0)   ; era la última tecla → no repetir
 }
 
-; Activa o desactiva los timers de frt/gtav segun el estado actual.
+; SecuenciaTick: motor GENÉRICO de secuencias por pasos (perfiles 6-9: war +
+; los 3 perfiles personalizables). Recorre secuenciasPerfil[perfilActivo] paso
+; a paso; los pasos con duracion (spam_scroll/spam_flecha) se quedan "dentro"
+; varios ticks hasta cumplir su tiempo, y cada paso puede llevar un bloqueoGlobal
+; (pausa fija tras su accion, antes del siguiente paso). Al llegar al final vuelve
+; al paso 1 → bucle infinito. Un perfil sin pasos configurados simplemente no
+; hace nada (el usuario aún no ha creado su secuencia en el editor).
+SecuenciaTick() {
+    global activo, perfilActivo, secuenciasPerfil, secIdx, secEstado, secFinEstado, secActivoDesde
+    global secUltimoClick, secUltimoScroll, secUltimaTecla, secFlechaSostenida
+    global scaleX, scaleY
+    if (!activo || !secuenciasPerfil.Has(perfilActivo)) {
+        SetTimer(SecuenciaTick, 0)
+        return
+    }
+    sec := secuenciasPerfil[perfilActivo]
+    if (sec.Length = 0)
+        return   ; perfil personalizable sin pasos todavía — nada que ejecutar
+    if (secIdx < 1 || secIdx > sec.Length)
+        secIdx := 1   ; fin de la secuencia → se repite desde el principio
+
+    paso := sec[secIdx]
+    ahora := A_TickCount
+
+    ; Pausa de bloqueoGlobal tras la accion del paso: no hace nada hasta cumplirse.
+    if (secEstado = "pausa") {
+        if (ahora >= secFinEstado) {
+            secEstado := ""
+            secIdx++
+        }
+        return
+    }
+
+    if (paso.tipo = "click") {
+        MouseMove(Round(paso.x * scaleX), Round(paso.y * scaleY), 0)
+        Click
+        SecuenciaTerminarPaso(paso)
+    } else if (paso.tipo = "tecla") {
+        Send "{" paso.tecla "}"
+        SecuenciaTerminarPaso(paso)
+    } else if (paso.tipo = "spam_scroll") {
+        if (secEstado = "") {
+            secActivoDesde := ahora + (paso.HasProp("retraso") ? paso.retraso : 0)
+            secFinEstado := secActivoDesde + paso.ms
+            secUltimoClick := 0
+            secUltimoScroll := 0
+            secEstado := "correr"
+        }
+        if (ahora >= secActivoDesde) {
+            x := Round(paso.x * scaleX)
+            y := Round(paso.y * scaleY)
+            if (ahora - secUltimoClick >= 20) {    ; 50 clicks/seg
+                MouseMove(x, y, 0)
+                Click
+                secUltimoClick := ahora
+            }
+            if (ahora - secUltimoScroll >= 450) {  ; scroll al doble de rapido (antes 900ms)
+                MouseMove(x, y, 0)
+                Click("WheelDown")
+                secUltimoScroll := ahora
+            }
+        }
+        if (ahora >= secFinEstado)
+            SecuenciaTerminarPaso(paso)
+    } else if (paso.tipo = "spam_flecha") {
+        if (secEstado = "") {
+            secFinEstado := ahora + paso.ms
+            secUltimaTecla := 0
+            Send "{" paso.flecha " down}"
+            secFlechaSostenida := paso.flecha
+            secEstado := "correr"
+        }
+        if (ahora - secUltimaTecla >= 110) {
+            Send "{" paso.tecla "}"
+            secUltimaTecla := ahora
+        }
+        if (ahora >= secFinEstado) {
+            Send "{" paso.flecha " up}"
+            secFlechaSostenida := ""
+            SecuenciaTerminarPaso(paso)
+        }
+    }
+}
+
+; Cierra el paso actual: si tiene bloqueoGlobal entra en pausa ese tiempo;
+; si no, avanza directo al siguiente paso (con vuelta al 1 al llegar al final).
+SecuenciaTerminarPaso(paso) {
+    global secIdx, secEstado, secFinEstado, secuenciasPerfil, perfilActivo
+    if (paso.HasProp("bloqueoGlobal") && paso.bloqueoGlobal > 0) {
+        secEstado := "pausa"
+        secFinEstado := A_TickCount + paso.bloqueoGlobal
+    } else {
+        secEstado := ""
+        secIdx++
+        if (secIdx > secuenciasPerfil[perfilActivo].Length)
+            secIdx := 1
+    }
+}
+
+; Activa o desactiva los timers de frt/gtav/secuencia-por-pasos segun el estado actual.
 ActualizarTimersFrt() {
-    global activo, perfilActivo, frtIdxTecla, gtavIdx
+    global activo, perfilActivo, frtIdxTecla, gtavIdx, secIdx, secEstado, secFlechaSostenida, secuenciasPerfil
     if (activo && perfilActivo = 3) {
         frtIdxTecla := 1   ; reset al arrancar
         SetTimer(FrtClick, 50)       ; 20 clicks/seg
@@ -12746,6 +14405,22 @@ ActualizarTimersFrt() {
         GtavTick()     ; primer disparo inmediato → la 'm' sale al instante, sin esperar 150ms
     } else {
         SetTimer(GtavTick, 0)
+    }
+    ; war + perfiles personalizables (6-9): secuencia de pasos por perfil, en bucle infinito.
+    ; secuenciasPerfil.Has(idx) es lo que decide si un perfil usa este motor — así
+    ; añadir un perfil nuevo es solo registrarlo ahí, sin tocar este dispatcher.
+    if (activo && secuenciasPerfil.Has(perfilActivo)) {
+        secIdx := 1
+        secEstado := ""
+        SetTimer(SecuenciaTick, 40)
+        SecuenciaTick()   ; primer disparo inmediato, igual que gtav
+    } else {
+        if (secFlechaSostenida != "") {
+            Send "{" secFlechaSostenida " up}"   ; soltar la flecha si se para a mitad de la fase
+            secFlechaSostenida := ""
+        }
+        SetTimer(SecuenciaTick, 0)
+        secEstado := ""
     }
 }
 
@@ -12876,10 +14551,32 @@ TickDestrabarC() {
     }
     if (!avisado) {
         AgregarHistorial(Chr(0x2328) " Brawlhalla abierto sin detección — pulsando 'c' para destrabar", "FF8800")
+        SfxPlay("error")   ; solo al ENTRAR en el estado trabado, no en cada 'c'
         avisado := true
     }
     try SendInput "c"
     contadorDestrabado += 1
+}
+
+; ═════ DOBLE 'c' AL DESPERTAR DEL DESCANSO ═════
+; Se programa desde TickCicloDescanso con SetTimer(..., -90000) justo cuando el
+; ciclo termina el descanso y reabre el juego. 1 min 30 s después pulsa 'c' dos
+; veces: al despertar, Brawlhalla suele abrir en un popup de noticias / "qué hay
+; de nuevo" que tapa la pantalla; para entonces el juego ya cargó y estas dos
+; pulsaciones lo cierran de forma fiable (proactivo, complementa al TickDestrabarC
+; reactivo). Guardias: macro encendido, perfil Brawlhalla (tct/sp), no volvimos a
+; dormir, el juego está realmente abierto y no hay una partida en curso.
+PulsarCDobleTrasDespertar() {
+    global activo, perfilActivo, enDescanso, contadorDestrabado
+    if (!activo || enDescanso || (perfilActivo != 1 && perfilActivo != 2)
+        || BloqueoGlobalActivo() || !ProcessExist("Brawlhalla.exe"))
+        return
+    AgregarHistorial(Chr(0x2328) " Despertar: pulsando 'c' x2 (cierre de popup)", "00C853")
+    SfxPlay("despertar")
+    try SendInput "c"
+    Sleep HumanizarMs(400)
+    try SendInput "c"
+    contadorDestrabado += 2
 }
 
 ; Alias retrocompatible
@@ -12920,6 +14617,7 @@ Iniciar(*) {
     logosPulsoDir := 1
     ActualizarEstadoVisual()
     AnimarLucesEncendido()
+    SfxPlay("inicio")
     ; La animación de luces termina a ~300ms; re-redondear TODO después con la
     ; secuencia probada para que ni luces ni botones queden cuadrados al iniciar.
     SetTimer(RedondearFuerteTodos, -360)
@@ -12976,6 +14674,7 @@ Parar(*) {
     ultimoPasoEjecutado := ""
     tiempoUltimoLanzamiento := 0
     ActualizarEstadoVisual()
+    SfxPlay("parar")
     SetTimer(EjecutarMacro, 0)
     SetTimer(TickCirculoDetectorDstv, 0)
     SetTimer(ActualizarCooldowns, 0)
@@ -13698,6 +15397,92 @@ GenerarBurstAccion(estilo) {
                 efAccionParticulas.Push({ tipo:"destello", x:Random(0.0, w*1.0), y:Random(0.0, h*0.85),
                     r:Random(3, 7)*1.0, ph:Random(0.0, 6.28), sp:Random(8, 16)/10.0 })
     }
+
+    ; ── Sello del tema (v32.9): dos temas de la misma familia comparten la
+    ; coreografía, pero cada uno imprime su ritmo (velocidad/tamaño derivados
+    ; del nombre), su paleta (mitad de las partículas) y su silueta (las
+    ; partículas genéricas adoptan la forma de la variante del tema). ──
+    global partVar, temas, temaActual
+    v := partVar
+    if (estilo != "premium" && IsObject(v)) {
+        hm := HashNombre(temas[temaActual].nombre)
+        fVel := 0.80 + Mod(hm, 41) / 100.0        ; 0.80 – 1.20
+        fTam := 0.80 + Mod(hm // 7, 41) / 100.0
+        for i, p in efAccionParticulas {
+            if p.HasProp("vx")
+                p.vx *= fVel
+            if p.HasProp("vy")
+                p.vy *= fVel
+            if p.HasProp("r")
+                p.r := Max(1.5, p.r * fTam)
+            if (!p.HasProp("bgr") && Mod(i, 2) = 0 && v.HasProp("col") && v.col.Length > 0)
+                p.bgr := HexToBGR(v.col[Mod(i // 2, v.col.Length) + 1])
+            if ((p.tipo = "destello" || p.tipo = "copo" || p.tipo = "ember") && FormaBurstValida(v.forma))
+                p.fTema := v.forma
+        }
+    }
+}
+
+; Formas de variante que la ráfaga sabe dibujar en GDI plano (ver BurstFormaTema).
+FormaBurstValida(f) {
+    return (f = "estrella4" || f = "cruz" || f = "rombo" || f = "cuadro" || f = "hex"
+        || f = "copo6" || f = "triangulo" || f = "anillo" || f = "burbuja" || f = "halo"
+        || f = "corazon" || f = "nota" || f = "chispa")
+}
+
+; Dibuja la silueta del tema para una partícula genérica de la ráfaga (GDI puro).
+BurstFormaTema(hdc, forma, x, y, s, bgr, nullBrush, frame) {
+    switch forma {
+        case "estrella4":
+            LineaGDI(hdc, x - s, y, x + s, y, 1, bgr)
+            LineaGDI(hdc, x, y - s, x, y + s, 1, bgr)
+            DibujarBolaSolida(hdc, x, y, Max(1.0, s * 0.35), bgr, nullBrush)
+        case "cruz":
+            LineaGDI(hdc, x - s, y - s, x + s, y + s, 2, bgr)
+            LineaGDI(hdc, x + s, y - s, x - s, y + s, 2, bgr)
+        case "copo6":
+            loop 3 {
+                ag := frame * 0.05 + (A_Index - 1) * 1.0472
+                LineaGDI(hdc, x - Cos(ag) * s, y - Sin(ag) * s, x + Cos(ag) * s, y + Sin(ag) * s, 1, bgr)
+            }
+        case "rombo":
+            PoligonoGDI(hdc, [[x, y - s], [x + s, y], [x, y + s], [x - s, y]], bgr)
+        case "cuadro":
+            PoligonoGDI(hdc, [[x - s, y - s], [x + s, y - s], [x + s, y + s], [x - s, y + s]], bgr)
+        case "hex":
+            pts := []
+            loop 6 {
+                ag := (A_Index - 1) * 1.0472
+                pts.Push([x + Cos(ag) * s, y + Sin(ag) * s])
+            }
+            PoligonoGDI(hdc, pts, bgr)
+        case "triangulo":
+            pts := []
+            loop 3 {
+                ag := frame * 0.08 + (A_Index - 1) * 2.0944
+                pts.Push([x + Cos(ag) * s, y + Sin(ag) * s])
+            }
+            PoligonoGDI(hdc, pts, bgr)
+        case "anillo", "burbuja":
+            AnilloGDI(hdc, x, y, s, 1, bgr)
+        case "halo":
+            DibujarBolaSolida(hdc, x, y, Max(1.0, s * 0.55), bgr, nullBrush)
+            AnilloGDI(hdc, x, y, s * 1.3, 1, EscalarBGR(bgr, 0.55))
+        case "corazon":
+            DibujarBolaSolida(hdc, x - s * 0.45, y - s * 0.35, Max(1.0, s * 0.5), bgr, nullBrush)
+            DibujarBolaSolida(hdc, x + s * 0.45, y - s * 0.35, Max(1.0, s * 0.5), bgr, nullBrush)
+            PoligonoGDI(hdc, [[x - s * 0.85, y - s * 0.1], [x + s * 0.85, y - s * 0.1], [x, y + s]], bgr)
+        case "nota":
+            DibujarBolaSolida(hdc, x, y, Max(1.0, s * 0.5), bgr, nullBrush)
+            LineaGDI(hdc, x + s * 0.5, y, x + s * 0.5, y - s * 1.9, 1, bgr)
+        case "chispa":
+            loop 3 {
+                ag := frame * 0.1 + (A_Index - 1) * 2.0944
+                LineaGDI(hdc, x, y, x + Cos(ag) * s, y + Sin(ag) * s, 1, bgr)
+            }
+        default:
+            DibujarBolaSolida(hdc, x, y, Max(1.0, s * 0.6), bgr, nullBrush)
+    }
 }
 
 ; Avanza la simulación de la ráfaga un frame (posiciones/rotación).
@@ -13790,6 +15575,19 @@ PintarEfectoAccion(hdc, cx, cy, frame, maxFrame) {
 
     for p in efAccionParticulas {
         bgr := p.HasProp("bgr") ? p.bgr : baseBgr
+
+        ; Silueta del tema (v32.9): las partículas genéricas marcadas con fTema
+        ; se dibujan con la forma de la variante del tema en vez de la estándar.
+        if (p.HasProp("fTema")) {
+            s := 0.0
+            if (p.tipo = "destello")
+                s := p.r * fade * (0.35 + 0.65 * (0.5 + 0.5 * Sin(frame * p.sp + p.ph)))
+            else if (p.tipo = "copo" || p.tipo = "ember")
+                s := p.r * (p.tipo = "ember" ? 1.0 : fade)
+            if (s >= 0.7)
+                BurstFormaTema(hdc, p.fTema, p.x, p.y, s * 1.5, bgr, nullBrush, frame)
+            continue
+        }
 
         switch p.tipo {
             case "fugaz":
@@ -13917,64 +15715,172 @@ ToggleHumanizar() {
     IniWrite(humanizarActivo ? 1 : 0, configPath, "UI", "Humanizar")
 }
 
-; ──────────────── CENTRO DE PERSONALIZACIÓN (hub) ────────────────
+; ──────────────── CENTRO DE PERSONALIZACIÓN (hub con sidebar) ────────────────
+; Rediseño v32.8: en vez de 12 botones apilados, 4 categorías en una barra
+; lateral (Apariencia / Rendimiento / Configurar macro / Herramientas) y un
+; panel de contenido a la derecha. Los toggles muestran su estado en un "chip"
+; que se actualiza in-place (sin reabrir la ventana). La posición se recuerda
+; para que cambiar de categoría no recoloque la ventana.
 AbrirCentroPersonalizacion(*) {
-    global centroPersGui, centroPersVisible, efectosAccionActivos, abrirBrawlAlIniciar, humanizarActivo
+    global centroPersGui, centroPersVisible, centroPersCat, centroPersX, centroPersY
+    global abrirBrawlAlIniciar, humanizarActivo, optSonidos, sonidosVolumen, VERSION_ACTUAL
     global colorFondoPrincipal, colorTextoPrincipal, colorBarra, colorTextoBarra, colorBotonNormal, colorBtnTexto
     if (centroPersVisible && IsObject(centroPersGui)) {
-        try LimpiarHoverGui(centroPersGui)
-        try centroPersGui.Destroy()
-        centroPersVisible := false
+        CerrarCentroPersonalizacion()
         return
     }
+    W := 520, SBW := 168, H := 316
+    sep := MezclarHex(colorBarra, colorFondoPrincipal, 0.55)
+
     centroPersGui := Gui("+AlwaysOnTop -Caption +ToolWindow")
     centroPersGui.BackColor := colorFondoPrincipal
-    W := 250
-    barr := centroPersGui.Add("Text", "x0 y0 w" W " h28 Background" colorBarra " Center +0x200", "  " Chr(0x1F58C) "  Personalización")
+    g := centroPersGui
+    aRedondear := []   ; controles a redondear DESPUÉS del Show
+
+    barr := g.Add("Text", "x0 y0 w" W " h32 Background" colorBarra " Center +0x200", "  " Chr(0x1F39B) "  Centro de Personalización")
     barr.SetFont("s10 c" colorTextoBarra " Bold", "Segoe UI Semibold")
     barr.OnEvent("Click", (*) => PostMessage(0xA1, 2,,, "ahk_id " centroPersGui.Hwnd))
     barr.OnEvent("DoubleClick", (*) => CerrarCentroPersonalizacion())
 
-    items := [
-        {lbl: Chr(0x1F3A8) " Editor de tema",        fn: "tema"},
-        {lbl: Chr(0x1F308) " RGB y Colores",          fn: "rgb"},
-        {lbl: Chr(0x2728)  " Partículas",             fn: "part"},
-        {lbl: Chr(0x2328)  " Atajos de teclado",      fn: "hotkeys"},
-        {lbl: Chr(0x2699)  " Optimización",           fn: "opt"},
-        {lbl: Chr(0x26A1)  " Velocidad del macro",    fn: "vel"},
-        {lbl: Chr(0x1F50D) " Pixelfinder",            fn: "pixelfinder"},
-        {lbl: Chr(0x1F578) " Grafo de llamadas",      fn: "grafo"},
+    cats := [
+        {ico: Chr(0x1F3A8), nom: "Apariencia",       sub: "Temas, colores y partículas"},
+        {ico: Chr(0x2699),  nom: "Rendimiento",      sub: "Velocidad, efectos y atajos"},
+        {ico: Chr(0x1F527), nom: "Configurar macro", sub: "Comportamiento y sonido"},
+        {ico: Chr(0x1F6E0), nom: "Herramientas",     sub: "Utilidades para ajustar el macro"},
     ]
-    y := 38
-    for it in items {
-        b := centroPersGui.Add("Text", "x16 y" y " w" (W-32) " h32 +0x201 Background" colorBotonNormal " c" colorBtnTexto " Center", it.lbl)
+
+    ; ── Sidebar: 4 categorías (la activa va en color de acento) ──
+    ySb := 44
+    for i, c in cats {
+        selCat := (i = centroPersCat)
+        b := g.Add("Text", "x10 y" ySb " w" (SBW - 20) " h48 +0x200 Background" (selCat ? colorBarra : colorFondoPrincipal)
+            " c" (selCat ? colorTextoBarra : colorTextoPrincipal), "   " c.ico "  " c.nom)
         b.SetFont("s10 Bold", "Segoe UI Semibold")
-        accion := it.fn
-        b.OnEvent("Click", CentroPersAbrir.Bind(accion))
-        RegistrarHover(b, () => colorBotonNormal)
-        y += 38
+        b.OnEvent("Click", CentroPersSeleccionar.Bind(i))
+        if (!selCat)
+            RegistrarHover(b, () => colorFondoPrincipal)
+        aRedondear.Push({c: b, r: 12})
+        ySb += 54
+    }
+    lblVer := g.Add("Text", "x10 y" (H - 24) " w" (SBW - 20) " h16 Center BackgroundTrans c" sep, "MacroSmart v" VERSION_ACTUAL)
+    lblVer.SetFont("s7", "Segoe UI")
+
+    ; separador vertical sidebar/contenido
+    g.Add("Text", "x" SBW " y44 w1 h" (H - 56) " Background" sep, "")
+
+    ; ── Panel de contenido de la categoría activa ──
+    CX := SBW + 18, CW := W - CX - 18
+    cat := cats[centroPersCat]
+    hdr := g.Add("Text", "x" CX " y44 w" CW " h24 BackgroundTrans c" colorTextoPrincipal, cat.ico "  " cat.nom)
+    hdr.SetFont("s12 Bold", "Segoe UI Semibold")
+    subt := g.Add("Text", "x" CX " y70 w" CW " h14 BackgroundTrans c" sep, cat.sub)
+    subt.SetFont("s8", "Segoe UI")
+    g.Add("Text", "x" CX " y88 w" CW " h1 Background" sep, "")
+
+    yI := 98
+    switch centroPersCat {
+        case 1:   ; 🎨 Apariencia
+            for it in [{i: Chr(0x1F3A8), t: "Editor de tema", a: "tema"},
+                       {i: Chr(0x1F308), t: "RGB y Colores",  a: "rgb"},
+                       {i: Chr(0x2728),  t: "Partículas",     a: "part"}] {
+                f := CentroPersFila(g, CX, yI, CW, it.i, it.t)
+                f.row.OnEvent("Click", CentroPersAbrir.Bind(it.a))
+                aRedondear.Push({c: f.row, r: 10})
+                yI += 44
+            }
+        case 2:   ; ⚙ Rendimiento
+            fV := CentroPersFila(g, CX, yI, CW, Chr(0x26A1), "Velocidad del macro", EmojiVelocidad() " " NombreVelocidad(), true, 84)
+            hV := (*) => (CiclarVelocidadPasos(), fV.chip.Text := EmojiVelocidad() " " NombreVelocidad())
+            fV.row.OnEvent("Click", hV), fV.chip.OnEvent("Click", hV)
+            aRedondear.Push({c: fV.row, r: 10}), aRedondear.Push({c: fV.chip, r: 11})
+            yI += 44
+            for it in [{i: Chr(0x2699),  t: "Optimización",      a: "opt"},
+                       {i: Chr(0x2328),  t: "Atajos de teclado", a: "hotkeys"}] {
+                f := CentroPersFila(g, CX, yI, CW, it.i, it.t)
+                f.row.OnEvent("Click", CentroPersAbrir.Bind(it.a))
+                aRedondear.Push({c: f.row, r: 10})
+                yI += 44
+            }
+        case 3:   ; 🔧 Configurar macro
+            fB := CentroPersFila(g, CX, yI, CW, Chr(0x1F680), "Abrir Brawlhalla al iniciar", abrirBrawlAlIniciar ? "ON" : "OFF", abrirBrawlAlIniciar)
+            hB := (*) => (ToggleAbrirBrawl(), CentroPersChipEstado(fB.chip, abrirBrawlAlIniciar))
+            fB.row.OnEvent("Click", hB), fB.chip.OnEvent("Click", hB)
+            aRedondear.Push({c: fB.row, r: 10}), aRedondear.Push({c: fB.chip, r: 11})
+            yI += 44
+            fH := CentroPersFila(g, CX, yI, CW, Chr(0x1F3AF), "Humanizar clicks/tiempos", humanizarActivo ? "ON" : "OFF", humanizarActivo)
+            hH := (*) => (ToggleHumanizar(), CentroPersChipEstado(fH.chip, humanizarActivo))
+            fH.row.OnEvent("Click", hH), fH.chip.OnEvent("Click", hH)
+            aRedondear.Push({c: fH.row, r: 10}), aRedondear.Push({c: fH.chip, r: 11})
+            yI += 44
+            fS := CentroPersFila(g, CX, yI, CW, Chr(0x1F50A), "Sonidos retro", optSonidos ? "ON" : "OFF", optSonidos)
+            hS := (*) => (ToggleSonidos(), CentroPersChipEstado(fS.chip, optSonidos))
+            fS.row.OnEvent("Click", hS), fS.chip.OnEvent("Click", hS)
+            aRedondear.Push({c: fS.row, r: 10}), aRedondear.Push({c: fS.chip, r: 11})
+            yI += 44
+            fVol := CentroPersFila(g, CX, yI, CW, Chr(0x1F39A), "Volumen SFX", sonidosVolumen "%", true)
+            hVol := (*) => (CiclarVolumenSfx(), fVol.chip.Text := sonidosVolumen "%")
+            fVol.row.OnEvent("Click", hVol), fVol.chip.OnEvent("Click", hVol)
+            aRedondear.Push({c: fVol.row, r: 10}), aRedondear.Push({c: fVol.chip, r: 11})
+            yI += 44
+            fP := CentroPersFila(g, CX, yI, CW, Chr(0x1F9E9), "Editor de pasos (Custom 1/2/3)")
+            fP.row.OnEvent("Click", CentroPersAbrir.Bind("pasos"))
+            aRedondear.Push({c: fP.row, r: 10})
+            yI += 44
+        case 4:   ; 🛠 Herramientas
+            for it in [{i: Chr(0x1F50D), t: "Pixelfinder",       a: "pixelfinder"},
+                       {i: Chr(0x1F578), t: "Grafo de llamadas", a: "grafo"}] {
+                f := CentroPersFila(g, CX, yI, CW, it.i, it.t)
+                f.row.OnEvent("Click", CentroPersAbrir.Bind(it.a))
+                aRedondear.Push({c: f.row, r: 10})
+                yI += 44
+            }
     }
 
-    ; Toggle ON/OFF: abrir Brawlhalla al pulsar Iniciar (icono + color según estado)
-    bBrawl := centroPersGui.Add("Text", "x16 y" y " w" (W-32) " h32 +0x201 Background" (abrirBrawlAlIniciar ? colorBarra : colorBotonNormal) " c" colorBtnTexto " Center",
-        (abrirBrawlAlIniciar ? Chr(0x2714) : Chr(0x2716)) " Abrir Brawlhalla al iniciar")
-    bBrawl.SetFont("s10 Bold", "Segoe UI Semibold")
-    bBrawl.OnEvent("Click", (*) => (ToggleAbrirBrawl(), SetTimer(() => (CerrarCentroPersonalizacion(), AbrirCentroPersonalizacion()), -1)))
-    RegistrarHover(bBrawl, () => (abrirBrawlAlIniciar ? colorBarra : colorBotonNormal))
-    y += 38
-
-    ; Toggle ON/OFF: humanización de clicks/tiempos (jitter + variación anti-patrón)
-    bHuman := centroPersGui.Add("Text", "x16 y" y " w" (W-32) " h32 +0x201 Background" (humanizarActivo ? colorBarra : colorBotonNormal) " c" colorBtnTexto " Center",
-        (humanizarActivo ? Chr(0x2714) : Chr(0x2716)) " Humanizar clicks/tiempos")
-    bHuman.SetFont("s10 Bold", "Segoe UI Semibold")
-    bHuman.OnEvent("Click", (*) => (ToggleHumanizar(), SetTimer(() => (CerrarCentroPersonalizacion(), AbrirCentroPersonalizacion()), -1)))
-    RegistrarHover(bHuman, () => (humanizarActivo ? colorBarra : colorBotonNormal))
-    y += 38
-
-    centroPersGui.Show("w" W " h" y " Center")
-    RedondearVentana(centroPersGui.Hwnd, 12)
+    pos := (centroPersX != "" && centroPersY != "") ? ("x" centroPersX " y" centroPersY) : "Center"
+    centroPersGui.Show("w" W " h" H " " pos)
+    RedondearVentana(centroPersGui.Hwnd, 16)
+    for it in aRedondear
+        RedondearControl(it.c, it.r)
     centroPersVisible := true
-    RegistrarAutoCierre(centroPersGui, CerrarCentroPersonalizacion)
+    RegistrarAutoCierre(centroPersGui, CerrarCentroPersonalizacion, 10)
+}
+
+; Fila del hub: botón ancho a la izquierda + chip de estado opcional a la derecha.
+; Devuelve {row, chip} (chip = "" si no hay). Los OnEvent los cablea el llamador.
+CentroPersFila(g, x, y, w, ico, titulo, chipTxt := "", chipOn := false, chipW := 66) {
+    global colorBotonNormal, colorBtnTexto, colorBarra, colorTextoBarra, colorFondoPrincipal
+    tieneChip := (chipTxt != "")
+    rw := tieneChip ? (w - chipW - 8) : w
+    row := g.Add("Text", "x" x " y" y " w" rw " h38 +0x200 Background" colorBotonNormal " c" colorBtnTexto, "   " ico "   " titulo)
+    row.SetFont("s10 Bold", "Segoe UI Semibold")
+    RegistrarHover(row, () => colorBotonNormal)
+    chip := ""
+    if (tieneChip) {
+        chip := g.Add("Text", "x" (x + w - chipW) " y" (y + 7) " w" chipW " h24 +0x201 Center Background"
+            (chipOn ? colorBarra : MezclarHex(colorBotonNormal, colorFondoPrincipal, 0.5))
+            " c" (chipOn ? colorTextoBarra : colorBtnTexto), chipTxt)
+        chip.SetFont("s8 Bold", "Segoe UI Semibold")
+    }
+    return {row: row, chip: chip}
+}
+
+; Actualiza un chip ON/OFF in-place (texto + colores + re-redondeo tras el Opt).
+CentroPersChipEstado(chip, on) {
+    global colorBarra, colorTextoBarra, colorBotonNormal, colorBtnTexto, colorFondoPrincipal
+    chip.Text := on ? "ON" : "OFF"
+    chip.Opt("Background" (on ? colorBarra : MezclarHex(colorBotonNormal, colorFondoPrincipal, 0.5))
+        " c" (on ? colorTextoBarra : colorBtnTexto))
+    RedondearControl(chip, 11)   ; Opt(Background) resetea la región redondeada
+    DllCall("InvalidateRect", "Ptr", chip.Hwnd, "Ptr", 0, "Int", 1)
+}
+
+; Cambia de categoría: recuerda posición y reconstruye (patrón destroy/reopen diferido).
+CentroPersSeleccionar(idx, *) {
+    global centroPersCat
+    if (idx = centroPersCat)
+        return
+    centroPersCat := idx
+    SetTimer(() => (CerrarCentroPersonalizacion(), AbrirCentroPersonalizacion()), -1)
 }
 
 CentroPersAbrir(accion, *) {
@@ -13985,14 +15891,19 @@ CentroPersAbrir(accion, *) {
         case "hotkeys": AbrirEditorHotkeys()
         case "opt":     AbrirPanelOptimizacion()
         case "vel":     CiclarVelocidadPasos()
+        case "pasos":   AbrirEditorPasos()
         case "pixelfinder": AbrirPixelFinder()
         case "grafo":   AbrirGrafoLlamadas()
     }
 }
 
 CerrarCentroPersonalizacion(*) {
-    global centroPersGui, centroPersVisible
+    global centroPersGui, centroPersVisible, centroPersX, centroPersY
     if (IsObject(centroPersGui)) {
+        try {
+            centroPersGui.GetPos(&px, &py)
+            centroPersX := px, centroPersY := py   ; recordar dónde estaba
+        }
         try LimpiarHoverGui(centroPersGui)
         try centroPersGui.Destroy()
     }
@@ -14143,7 +16054,7 @@ GenerarGrafoLlamadas(rutaAhk, rutaHtml) {
     ; timers, watchdog...). El HTML calcula qué se alcanza desde aquí.
     seedsJson := "", primero := true
     for s in ["Iniciar","Parar","Cerrar","EjecutarMacro","CheckPrioridad","ActualizarAFK"
-            , "TickCicloDescanso","GtavTick","FrtClick","FrtKeyCycle","TickCirculoDetectorDstv"
+            , "TickCicloDescanso","GtavTick","SecuenciaTick","FrtClick","FrtKeyCycle","TickCirculoDetectorDstv"
             , "WatchdogAFK","EscribirHeartbeat","LanzarWatchdogSiNoEsta","CheckBrawlhallaMinimizado"
             , "ActualizarCooldowns"] {
         if idx.Has(s) {
@@ -14631,6 +16542,419 @@ RefrescarEditorHotkeys() {
         AbrirEditorHotkeys()
         AbrirEditorHotkeys()
     }
+}
+
+; ═════════════════════ EDITOR DE PASOS (v32.11) ═════════════════════
+; Deja que el usuario cree SU propio macro (perfiles Custom 1/2/3, ver
+; secuenciasPerfil/SecuenciaTick) sin tocar código: lista de pasos con
+; añadir/reordenar/borrar, formulario por paso con los campos que apliquen
+; según el tipo, y un capturador de posición (clic en pantalla → X/Y).
+; Todo se guarda al instante (GuardarSecuenciaPerfil), sin botón "Guardar" aparte.
+; war (perfil 6) NO es editable aquí — es un preset de fábrica fijo, igual
+; que frt/dstv/gtav (ver CargarSecuenciasCustom: siempre usa warSecuencia).
+
+; Resumen legible de un paso para la lista ("Click en (645,62) → pausa 1s").
+ResumenPaso(p) {
+    switch p.tipo {
+        case "click":
+            base := "Click en (" p.x ", " p.y ")"
+        case "tecla":
+            base := "Presionar '" p.tecla "'"
+        case "spam_scroll":
+            base := "Spam-click + scroll en (" p.x ", " p.y ")"
+            if (p.HasProp("retraso") && p.retraso > 0)
+                base .= " tras " Round(p.retraso/1000, 1) "s"
+            base .= " · " Round((p.HasProp("ms") ? p.ms : 0)/1000, 1) "s"
+        case "spam_flecha":
+            base := "Spam '" p.tecla "' + flecha " p.flecha " · " Round((p.HasProp("ms") ? p.ms : 0)/1000, 1) "s"
+        default:
+            base := "(paso desconocido)"
+    }
+    if (p.HasProp("bloqueoGlobal") && p.bloqueoGlobal > 0)
+        base .= " → pausa " Round(p.bloqueoGlobal/1000, 1) "s"
+    return base
+}
+
+AbrirEditorPasos(perfilPreferido := 0, *) {
+    global editorPasosGui, editorPasosVisible, editorPasosPerfil, editorPasosScroll, EDITOR_PASOS_VISIBLES
+    global colorFondoPrincipal, colorTextoPrincipal, colorBarra, colorTextoBarra, colorBotonNormal, colorBtnTexto
+    global secuenciasPerfil, perfilActivo
+    if (editorPasosVisible && IsObject(editorPasosGui)) {
+        CerrarEditorPasos()
+        return
+    }
+    if (perfilPreferido >= 7 && perfilPreferido <= 9)
+        editorPasosPerfil := perfilPreferido
+    else if (editorPasosPerfil < 7 || editorPasosPerfil > 9)
+        editorPasosPerfil := (perfilActivo >= 7 && perfilActivo <= 9) ? perfilActivo : 7
+
+    W := 460
+    sep := MezclarHex(colorBarra, colorFondoPrincipal, 0.55)
+    g := Gui("+AlwaysOnTop -Caption +ToolWindow")
+    g.BackColor := colorFondoPrincipal
+    editorPasosGui := g
+
+    barr := g.Add("Text", "x0 y0 w" W " h32 Background" colorBarra " Center +0x200", "  " Chr(0x1F9E9) "  Editor de pasos")
+    barr.SetFont("s10 c" colorTextoBarra " Bold", "Segoe UI Semibold")
+    barr.OnEvent("Click", (*) => PostMessage(0xA1, 2,,, "ahk_id " editorPasosGui.Hwnd))
+    barr.OnEvent("DoubleClick", (*) => CerrarEditorPasos())
+    btnX := g.Add("Text", "x" (W - 30) " y4 w24 h24 +0x201 Background" colorBarra " c" colorTextoBarra " Center", Chr(215))
+    btnX.SetFont("s12 Bold", "Segoe UI")
+    btnX.OnEvent("Click", (*) => CerrarEditorPasos())
+
+    ; ── Tabs: qué perfil se está editando. war NO aparece aquí — es un perfil
+    ; de fábrica fijo (como frt/dstv/gtav), solo los Custom son editables. ──
+    tabs := [{idx: 7, nom: "Custom 1"}, {idx: 8, nom: "Custom 2"}, {idx: 9, nom: "Custom 3"}]
+    tW := (W - 24 - 4) // 3
+    for i, tinfo in tabs {
+        act := (tinfo.idx = editorPasosPerfil)
+        tb := g.Add("Text", "x" (12 + (i - 1)*(tW + 2)) " y40 w" tW " h26 +0x201 Center Background"
+            (act ? colorBarra : colorBotonNormal) " c" (act ? colorTextoBarra : colorBtnTexto), tinfo.nom)
+        tb.SetFont("s8 Bold", "Segoe UI Semibold")
+        tb.OnEvent("Click", SeleccionarPerfilEditor.Bind(tinfo.idx))
+        if (!act)
+            RegistrarHover(tb, () => colorBotonNormal)
+    }
+
+    y := 76
+    ; ── Nombre personalizable (solo Custom 1/2/3 — war mantiene su nombre) ──
+    if (editorPasosPerfil >= 7) {
+        g.Add("Text", "x12 y" (y + 3) " w52 h22 BackgroundTrans c" colorTextoPrincipal, "Nombre:").SetFont("s8", "Segoe UI")
+        edtNom := g.Add("Edit", "x64 y" y " w204 h22 Background" colorFondoPrincipal " c" colorTextoPrincipal, NombreCustomPerfil(editorPasosPerfil))
+        btnNom := g.Add("Text", "x272 y" y " w80 h22 +0x201 Center Background" colorBotonNormal " c" colorBtnTexto, "Guardar")
+        btnNom.SetFont("s8 Bold", "Segoe UI Semibold")
+        btnNom.OnEvent("Click", GuardarNombreCustom.Bind(editorPasosPerfil, edtNom))
+        RegistrarHover(btnNom, () => colorBotonNormal)
+        y += 30
+    }
+
+    ; ── Lista de pasos (paginada de EDITOR_PASOS_VISIBLES en EDITOR_PASOS_VISIBLES) ──
+    sec := secuenciasPerfil[editorPasosPerfil]
+    if (sec.Length = 0) {
+        g.Add("Text", "x12 y" (y + 6) " w" (W - 24) " h36 BackgroundTrans c" sep,
+            "Sin pasos todavía. Pulsa '+ Añadir paso' para crear el primero.").SetFont("s9", "Segoe UI")
+        y += 46
+    } else {
+        if (editorPasosScroll >= sec.Length)
+            editorPasosScroll := 0
+        desde := editorPasosScroll + 1
+        hasta := Min(sec.Length, desde + EDITOR_PASOS_VISIBLES - 1)
+        rowW := W - 24 - 96
+        loop (hasta - desde + 1) {
+            i := desde + A_Index - 1
+            p := sec[i]
+            fila := g.Add("Text", "x12 y" y " w" rowW " h30 +0x200 Background" colorBotonNormal " c" colorBtnTexto,
+                "  " i ". " ResumenPaso(p))
+            fila.SetFont("s8 Bold", "Segoe UI")
+            RegistrarHover(fila, () => colorBotonNormal)
+            fila.OnEvent("Click", AbrirFormPaso.Bind(editorPasosPerfil, i))
+            bx := 12 + rowW
+            btnUp := g.Add("Text", "x" bx " y" y " w24 h30 +0x201 Center Background" colorBotonNormal " c" colorBtnTexto, Chr(0x25B2))
+            btnUp.OnEvent("Click", MoverPaso.Bind(editorPasosPerfil, i, -1))
+            RegistrarHover(btnUp, () => colorBotonNormal)
+            btnDn := g.Add("Text", "x" (bx + 24) " y" y " w24 h30 +0x201 Center Background" colorBotonNormal " c" colorBtnTexto, Chr(0x25BC))
+            btnDn.OnEvent("Click", MoverPaso.Bind(editorPasosPerfil, i, 1))
+            RegistrarHover(btnDn, () => colorBotonNormal)
+            btnDel := g.Add("Text", "x" (bx + 48) " y" y " w48 h30 +0x201 Center Background" colorBotonNormal " cFF6666", Chr(0x1F5D1))
+            btnDel.OnEvent("Click", BorrarPaso.Bind(editorPasosPerfil, i))
+            RegistrarHover(btnDel, () => colorBotonNormal, () => "C42B1C")
+            y += 34
+        }
+        if (sec.Length > EDITOR_PASOS_VISIBLES) {
+            btnPrev := g.Add("Text", "x12 y" y " w60 h22 +0x201 Center Background" colorBotonNormal " c" colorBtnTexto, Chr(0x25C0))
+            btnPrev.OnEvent("Click", CambiarPaginaPasos.Bind(-1))
+            RegistrarHover(btnPrev, () => colorBotonNormal)
+            g.Add("Text", "x76 y" y " w" (W - 24 - 136) " h22 Center BackgroundTrans c" sep,
+                "Paso " desde "-" hasta " de " sec.Length).SetFont("s8", "Segoe UI")
+            btnNext := g.Add("Text", "x" (W - 12 - 60) " y" y " w60 h22 +0x201 Center Background" colorBotonNormal " c" colorBtnTexto, Chr(0x25B6))
+            btnNext.OnEvent("Click", CambiarPaginaPasos.Bind(1))
+            RegistrarHover(btnNext, () => colorBotonNormal)
+            y += 30
+        }
+    }
+
+    btnAdd := g.Add("Text", "x12 y" (y + 4) " w" (W - 24) " h32 +0x201 Center Background" colorBarra " c" colorTextoBarra, "+  Añadir paso")
+    btnAdd.SetFont("s9 Bold", "Segoe UI Semibold")
+    btnAdd.OnEvent("Click", AbrirFormPaso.Bind(editorPasosPerfil, 0))
+    RegistrarHover(btnAdd, () => colorBarra)
+    y += 44
+
+    g.Show("w" W " h" y " Center")
+    RedondearVentana(g.Hwnd, 14)
+    editorPasosVisible := true
+    RegistrarAutoCierre(g, CerrarEditorPasos, 10)
+}
+
+SeleccionarPerfilEditor(idx, *) {
+    global editorPasosPerfil, editorPasosScroll
+    editorPasosPerfil := idx
+    editorPasosScroll := 0
+    RefrescarEditorPasos()
+}
+
+CambiarPaginaPasos(dir, *) {
+    global editorPasosScroll, EDITOR_PASOS_VISIBLES, secuenciasPerfil, editorPasosPerfil
+    n := secuenciasPerfil[editorPasosPerfil].Length
+    nuevo := editorPasosScroll + dir * EDITOR_PASOS_VISIBLES
+    editorPasosScroll := Max(0, Min(nuevo, Max(0, n - 1)))
+    RefrescarEditorPasos()
+}
+
+GuardarNombreCustom(idx, edtNom, *) {
+    global configPath
+    nombre := Trim(edtNom.Value)
+    if (nombre = "")
+        nombre := NombreCustomPerfil(idx)
+    IniWrite(nombre, configPath, "PerfilesCustom", "Nombre" idx)
+    ToolTip("Nombre guardado")
+    SetTimer(() => ToolTip(), -900)
+}
+
+MoverPaso(perfilIdx, i, dir, *) {
+    global secuenciasPerfil
+    sec := secuenciasPerfil[perfilIdx]
+    j := i + dir
+    if (j < 1 || j > sec.Length)
+        return
+    tmp := sec[i]
+    sec[i] := sec[j]
+    sec[j] := tmp
+    GuardarSecuenciaPerfil(perfilIdx)
+    RefrescarEditorPasos()
+}
+
+BorrarPaso(perfilIdx, i, *) {
+    global secuenciasPerfil, secIdx
+    sec := secuenciasPerfil[perfilIdx]
+    sec.RemoveAt(i)
+    GuardarSecuenciaPerfil(perfilIdx)
+    if (secIdx > sec.Length)
+        secIdx := 1   ; evita que el motor quede apuntando fuera de rango
+    RefrescarEditorPasos()
+}
+
+RefrescarEditorPasos() {
+    global editorPasosVisible
+    if (editorPasosVisible) {
+        AbrirEditorPasos(0)
+        AbrirEditorPasos(0)
+    }
+}
+
+CerrarEditorPasos(*) {
+    global editorPasosGui, editorPasosVisible
+    CerrarFormPaso()
+    if (IsObject(editorPasosGui)) {
+        try LimpiarHoverGui(editorPasosGui)
+        try editorPasosGui.Destroy()
+    }
+    editorPasosVisible := false
+}
+
+; ── Formulario de un paso (nuevo o editar) — ventana aparte, más simple que
+; manejar el add/editar dentro de la lista. Los campos que no aplican al tipo
+; elegido se ocultan (ver ActualizarVisibilidadCamposPaso), no se destruyen.
+AbrirFormPaso(perfilIdx, editIdx, *) {
+    global formPasoGui, formPasoVisible, formPasoPerfil, formPasoEditIdx, formPasoCampos
+    global secuenciasPerfil, colorFondoPrincipal, colorTextoPrincipal, colorBarra, colorTextoBarra, colorBotonNormal, colorBtnTexto
+
+    if (formPasoVisible && IsObject(formPasoGui)) {
+        try LimpiarHoverGui(formPasoGui)
+        try formPasoGui.Destroy()
+        formPasoVisible := false
+    }
+    formPasoPerfil := perfilIdx
+    formPasoEditIdx := editIdx
+    formPasoCampos := Map()
+
+    paso := (editIdx > 0) ? secuenciasPerfil[perfilIdx][editIdx] : { tipo: "click" }
+
+    W := 340
+    g := Gui("+AlwaysOnTop -Caption +ToolWindow")
+    g.BackColor := colorFondoPrincipal
+    formPasoGui := g
+
+    titulo := (editIdx > 0) ? ("Editar paso " editIdx) : "Nuevo paso"
+    barr := g.Add("Text", "x0 y0 w" W " h30 Background" colorBarra " Center +0x200", "  " titulo)
+    barr.SetFont("s10 c" colorTextoBarra " Bold", "Segoe UI Semibold")
+    barr.OnEvent("Click", (*) => PostMessage(0xA1, 2,,, "ahk_id " formPasoGui.Hwnd))
+
+    y := 40
+    g.Add("Text", "x14 y" (y + 2) " w50 h22 BackgroundTrans c" colorTextoPrincipal, "Tipo:").SetFont("s9", "Segoe UI")
+    tiposTxt := ["Click", "Presionar tecla", "Spam-click + scroll", "Spam-tecla + flecha"]
+    tiposVal := ["click", "tecla", "spam_scroll", "spam_flecha"]
+    idxSel := 1
+    for i, tv in tiposVal
+        if (tv = paso.tipo)
+            idxSel := i
+    ddl := g.Add("DropDownList", "x66 y" y " w180 h22 Background" colorFondoPrincipal " c" colorTextoPrincipal, tiposTxt)
+    ddl.Value := idxSel
+    formPasoCampos["tipo"] := ddl
+    formPasoCampos["tiposVal"] := tiposVal
+    y += 32
+
+    lblX := g.Add("Text", "x14 y" (y + 2) " w20 h22 BackgroundTrans c" colorTextoPrincipal, "X:")
+    edtX := g.Add("Edit", "x36 y" y " w60 h22 Background" colorFondoPrincipal " c" colorTextoPrincipal, paso.HasProp("x") ? paso.x : "960")
+    lblY := g.Add("Text", "x104 y" (y + 2) " w20 h22 BackgroundTrans c" colorTextoPrincipal, "Y:")
+    edtY := g.Add("Edit", "x126 y" y " w60 h22 Background" colorFondoPrincipal " c" colorTextoPrincipal, paso.HasProp("y") ? paso.y : "540")
+    btnCap := g.Add("Text", "x194 y" y " w132 h22 +0x201 Center Background" colorBotonNormal " c" colorBtnTexto, Chr(0x1F4CD) " Capturar")
+    btnCap.SetFont("s8 Bold", "Segoe UI")
+    RegistrarHover(btnCap, () => colorBotonNormal)
+    formPasoCampos["x"] := edtX, formPasoCampos["y"] := edtY
+    formPasoCampos["lblX"] := lblX, formPasoCampos["lblY"] := lblY, formPasoCampos["btnCap"] := btnCap
+    y += 30
+
+    lblTecla := g.Add("Text", "x14 y" (y + 2) " w50 h22 BackgroundTrans c" colorTextoPrincipal, "Tecla:")
+    edtTecla := g.Add("Edit", "x66 y" y " w60 h22 Background" colorFondoPrincipal " c" colorTextoPrincipal, paso.HasProp("tecla") ? paso.tecla : "e")
+    formPasoCampos["tecla"] := edtTecla, formPasoCampos["lblTecla"] := lblTecla
+    y += 30
+
+    lblFlecha := g.Add("Text", "x14 y" (y + 2) " w56 h22 BackgroundTrans c" colorTextoPrincipal, "Flecha:")
+    edtFlecha := g.Add("Edit", "x72 y" y " w90 h22 Background" colorFondoPrincipal " c" colorTextoPrincipal, paso.HasProp("flecha") ? paso.flecha : "Right")
+    formPasoCampos["flecha"] := edtFlecha, formPasoCampos["lblFlecha"] := lblFlecha
+    y += 30
+
+    lblRetraso := g.Add("Text", "x14 y" (y + 2) " w110 h22 BackgroundTrans c" colorTextoPrincipal, "Espera antes (ms):")
+    edtRetraso := g.Add("Edit", "x126 y" y " w70 h22 Background" colorFondoPrincipal " c" colorTextoPrincipal, paso.HasProp("retraso") ? paso.retraso : "0")
+    formPasoCampos["retraso"] := edtRetraso, formPasoCampos["lblRetraso"] := lblRetraso
+    y += 30
+
+    lblMs := g.Add("Text", "x14 y" (y + 2) " w110 h22 BackgroundTrans c" colorTextoPrincipal, "Duración (ms):")
+    edtMs := g.Add("Edit", "x126 y" y " w70 h22 Background" colorFondoPrincipal " c" colorTextoPrincipal, paso.HasProp("ms") ? paso.ms : "5000")
+    formPasoCampos["ms"] := edtMs, formPasoCampos["lblMs"] := lblMs
+    y += 34
+
+    g.Add("Text", "x14 y" (y + 2) " w150 h22 BackgroundTrans c" colorTextoPrincipal, "Pausa después (ms):").SetFont("s9", "Segoe UI")
+    edtPausa := g.Add("Edit", "x166 y" y " w70 h22 Background" colorFondoPrincipal " c" colorTextoPrincipal, paso.HasProp("bloqueoGlobal") ? paso.bloqueoGlobal : "1000")
+    formPasoCampos["bloqueoGlobal"] := edtPausa
+    y += 38
+
+    btnGuardar := g.Add("Text", "x14 y" y " w150 h30 +0x201 Center Background" colorBarra " c" colorTextoBarra, "Guardar")
+    btnGuardar.SetFont("s9 Bold", "Segoe UI Semibold")
+    btnGuardar.OnEvent("Click", GuardarPasoForm)
+    RegistrarHover(btnGuardar, () => colorBarra)
+    btnCancelar := g.Add("Text", "x" (W - 14 - 150) " y" y " w150 h30 +0x201 Center Background" colorBotonNormal " c" colorBtnTexto, "Cancelar")
+    btnCancelar.SetFont("s9 Bold", "Segoe UI Semibold")
+    btnCancelar.OnEvent("Click", (*) => CerrarFormPaso())
+    RegistrarHover(btnCancelar, () => colorBotonNormal)
+    y += 44
+
+    btnCap.OnEvent("Click", (*) => CapturarPosicionPaso(edtX, edtY, g))
+    ddl.OnEvent("Change", (*) => ActualizarVisibilidadCamposPaso())
+    ActualizarVisibilidadCamposPaso()
+
+    g.Show("w" W " h" y " Center")
+    RedondearVentana(g.Hwnd, 12)
+    formPasoVisible := true
+}
+
+; Muestra/oculta los campos del formulario según el tipo de paso elegido en el DDL.
+ActualizarVisibilidadCamposPaso() {
+    global formPasoCampos
+    ddl := formPasoCampos["tipo"]
+    tipo := formPasoCampos["tiposVal"][ddl.Value]
+    showXY      := (tipo = "click" || tipo = "spam_scroll")
+    showTecla   := (tipo = "tecla" || tipo = "spam_flecha")
+    showFlecha  := (tipo = "spam_flecha")
+    showRetraso := (tipo = "spam_scroll")
+    showMs      := (tipo = "spam_scroll" || tipo = "spam_flecha")
+    for k in ["x", "y", "lblX", "lblY", "btnCap"]
+        formPasoCampos[k].Visible := showXY
+    for k in ["tecla", "lblTecla"]
+        formPasoCampos[k].Visible := showTecla
+    for k in ["flecha", "lblFlecha"]
+        formPasoCampos[k].Visible := showFlecha
+    for k in ["retraso", "lblRetraso"]
+        formPasoCampos[k].Visible := showRetraso
+    for k in ["ms", "lblMs"]
+        formPasoCampos[k].Visible := showMs
+}
+
+; Espera un click del ratón EN PANTALLA (o Esc para cancelar) y vuelca la
+; posición (escalada a 1920x1080, igual que el resto del macro) en los campos
+; X/Y del formulario. Oculta el formulario mientras tanto para no taparse a sí
+; mismo al hacer click justo donde estaba la ventana.
+CapturarPosicionPaso(edtX, edtY, formGuiRef, *) {
+    global scaleX, scaleY
+    try formGuiRef.Hide()
+    ToolTip(Chr(0x1F4CD) " Haz click en la posición del juego...  (Esc cancela)")
+    KeyWait("LButton")
+    KeyWait("Escape")
+    resultado := ""
+    Loop {
+        if (GetKeyState("Escape", "P")) {
+            resultado := "cancel"
+            break
+        }
+        if (GetKeyState("LButton", "P")) {
+            resultado := "click"
+            break
+        }
+        Sleep(15)
+    }
+    ToolTip()
+    if (resultado = "click") {
+        CoordMode("Mouse", "Screen")
+        MouseGetPos(&mx, &my)
+        edtX.Value := Round(mx / scaleX)
+        edtY.Value := Round(my / scaleY)
+        KeyWait("LButton")   ; esperar a que suelte antes de devolver el control
+    }
+    try formGuiRef.Show()
+}
+
+GuardarPasoForm(*) {
+    global formPasoCampos, formPasoPerfil, formPasoEditIdx, secuenciasPerfil
+    tipo := formPasoCampos["tiposVal"][formPasoCampos["tipo"].Value]
+    try {
+        p := { tipo: tipo }
+        if (tipo = "click" || tipo = "spam_scroll") {
+            p.x := Integer(formPasoCampos["x"].Value)
+            p.y := Integer(formPasoCampos["y"].Value)
+        }
+        if (tipo = "tecla" || tipo = "spam_flecha") {
+            p.tecla := Trim(formPasoCampos["tecla"].Value)
+            if (p.tecla = "")
+                throw Error("tecla vacia")
+        }
+        if (tipo = "spam_flecha") {
+            p.flecha := Trim(formPasoCampos["flecha"].Value)
+            if (p.flecha = "")
+                throw Error("flecha vacia")
+        }
+        if (tipo = "spam_scroll") {
+            r := Integer(formPasoCampos["retraso"].Value)
+            if (r > 0)
+                p.retraso := r
+        }
+        if (tipo = "spam_scroll" || tipo = "spam_flecha")
+            p.ms := Integer(formPasoCampos["ms"].Value)
+        bg := Integer(formPasoCampos["bloqueoGlobal"].Value)
+        if (bg > 0)
+            p.bloqueoGlobal := bg
+    } catch {
+        ToolTip("Revisa los campos (números en X/Y/ms/pausa, tecla/flecha no vacías)")
+        SetTimer(() => ToolTip(), -2000)
+        return
+    }
+
+    sec := secuenciasPerfil[formPasoPerfil]
+    if (formPasoEditIdx > 0)
+        sec[formPasoEditIdx] := p
+    else
+        sec.Push(p)
+    GuardarSecuenciaPerfil(formPasoPerfil)
+    CerrarFormPaso()
+    RefrescarEditorPasos()
+}
+
+CerrarFormPaso(*) {
+    global formPasoGui, formPasoVisible
+    if (IsObject(formPasoGui)) {
+        try LimpiarHoverGui(formPasoGui)
+        try formPasoGui.Destroy()
+    }
+    formPasoVisible := false
 }
 
 ; ─────────────────────── (2) TEMA PERSONALIZABLE ───────────────────────
